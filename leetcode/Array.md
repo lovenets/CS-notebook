@@ -545,5 +545,85 @@ func maxArea(height []int) int {
 
 Time Complexity: O(n)
 
+### 8. Word Search  
+
+Given a 2D board and a word, find if the word exists in the grid.
+
+The word should be constructed from letters of sequentially adjacent cell, where "adjacent" cells are those horizontally or vertically neighboring. The same letter cell may not be used more than once.
+
+**Example:**
+
+```
+board =
+[
+  ['A','B','C','E'],
+  ['S','F','C','S'],
+  ['A','D','E','E']
+]
+
+Given word = "ABCCED", return true.
+Given word = "SEE", return true.
+Given word = "ABCB", return false.
+```
+
+**solution**
+
+Obviously, this problem is related to DFS because **The word should be constructed from letters of sequentially adjacent cell**. Sounds like adjacent graph, right? 
+
+```go
+func exist(board [][]byte, word string) bool {
+	if len(word) == 0 {
+		return false
+	}
+
+	b := []byte(word)
+	// x and y are index
+	for x := range board {
+		for y := range board[x] {
+			if dfs(x, y, board, b) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func dfs(x, y int, board [][]byte, word []byte) bool {
+	if x < 0 || x >= len(board) {
+		return false
+	}
+
+	if y < 0 || y >= len(board[x]) {
+		return false
+	}
+
+	if board[x][y] != word[0] {
+		return false
+	}
+
+	if len(word) == 1 {
+		return true
+	}
+
+	// mark the searched cell
+	tmp := board[x][y]
+	board[x][y] = '-'
+
+    // After a successful round, found letters will be  
+    // removed from word
+	found := dfs(x+1, y, board, word[1:]) ||
+		dfs(x-1, y, board, word[1:]) ||
+		dfs(x, y+1, board, word[1:]) ||
+		dfs(x, y-1, board, word[1:])
+
+	// recover the searched cell for next round
+	board[x][y] = tmp
+
+	return found
+}
+```
+
+In every round, in order to avoid repeat work, we need to mark searched cell. The native solution is to create a bool matrix but it will cost extra space. Since the content in every cell should be an English letter, we can change the contents of searched cells into '-', which is not an English letter. But when we finish a round, we should recover the contents of searched cells preparing for next round.
+
 
 

@@ -232,6 +232,8 @@ func isValidSerialization(preorder string) bool {
 }
 ```
 
+Time Complexity: $O(n^2)$, n is the sum of nodes
+
 (2) Not Using Stack
 
 Obviously, in a binary tree, a node except for the root consumes an edge which points to its father and a not null node generates two edges which point to its children. Therefore, the sum of edges should not be negative. 
@@ -263,5 +265,5 @@ func isValidSerialization(preorder string) bool {
 }
 ```
 
-
+Time Complexity: $O(n)$, n is the sum of nodes
 

@@ -267,3 +267,194 @@ func isValidSerialization(preorder string) bool {
 
 Time Complexity: $O(n)$, n is the sum of nodes
 
+#### 3. [Sum of Subarrays Minimums](https://leetcode.com/problems/sum-of-subarray-minimums/)
+
+Given an array of integers `A`, find the sum of `min(B)`, where `B`ranges over every (contiguous) subarray of `A`.
+
+Since the answer may be large, **return the answer modulo 10^9 + 7.**
+
+**Example 1:**
+
+```
+Input: [3,1,2,4]
+Output: 17
+Explanation: Subarrays are [3], [1], [2], [4], [3,1], [1,2], [2,4], [3,1,2], [1,2,4], [3,1,2,4]. 
+Minimums are 3, 1, 2, 4, 1, 1, 2, 1, 1, 1.  Sum is 17.
+```
+
+**Solution**
+
+Here is the [explanation link](https://leetcode.com/problems/sum-of-subarray-minimums/discuss/178876/stack-solution-with-very-detailed-explanation-step-by-step).
+
+Before diving into the solution, we first introduce a very important stack type, which is called **monotone stack** .
+
+**What is monotonous increase stack?**
+
+Roughly speaking, the elements in the an monotonous increase stack keeps an increasing order.
+
+**The typical paradigm for monotonous increase stack**:
+
+```
+for(int i = 0; i < A.size(); i++){
+  while(!in_stk.empty() && in_stk.top() > A[i]){
+    in_stk.pop();
+  }
+  in_stk.push(A[i]);
+}
+```
+
+**What can monotonous increase stack do?**
+
+(1) find the **previous less** element of each element in a vector **with O(n) time**:
+
+- What is the previous less element of an element?
+  For example:
+  [3, 7, 8, 4]
+  The previous less element of 7 is 3.
+  The previous less element of 8 is 7.
+  **The previous less element of 4 is 3**.
+  There is no previous less element for 3.
+
+For simplicity of notation, we use abbreviation **PLE** to denote **P**revious **L**ess **E**lement.
+
+- C++ code (by slightlymodifying the paradigm):
+  Instead of directly pushing the element itself, here for simplicity, we push the **index**.
+  We do some record when the index is pushed into the stack.
+
+```c++
+// previous_less[i] = j means A[j] is the previous less element of A[i].
+// previous_less[i] = -1 means there is no previous less element of A[i].
+vector<int> previous_less(A.size(), -1);
+for(int i = 0; i < A.size(); i++){
+  while(!in_stk.empty() && A[in_stk.top()] > A[i]){
+    in_stk.pop();
+  }
+  previous_less[i] = in_stk.empty()? -1: in_stk.top();
+  in_stk.push(i);
+}
+```
+
+(2) find the **next less** element of each element in a vector with **O(n) time**:
+
+- What is the next less element of an element?
+  For example:
+  [3, 7, 8, 4]
+  The next less element of 8 is 4.
+  **The next less element of 7 is 4**.
+  There is no next less element for 3 and 4.
+
+For simplicity of notation, we use abbreviation **NLE** to denote **N**ext **L**ess **E**lement.
+
+- C++ code (by slighly modifying the paradigm):
+  We do some record when the index is poped out from the stack.
+
+```c++
+// next_less[i] = j means A[j] is the next less element of A[i].
+// next_less[i] = -1 means there is no next less element of A[i].
+vector<int> previous_less(A.size(), -1);
+for(int i = 0; i < A.size(); i++){
+  while(!in_stk.empty() && A[in_stk.top()] > A[i]){
+    auto x = in_stk.top(); in_stk.pop();
+    next_less[x] = i;
+  }
+  in_stk.push(i);
+}
+```
+
+**How can the monotonous increase stack be applied to this problem?**
+
+For example:
+Consider the element `3` in the following vector:
+
+```
+                            [2, 9, 7, 8, 3, 4, 6, 1]
+			     |                    |
+	             the previous less       the next less 
+	                element of 3          element of 3
+```
+
+After finding both **NLE** and **PLE** of `3`, we can determine the
+distance between `3` and `2`(previous less) , and the distance between `3` and `1`(next less).
+In this example, the distance is `4` and `3` respectively.
+
+**How many subarrays with 3 being its minimum value?**
+The answer is `4*3`.
+
+```
+9 7 8 3 
+9 7 8 3 4 
+9 7 8 3 4 6 
+7 8 3 
+7 8 3 4 
+7 8 3 4 6 
+8 3 
+8 3 4 
+8 3 4 6 
+3 
+3 4 
+3 4 6
+```
+
+**How much the element 3 contributes to the final answer?**
+It is `3*(4*3)`.
+**What is the final answer?**
+Denote by `left[i]` the distance between element `A[i]` and its **PLE**.
+Denote by `right[i]` the distance between element `A[i]` and its **NLE**.
+
+The final answer is,`sum(A[i]*left[i]*right[i] )`.
+
+```go
+func sumSubarrayMins(A []int) int {
+	// initialize previous less element and next less element
+	// of each element in the array
+	// Actually, we use a 2D array to simulate a 1D array
+	// whose elements are tuples (A[i],i)
+	PLE := make([][]int, 0)
+	NLE := make([][]int, 0)
+
+	// left is for the distance to PLE
+	// right is for the distance to NLE
+	left := make([]int, len(A))
+	right := make([]int, len(A))
+
+	// generate PLE and left
+	for i := 0; i < len(A); i++ {
+		for len(PLE) != 0 && PLE[len(PLE)-1][0] >= A[i] {
+			PLE = append(PLE[:len(PLE)-1], PLE[len(PLE):]...)
+		}
+		if len(PLE) == 0 {
+			// no PLE for A[i] so let left[i] be (i + 1)
+			left[i] = i + 1
+		} else {
+			left[i] = i - PLE[len(PLE)-1][1]
+		}
+		PLE = append(PLE, []int{A[i], i})
+	}
+
+	// generate MLE and right
+	for i := len(A) - 1; i >= 0; i-- {
+		for len(NLE) != 0 && NLE[len(NLE)-1][0] > A[i] {
+			NLE = append(NLE[:len(NLE)-1], NLE[len(NLE):]...)
+		}
+		if len(NLE) == 0 {
+			// no NLE for A[i] so let right[i] be (len(A) - i)
+			right[i] = len(A) - i
+		} else {
+			right[i] = NLE[len(NLE)-1][1] - i
+		}
+		NLE = append(NLE, []int{A[i], i})
+	}
+
+	ans := 0
+	for i := 0; i < len(A); i++ {
+		ans += A[i]*left[i]*right[i]
+	}
+	return ans % 1000000007
+}
+```
+
+Please notice that when PLE or NLE is empty, we set `left[i] = i + 1` and `right[i] = len(A) - i`repectively. When NLE is empty, which means no previous less element for `A[i]`, we set `left[i] = i+1` by default.
+For example `[7 8 4 3]`, there is no PLE for element `4`, so `left[2] = 2+1 =3`.
+How many subarrays with 4(`A[2]`) being its minimum value? It's `left[2]*right[2]=3*1`.
+So the default value `i+1` for `left[i]` and the default value `len(A)-i` for `right[i]` are for counting the subarrays **conveniently**.  
+

@@ -458,3 +458,180 @@ For example `[7 8 4 3]`, there is no PLE for element `4`, so `left[2] = 2+1 =3`.
 How many subarrays with 4(`A[2]`) being its minimum value? It's `left[2]*right[2]=3*1`.
 So the default value `i+1` for `left[i]` and the default value `len(A)-i` for `right[i]` are for counting the subarrays **conveniently**.  
 
+#### 4. [Simplify Path](https://leetcode.com/problems/simplify-path/)
+
+Given an absolute path for a file (Unix-style), simplify it. 
+
+For example,
+**path** = `"/home/"`, => `"/home"`
+**path** = `"/a/./b/../../c/"`, => `"/c"`
+**path** = `"/a/../../b/../c//.//"`, => `"/c"`
+**path** = `"/a//b////c/d//././/.."`, => `"/a/b/c"`
+
+In a UNIX-style file system, a period ('.') refers to the current directory, so it can be ignored in a simplified path. Additionally, a double period ("..") moves up a directory, so it cancels out whatever the last directory was. For more information, look here: <https://en.wikipedia.org/wiki/Path_(computing)#Unix_style>
+
+**Corner Cases:**
+
+- Did you consider the case where **path** = `"/../"`?
+  In this case, you should return `"/"`.
+- Another corner case is the path might contain multiple slashes `'/'` together, such as `"/home//foo/"`.
+  In this case, you should ignore redundant slashes and return `"/home/foo"`.
+
+**My Solution**
+
+```go
+func simplifyPath(path string) string {
+	if len(path) == 0 {
+		return ""
+	}
+
+	// use a stack to store string except for . and ..
+	stack := make([]string, 0)
+
+	for _, s := range strings.Split(path, "/") {
+		// if we find a normal string ie. a directory, push it into stack
+		if ok, _ := regexp.MatchString("[a-zA-Z]+", s); ok {
+			stack = append(stack, s)
+		}
+		// if we find a "..", pop the stack
+		// because ".." cancels last directory
+		if s == ".." {
+			if len(stack) != 0 {
+				stack = append(stack[:len(stack)-1], stack[len(stack):]...)
+			}
+		}
+        // if we find a "...", push it into stack
+        if s == "..." {
+            stack = append(stack,s)
+        }
+	}
+
+	var simplified string
+	var builder strings.Builder
+	if len(stack) == 0 {
+		simplified = "/"
+	} else {
+		for _, s := range stack {
+			builder.WriteString("/" + s)
+		}
+		simplified = builder.String()
+	}
+	return simplified
+}
+```
+
+Time Complexity: $O(n)$, n is the number of valid directories in the path
+
+Since using regular expression is a time consuming operation, drop it.
+
+```go
+func simplifyPath(path string) string {
+		if len(path) == 0 {
+		return ""
+	}
+
+	// use a stack to store string except for . and ..
+	stack := make([]string, 0)
+
+	for _, s := range strings.Split(path, "/") {
+		// if we find a "..." or valid directory, push it
+		if s != "" && s != "." && s != ".." {
+			stack = append(stack, s)
+		}
+		// if we find a "..", pop the stack
+		// because ".." cancels last directory
+		if s == ".." && len(stack) != 0 {
+			stack = append(stack[:len(stack)-1], stack[len(stack):]...)
+		}
+	}
+
+	var simplified string
+	var builder strings.Builder
+	if len(stack) == 0 {
+		simplified = "/"
+	} else {
+		for _, s := range stack {
+			builder.WriteString("/" + s)
+		}
+		simplified = builder.String()
+	}
+	return simplified
+}
+```
+
+#### 5. [Score of Parentheses](https://leetcode.com/problems/score-of-parentheses/)
+
+Given a balanced parentheses string `S`, compute the score of the string based on the following rule:
+
+- `()` has score 1
+- `AB` has score `A + B`, where A and B are balanced parentheses strings.
+- `(A)` has score `2 * A`, where A is a balanced parentheses string.
+
+**Example 1:**
+
+```
+Input: "()"
+Output: 1
+```
+
+**Example 2:**
+
+```
+Input: "(())"
+Output: 2
+```
+
+**Example 3:**
+
+```
+Input: "()()"
+Output: 2
+```
+
+**Example 4:**
+
+```
+Input: "(()(()))"
+Output: 6
+```
+
+**Solution**
+
+```go
+func scoreOfParentheses(S string) int {
+	// since S.length <= 50, initialize the length og stack
+	stack := make([]int, 50/2+1)
+
+	for _, val := range S {
+		s := string(val)
+		if s == "(" {
+			stack = append(stack, -1)
+		} else {
+			cur := 0
+			// when we find a ")", pop the stack until the top is not -1
+			for stack[len(stack)-1] != -1 {
+				cur += stack[len(stack)-1]
+				stack = append(stack[:len(stack)-1], stack[len(stack):]...)
+			}
+			stack = append(stack[:len(stack)-1], stack[len(stack):]...)
+
+			if cur == 0 {
+				// we find a "()"
+				stack = append(stack, 1)
+			} else {
+				// we find nested "()" 
+				stack = append(stack, cur*2)
+			}
+		}
+	}
+	sum := 0
+	for len(stack) != 0 {
+		sum += stack[len(stack)-1]
+		stack = append(stack[:len(stack)-1], stack[len(stack):]...)
+	}
+	return sum
+}
+```
+
+Time Complexity: $O(n)$, n is the length of `S`.
+

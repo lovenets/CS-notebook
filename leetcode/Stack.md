@@ -635,3 +635,82 @@ func scoreOfParentheses(S string) int {
 
 Time Complexity: $O(n)$, n is the length of `S`.
 
+#### 6.[Remove K Digits](https://leetcode.com/problems/remove-k-digits/)
+
+Given a non-negative integer *num* represented as a string, remove *k*digits from the number so that the new number is the smallest possible.
+
+**Note:**
+
+- The length of *num* is less than 10002 and will be ≥ *k*.
+- The given *num* does not contain any leading zero.
+
+**Example 1:**
+
+```
+Input: num = "1432219", k = 3
+Output: "1219"
+Explanation: Remove the three digits 4, 3, and 2 to form the new number 1219 which is the smallest.
+```
+
+**Example 2:**
+
+```
+Input: num = "10200", k = 1
+Output: "200"
+Explanation: Remove the leading 1 and the number is 200. Note that the output must not contain leading zeroes.
+```
+
+**Example 3:**
+
+```
+Input: num = "10", k = 2
+Output: "0"
+Explanation: Remove all the digits from the number and it is left with nothing which is 0.
+```
+
+**Solution**
+
+```go
+func removeKdigits(num string, k int) string {
+   if len(num) == k {
+      return "0"
+   }
+
+   stack := make([]string, 0)
+   i := 0
+   for i < len(num) {
+      digit, _ := strconv.Atoi(string(num[i]))
+      // when we find a less digit, pop the stack
+      for k > 0 && len(stack) != 0 {
+         top, _ := strconv.Atoi(string(stack[len(stack)-1]))
+         if digit < top {
+            stack = append(stack[:len(stack)-1], stack[len(stack):]...)
+            k--
+         } else {
+            break
+         }
+      }
+      stack = append(stack, string(num[i]))
+      i++
+   }
+
+   // what if input number is like "111"
+   for k > 0 {
+      stack = append(stack[:len(stack)-1], stack[len(stack):]...)
+      k--
+   }
+
+   // delete all leading "0"
+   for len(stack) > 1 && string(stack[0]) == "0" {
+      stack = append(stack[:0], stack[1:]...)
+   }
+   var b strings.Builder
+   for _, s := range stack {
+      b.WriteString(s)
+   }
+   return b.String()
+}
+```
+
+Time Complexity: $O(n)$, n is the length of `num`.
+

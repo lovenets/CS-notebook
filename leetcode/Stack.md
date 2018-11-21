@@ -716,3 +716,105 @@ func removeKdigits(num string, k int) string {
 
 Time Complexity: $O(n)$, n is the length of `num`.
 
+#### 7. [Online Stock Span](https://leetcode.com/problems/online-stock-span)
+
+Write a class `StockSpanner` which collects daily price quotes for some stock, and returns the *span* of that stock's price for the current day.
+
+The span of the stock's price today is defined as the maximum number of **consecutive** days (**starting from today** and going backwards) for which the price of the stock was less than or equal to today's price.
+
+For example, if the price of a stock over the next 7 days were `[100, 80, 60, 70, 60, 75, 85]`, then the stock spans would be `[1, 1, 1, 2, 1, 4, 6]`.
+
+**Example 1:**
+
+```
+Input: ["StockSpanner","next","next","next","next","next","next","next"], [[],[100],[80],[60],[70],[60],[75],[85]]
+Output: [null,1,1,1,2,1,4,6]
+Explanation: 
+First, S = StockSpanner() is initialized.  Then:
+S.next(100) is called and returns 1,
+S.next(80) is called and returns 1,
+S.next(60) is called and returns 1,
+S.next(70) is called and returns 2,
+S.next(60) is called and returns 1,
+S.next(75) is called and returns 4,
+S.next(85) is called and returns 6.
+
+Note that (for example) S.next(75) returned 4, because the last 4 prices
+(including today's price of 75) were less than or equal to today's price.
+```
+
+**Note:**
+
+1. Calls to `StockSpanner.next(int price)` will have `1 <= price <= 10^5`.
+2. There will be at most `10000` calls to `StockSpanner.next` per test case.
+3. There will be at most `150000` calls to `StockSpanner.next`across all test cases.
+4. The total time limit for this problem has been reduced by 75% for C++, and 50% for all other languages.
+
+**My Solution**
+
+```go
+type StockSpanner struct {
+	Prices []int
+}
+
+func Constructor() StockSpanner {
+	return StockSpanner{Prices: make([]int, 0)}
+}
+
+// linear scan
+func (this *StockSpanner) Next(price int) int {
+	this.Prices = append(this.Prices, price)
+	days := 0
+	if len(this.Prices) > 1 {
+		count := 0
+		for i := len(this.Prices) - 1; i >= 0; i-- {
+			if this.Prices[i] <= price {
+				count++
+			} else {
+				days = count
+				break
+			}
+		}
+		// corner case: [null,1,2,3,4,5]
+		if days == 0 {
+			days = count
+		}
+	} else {
+		// the first input
+		days = 1
+	}
+	return days
+}
+```
+
+Time Complexity: $O(n)$, n is the number of prices which have been input so far.
+
+**Improvement**
+
+If we can store the previous results, we don't need to iterate through the prices array every time.
+
+Push every pair of `<price, result>` to a stack. Pop lower price from the stack and accumulate the count.
+
+```go
+type StockSpanner struct {
+	// we use a 2D array to simulate a tuple (price,days)
+	Prices [][]int
+}
+
+func Constructor() StockSpanner {
+	return StockSpanner{Prices: make([][]int, 0)}
+}
+
+func (this *StockSpanner) Next(price int) int {
+	days := 1
+	for len(this.Prices) != 0 && this.Prices[len(this.Prices)-1][0] <= price {
+		days += this.Prices[len(this.Prices)-1][1]
+		// we pop the stack to avoid accumulating repeatedly
+		this.Prices = append(this.Prices[:len(this.Prices)-1], this.Prices[len(this.Prices):]...)
+	}
+	this.Prices = append(this.Prices, []int{price, days})
+	return days
+}
+```
+
+Time Complexity: $O(1)$, just think about the case [1,2,3,4,5]

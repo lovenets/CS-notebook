@@ -670,6 +670,8 @@ Explanation: Remove all the digits from the number and it is left with nothing w
 
 **Solution**
 
+Since we can't change the orders of digits, we just need to carry on finding a less digit until we get enough digits.
+
 ```go
 func removeKdigits(num string, k int) string {
    if len(num) == k {

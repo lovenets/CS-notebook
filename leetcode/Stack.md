@@ -817,4 +817,108 @@ func (this *StockSpanner) Next(price int) int {
 }
 ```
 
-Time Complexity: $O(1)$, just think about the case [1,2,3,4,5]
+Time Complexity: $O(1)$, just think about the case [1,2,3,4,5].
+
+#### 8.[Next Greater Element II](https://leetcode.com/problems/next-greater-element-ii)
+
+Given a circular array (the next element of the last element is the first element of the array), print the Next Greater Number for every element. The Next Greater Number of a number x is the first greater number to its traversing-order next in the array, which means you could search **circularly** to find its next greater number. If it doesn't exist, output -1 for this number.
+
+**Example 1:**
+
+```
+Input: [1,2,1]
+Output: [2,-1,2]
+Explanation: The first 1's next greater number is 2; 
+The number 2 can't find next greater number; 
+The second 1's next greater number needs to search circularly, which is also 2.
+```
+
+**Note:** The length of given array won't exceed 10000.
+
+**My Solution**
+
+Brute Force, again.
+
+```go
+// brute force
+func nextGreaterElements(nums []int) []int {
+	result := make([]int, len(nums))
+	for i, v := range nums {
+		result[i] = -1
+		var j int
+		if i == len(nums) - 1 {
+			j = 0
+		} else {
+			j = i + 1
+		}
+		for j != i {
+			if nums[j] > v {
+				result[i] = nums[j]
+				break
+			}
+			if j + 1 == len(nums) {
+				j = 0
+			} else {
+				j++
+			}
+		}
+	}
+	return result
+}
+```
+
+To lessen the number of `if` statements, use modulus (%) operation.
+
+```go
+// brute force
+func nextGreaterElements(nums []int) []int {
+	result := make([]int, len(nums))
+	for i, v := range nums {
+		result[i] = -1
+		for j := 1; j < len(nums); j++ {
+			if nums[(i+j)%len(nums)] > v {
+				result[i] = nums[(i+j)%len(nums)]
+				break
+			}
+		}
+	}
+	return result
+}
+```
+
+Keep this trick in mind.
+
+Time complexity (the worst case): $O(n^2)$, n is the length of `nums` .
+
+**Improvement**
+
+Considering the example `[5, 4, 3, 2, 1, 6]`, the greater number `6` is the next greater element for all previous numbers in the sequence. We use a stack to keep a **decreasing** sub-sequence, whenever we see a number `x` greater than the top of stack we pop all elements less than `x` and for all the popped ones, their next greater element is `x`.
+
+```go
+func nextGreaterElements(nums []int) []int {
+	length := len(nums)
+	// set the default value -1
+	res := make([]int, length)
+	for k, _ := range res {
+		res[k] = -1
+	}
+	// the stack stores the indices of descending subarray
+	stack := make([]int, 0)
+	// we can transverse the array circularly, so i < length*2
+	for i := 0; i < length*2; i++ {
+		num := nums[i%length]
+		// pop all indices of elements less than current number
+		for len(stack) > 0 && nums[stack[len(stack)-1]] < num {
+			res[stack[len(stack)-1]] = num
+			stack = append(stack[:len(stack)-1], stack[len(stack):]...)
+		}
+		// avoid push the same index repeatedly
+		if i < length {
+			stack = append(stack, i)
+		}
+	}
+	return res
+}
+```
+
+Time Complexity: $O(n)$, n is the length of `nums`.

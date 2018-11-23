@@ -912,7 +912,7 @@ func nextGreaterElements(nums []int) []int {
 			res[stack[len(stack)-1]] = num
 			stack = append(stack[:len(stack)-1], stack[len(stack):]...)
 		}
-		// avoid push the same index repeatedly
+		// avoid pushing the same index repeatedly
 		if i < length {
 			stack = append(stack, i)
 		}
@@ -922,3 +922,170 @@ func nextGreaterElements(nums []int) []int {
 ```
 
 Time Complexity: $O(n)$, n is the length of `nums`.
+
+#### 9.[Flatten Nested List Iterator](https://leetcode.com/problems/flatten-nested-list-iterator)
+
+Given a nested list of integers, implement an iterator to flatten it.
+
+Each element is either an integer, or a list -- whose elements may also be integers or other lists.
+
+**Example 1:**
+
+```
+Input: [[1,1],2,[1,1]]
+Output: [1,1,2,1,1]
+Explanation: By calling next repeatedly until hasNext returns false, 
+             the order of elements returned by next should be: [1,1,2,1,1].
+```
+
+**Example 2:**
+
+```
+Input: [1,[4,[6]]]
+Output: [1,4,6]
+Explanation: By calling next repeatedly until hasNext returns false, 
+             the order of elements returned by next should be: [1,4,6].
+```
+
+**My Solution**
+
+```java
+/**
+ * // This is the interface that allows for creating nested lists.
+ * // You should not implement it, or speculate about its implementation
+ * public interface NestedInteger {
+ *
+ *     // @return true if this NestedInteger holds a single integer, rather than a nested list.
+ *     public boolean isInteger();
+ *
+ *     // @return the single integer that this NestedInteger holds, if it holds a single integer
+ *     // Return null if this NestedInteger holds a nested list
+ *     public Integer getInteger();
+ *
+ *     // @return the nested list that this NestedInteger holds, if it holds a nested list
+ *     // Return null if this NestedInteger holds a single integer
+ *     public List<NestedInteger> getList();
+ * }
+ */
+public class NestedIterator implements Iterator<Integer> {
+    // all single integers
+    private List<Integer> singleIntegers;
+
+    public NestedIterator(List<NestedInteger> nestedList) {
+        singleIntegers = new LinkedList<>();
+        flatten(nestedList);
+    }
+
+    @Override
+    public boolean hasNext() {
+        return singleIntegers.isEmpty();
+    }
+
+    @Override
+    public Integer next() {
+        return singleIntegers.isEmpty() ? null : singleIntegers.remove(0);
+    }
+
+    // get every single integer from nestedList
+    private void flatten(List<NestedInteger> nestedList) {
+        for (NestedInteger n : nestedList) {
+            if (n.isInteger()) {
+                // if we find an integer, just add it into list
+                singleIntegers.add(n.getInteger());
+            } else {
+                // if we find a nested list, resolve it recursively
+                flatten(n.getList());
+            }
+        }
+    }
+}
+
+/**
+ * Your NestedIterator object will be instantiated and called as such:
+ * NestedIterator i = new NestedIterator(nestedList);
+ * while (i.hasNext()) v[f()] = i.next();
+ */
+```
+
+Since it's Java, use `Iterator`to simplify the codes.
+
+```java
+public class NestedIterator implements Iterator<Integer> {
+    // all single integers
+    private List<Integer> singleIntegers;
+    
+    private Iterator<Integer> iter;
+
+    public NestedIterator(List<NestedInteger> nestedList) {
+        singleIntegers = new LinkedList<>();
+        flatten(nestedList);
+        iter = singleIntegers.iterator();
+    }
+
+    @Override
+    public boolean hasNext() {
+        return iter.hasNext();
+    }
+
+    @Override
+    public Integer next() {
+        return iter.next();
+    }
+
+    // get every single integer from nestedList
+    private void flatten(List<NestedInteger> nestedList) {
+        for (NestedInteger n : nestedList) {
+            if (n.isInteger()) {
+                // if we find an integer, just add it into list
+                singleIntegers.add(n.getInteger());
+            } else {
+                // if we find a nested list, resolve it recursively
+                flatten(n.getList());
+            }
+        }
+    }
+}
+```
+
+**Other**
+
+In the constructor, we push all the `nestedList` into the stack from back to front, so when we pop the stack, it returns the very first element. Second, in the `hasNext()` function, we peek the first element in stack currently, and if it is an Integer, we will return true and pop the element. If it is a list, we will further flatten it. This is iterative version of flatting the nested list. Again, we need to iterate from the back to front of the list.
+
+```java
+public class NestedIterator implements Iterator<Integer> {
+    Stack<NestedInteger> stk = null;
+    public NestedIterator(List<NestedInteger> nestedList) {
+        stk = new Stack();
+        flattenHelper(nestedList);
+    }
+
+    @Override
+    public Integer next() {
+        return stk.pop().getInteger();
+    }
+
+    @Override
+    public boolean hasNext() {
+        while(!stk.isEmpty()){
+            NestedInteger ele = stk.peek();
+            if(ele.isInteger())
+                return true;
+            else {
+                stk.pop();
+                flattenHelper(ele.getList());
+            }
+                
+        }
+        return false;
+    }
+    
+    // NOTE: iterate through the list from back to front
+    private void flattenHelper(List<NestedInteger> nestedList){
+        for(int i=nestedList.size()-1 ; i>=0; i--){
+            stk.push(nestedList.get(i));
+        }
+    }
+}
+```
+
+Time Complexity : `next` - $O(1)$, `hasNext` - $O(m)$ : `m` is average size of nested list, Constructor : $O(n)​$ - size of input list

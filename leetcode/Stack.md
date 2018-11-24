@@ -1088,4 +1088,132 @@ public class NestedIterator implements Iterator<Integer> {
 }
 ```
 
-Time Complexity : `next` - $O(1)$, `hasNext` - $O(m)$ : `m` is average size of nested list, Constructor : $O(n)​$ - size of input list
+Time Complexity : `next` - $O(1)$, `hasNext` - $O(m)$ : `m` is average size of nested list, Constructor : $O(n)$ - size of input list
+
+#### 10.[Evaluate Reverse Polish Notation](https://leetcode.com/problems/evaluate-reverse-polish-notation/)
+
+Evaluate the value of an arithmetic expression in [Reverse Polish Notation](http://en.wikipedia.org/wiki/Reverse_Polish_notation).
+
+Valid operators are `+`, `-`, `*`, `/`. Each operand may be an integer or another expression.
+
+**Note:**
+
+- Division between two integers should truncate toward zero.
+- The given RPN expression is always valid. That means the expression would always evaluate to a result and there won't be any divide by zero operation.
+
+**Example 1:**
+
+```
+Input: ["2", "1", "+", "3", "*"]
+Output: 9
+Explanation: ((2 + 1) * 3) = 9
+```
+
+**Example 2:**
+
+```
+Input: ["4", "13", "5", "/", "+"]
+Output: 6
+Explanation: (4 + (13 / 5)) = 6
+```
+
+**Example 3:**
+
+```
+Input: ["10", "6", "9", "3", "+", "-11", "*", "/", "*", "17", "+", "5", "+"]
+Output: 22
+Explanation: 
+  ((10 * (6 / ((9 + 3) * -11))) + 17) + 5
+= ((10 * (6 / (12 * -11))) + 17) + 5
+= ((10 * (6 / -132)) + 17) + 5
+= ((10 * 0) + 17) + 5
+= (0 + 17) + 5
+= 17 + 5
+= 22
+```
+
+**My Solution**
+
+Quite easy, hm?
+
+```go
+func evalRPN(tokens []string) int {
+	stack := make([]int, 0)
+	for _, v := range tokens {
+		if !strings.Contains("+-*/", v) {
+			// if we find a number, push it into the stack
+			num, _ := strconv.Atoi(v)
+			stack = append(stack, num)
+		} else {
+			// if we find an operator, pop the stack twice
+			// to get two operands
+			right := stack[len(stack)-1]
+			stack = append(stack[:len(stack)-1], stack[len(stack):]...)
+			left := stack[len(stack)-1]
+			stack = append(stack[:len(stack)-1], stack[len(stack):]...)
+			// evaluate the expression and
+			// push the result into the stack
+			stack = append(stack, calc(left, right, v))
+		}
+	}
+	return stack[0]
+}
+
+func calc(left int, right int, op string) int {
+	switch op {
+	case "+":
+		return left + right
+	case "-":
+		return left - right
+	case "*":
+		return left * right
+	case "/":
+		return left / right
+	default:
+		return 0
+	}
+}
+```
+
+Time Complexity: $O(n)$, n is the length of input array.
+
+**Improvement**
+
+Actually, `strings.Contains`is a time-consuming operation. We can use `switch`statement instead.
+
+```go
+func evalRPN(tokens []string) int {
+	stack := make([]int, 0)
+	var l int
+	var r int
+	for _, v := range tokens {
+		switch v {
+		case "+":
+			l, r, stack = getOperands(stack)
+			stack = append(stack, l+r)
+		case "-":
+			l, r, stack = getOperands(stack)
+			stack = append(stack, l-r)
+		case "*":
+			l, r, stack = getOperands(stack)
+			stack = append(stack, l*r)
+		case "/":
+			l, r, stack = getOperands(stack)
+			stack = append(stack, l/r)
+		default:
+			num, _ := strconv.Atoi(v)
+			stack = append(stack, num)
+		}
+	}
+	return stack[0]
+}
+
+func getOperands(stack []int) (int, int, []int) {
+	r := stack[len(stack)-1]
+	stack = append(stack[:len(stack)-1], stack[len(stack):]...)
+	l := stack[len(stack)-1]
+	stack = append(stack[:len(stack)-1], stack[len(stack):]...)
+	return l, r, stack
+}
+```
+

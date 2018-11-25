@@ -1217,3 +1217,94 @@ func getOperands(stack []int) (int, int, []int) {
 }
 ```
 
+#### 11. [Decode String at Index](https://leetcode.com/problems/decoded-string-at-index/)
+
+An encoded string `S` is given.  To find and write the *decoded* string to a tape, the encoded string is read **one character at a time** and the following steps are taken:
+
+- If the character read is a letter, that letter is written onto the tape.
+- If the character read is a digit (say `d`), the entire current tape is repeatedly written `d-1` more times in total.
+
+Now for some encoded string `S`, and an index `K`, find and return the `K`-th letter (1 indexed) in the decoded string.
+
+**Example 1:**
+
+```
+Input: S = "leet2code3", K = 10
+Output: "o"
+Explanation: 
+The decoded string is "leetleetcodeleetleetcodeleetleetcode".
+The 10th letter in the string is "o".
+```
+
+**Example 2:**
+
+```
+Input: S = "ha22", K = 5
+Output: "h"
+Explanation: 
+The decoded string is "hahahaha".  The 5th letter is "h".
+```
+
+**Example 3:**
+
+```
+Input: S = "a2345678999999999999999", K = 1
+Output: "a"
+Explanation: 
+The decoded string is "a" repeated 8301530446056247680 times.  The 1st letter is "a".
+```
+
+**My Solution**
+
+fatal error: out of memory
+
+```go
+func decodeAtIndex(S string, K int) string {
+	result := ""
+	for _, v := range S {
+		if !(v >= '0' && v <= '9') {
+			// if we find a letter, append it to the string
+			result += string(v)
+		} else {
+			// if we find a digit, repeat the current string
+			// get the repeated times
+			repeated, _ := strconv.Atoi(string(v))
+			// repeat the current string
+			result = strings.Repeat(result, repeated)
+		}
+	}
+	return string(result[K-1])
+}
+```
+
+**Solution**
+
+```go
+func decodeAtIndex(S string, K int) string {
+	N := 0
+	var i int
+	for i = 0; N < K ; i++ {
+		if unicode.IsDigit(rune(S[i])) {
+			num,_ := strconv.Atoi(string(S[i]))
+			N *= num
+		} else {
+			N++
+		}
+	}
+	i--
+	for  {
+		if unicode.IsDigit(rune(S[i])) {
+			num,_ := strconv.Atoi(string(S[i]))
+			N /= num
+			K %= N
+		} else if (K % N) == 0 {
+			return string(S[i])
+		} else {
+			N--
+		}
+		i--
+	}
+}
+```
+
+Time Complexity: $$O(N)$$, N is the length of `S`.

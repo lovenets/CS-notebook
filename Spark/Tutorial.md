@@ -1,6 +1,6 @@
 Spark's Architecture
 
-![Spark architecture](G:\CS notebook\Spark\img\Spark architecture.jpg)
+![Spark architecture](img\Spark architecture.jpg)
 
 # Dataset
 

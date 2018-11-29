@@ -205,5 +205,308 @@ data.map { x => accum.add(x); x }
 // Here, accum is still 0 because no actions have caused the map operation to be computed.
 ```
 
+# Spark SQL
 
+## Dataset & DataFrame
+
+A Dataset is a distributed collection of data. Dataset is a new interface added in Spark 1.6 that provides the benefits of RDDs (strong typing, ability to use powerful lambda functions) with the benefits of Spark SQL’s optimized execution engine. A Dataset can be [constructed](https://spark.apache.org/docs/latest/sql-getting-started.html#creating-datasets) from JVM objects and then manipulated using functional transformations (`map`, `flatMap`, `filter`, etc.).
+
+A DataFrame is a *Dataset* organized into named columns. It is conceptually equivalent to a table in a relational database or a data frame in R/Python, but with richer optimizations under the hood.  In [the Scala API](https://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Dataset), `DataFrame` is simply a type alias of `Dataset[Row]`.
+
+## Basic
+
+```scala
+    val spark = SparkSession.builder.appName("SQL Example").getOrCreate()
+    // for implicit conversions like converting RDDS to DataFrames
+    import spark.implicits._
+
+    // create a DataFrame from a JSON file
+    val df = spark.read.json("people.json")
+    df.show()
+
+    // print the schema in a tree format
+    df.printSchema()
+    // select a specific column
+    df.select("name").show()
+    // select multiple columns and "update" values using S-Expressions
+    // NOTE: select method will not actually modify values
+    df.select($"name", $"age" + 1).show()
+    // using filtering conditions
+    df.filter($"age" > 21).show()
+    // do some statistics
+    df.groupBy("age").count().show()
+
+    // register the DataFrame as a SQL temporary view
+    df.createOrReplaceTempView("people")
+    val sqlDF = spark.sql("SELECT name,age FROM people WHERE age > 18")
+    sqlDF.show()
+
+    // encoders are created for case classes
+    val caseClassDS = Seq(People("Andy", 32)).toDS()
+    caseClassDS.show()
+    // encoders for most common types are imported implicitly
+    val primitiveDS = Seq(1, 2, 3).toDS()
+    primitiveDS.map(_ + 1).collect().foreach(print)
+    // DataFrames can be converted to a Dataset by providing a class.
+    // Mapping will be done by name
+    val peopleDS = spark.read.json("people.json").as[People]
+    peopleDS.show()
+
+    // create an RDD of People objects from a text file
+    // using case class People as schema
+    val peopleDF = spark.sparkContext
+      .textFile("people.txt")
+      .map(_.split(","))
+      .map(attributes => People(attributes(0), attributes(1).trim.toInt))
+      .toDF()
+    peopleDF.createOrReplaceTempView("people")
+    val teenagersDF = spark.sql("SELECT name,age FROM people WHERE age BETWEEN 13 AND 19")
+    // we can access columns by field index or by field name
+    teenagersDF.map(t => "Name: " + t(0)).show()
+    teenagersDF.map(t => "Name: " + t.getAs[String]("name")).show()
+    // we must define encoders for Dataset[Map[K,V]] explicitly
+    implicit val mapEncoder = org.apache.spark.sql.Encoders.kryo[Map[String, Any]]
+    teenagersDF.map(t => t.getValuesMap[Any](List("name", "age"))).collect().foreach(println)
+
+    // Programmatically Specifying the Schema
+
+    val peopleRDD = spark.sparkContext.textFile("people.txt")
+    // the schema is encoded in a string then generate the schema
+    // based on the strings of schema
+    val schemaString = "name age"
+    val fields = schemaString.split(" ")
+      .map(fieldName => StructField(fieldName, StringType, nullable = true))
+    val schema = StructType(fields)
+    // convert records of RDDs to Rows
+    val rowRDD = peopleRDD
+      .map(_.split(","))
+      .map(attr => Row(attr(0), attr(1).trim))
+    // apply the schema to RDD
+    val peopleDF1 = spark.createDataFrame(rowRDD,schema)
+    peopleDF1.show()
+    
+    spark.stop()
+```
+
+1.`SparkSession`
+
+The entry point into all functionality in Spark is the [`SparkSession`](https://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.SparkSession) class. If you have some configurations :
+
+```scala
+val spark = SparkSession
+  .builder()
+  .appName("Spark SQL basic example")
+  .config("spark.some.config.option", "some-value")
+  .getOrCreate()
+```
+
+`SparkSession` in Spark 2.0 provides builtin support for Hive features including the ability to write queries using HiveQL, access to Hive UDFs, and the ability to read data from Hive tables. To use these features, you do not need to have an existing Hive setup.
+
+2.creating DataFrames
+
+With a `SparkSession`, applications can create DataFrames from an [existing `RDD`](https://spark.apache.org/docs/latest/sql-getting-started.html#interoperating-with-rdds), from a Hive table, or from [Spark data sources](https://spark.apache.org/docs/latest/sql-data-sources.html).
+
+When we print a DataFrame, we will find that it looks like a table in RDB. That's why we call DataFrames `Datasets of rows`.
+
+3.DataFrame operations
+
+DataFrames provide a domain-specific language for structured data manipulation.
+
+For a complete list of the types of operations that can be performed on a Dataset refer to the [API Documentation](https://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Dataset).
+
+In addition to simple column references and expressions, Datasets also have a rich library of functions including string manipulation, date arithmetic, common math operations and more. The complete list is available in the [DataFrame Function Reference](https://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.functions$).
+
+4.running SQL programmatically
+
+ The `sql` function on a `SparkSession` enables applications to run SQL queries programmatically and returns the result as a `DataFrame`.
+
+5.create Datasets
+
+WHY?
+
+Datasets are similar to RDDs, however, instead of using Java serialization or Kryo they use a specialized [Encoder](https://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.Encoder) to serialize the objects for processing or transmitting over the network. While both encoders and standard serialization are responsible for turning an object into bytes, encoders are code generated dynamically and use a format that allows Spark to **perform many operations like filtering, sorting and hashing without deserializing the bytes back into an object.**
+
+6.converting RDDs into Datasets
+
+(1) Inferring the Schema Using Reflection
+
+The case class defines the schema of the table. The names of the arguments to the case class are read using reflection and become the names of the columns. Case classes can also be nested or contain complex types such as `Seq`s or `Array`s. This RDD can be implicitly converted to a DataFrame.
+
+(2) Programmatically Specifying the Schema
+
+When case classes cannot be defined ahead of time (for example, the structure of records is encoded in a string, or a text dataset will be parsed and fields will be projected differently for different users), a `DataFrame` can be created programmatically with three steps.
+
+- Create an RDD of `Row`s from the original RDD;
+
+- Create the schema represented by a `StructType` matching the structure of `Row`s in the RDD created in last step.
+
+- Apply the schema to the RDD of `Row`s via `createDataFrame` method provided by `SparkSession`.
+
+7.aggregatioin
+
+(1) Untyped User-Defined Aggregate Functions
+
+Users have to extend the [UserDefinedAggregateFunction](https://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.expressions.UserDefinedAggregateFunction) abstract class to implement a custom untyped aggregate function.
+
+```scala
+// $example on:untyped_custom_aggregation$
+import org.apache.spark.sql.{Row, SparkSession}
+import org.apache.spark.sql.expressions.MutableAggregationBuffer
+import org.apache.spark.sql.expressions.UserDefinedAggregateFunction
+import org.apache.spark.sql.types._
+// $example off:untyped_custom_aggregation$
+
+object UserDefinedUntypedAggregation {
+
+  // $example on:untyped_custom_aggregation$
+  object MyAverage extends UserDefinedAggregateFunction {
+    // Data types of input arguments of this aggregate function
+    def inputSchema: StructType = StructType(StructField("inputColumn", LongType) :: Nil)
+    // Data types of values in the aggregation buffer
+    def bufferSchema: StructType = {
+      StructType(StructField("sum", LongType) :: StructField("count", LongType) :: Nil)
+    }
+    // The data type of the returned value
+    def dataType: DataType = DoubleType
+    // Whether this function always returns the same output on the identical input
+    def deterministic: Boolean = true
+    // Initializes the given aggregation buffer. The buffer itself is a `Row` that in addition to
+    // standard methods like retrieving a value at an index (e.g., get(), getBoolean()), provides
+    // the opportunity to update its values. Note that arrays and maps inside the buffer are still
+    // immutable.
+    def initialize(buffer: MutableAggregationBuffer): Unit = {
+      buffer(0) = 0L
+      buffer(1) = 0L
+    }
+    // Updates the given aggregation buffer `buffer` with new input data from `input`
+    def update(buffer: MutableAggregationBuffer, input: Row): Unit = {
+      if (!input.isNullAt(0)) {
+        buffer(0) = buffer.getLong(0) + input.getLong(0)
+        buffer(1) = buffer.getLong(1) + 1
+      }
+    }
+    // Merges two aggregation buffers and stores the updated buffer values back to `buffer1`
+    def merge(buffer1: MutableAggregationBuffer, buffer2: Row): Unit = {
+      buffer1(0) = buffer1.getLong(0) + buffer2.getLong(0)
+      buffer1(1) = buffer1.getLong(1) + buffer2.getLong(1)
+    }
+    // Calculates the final result
+    def evaluate(buffer: Row): Double = buffer.getLong(0).toDouble / buffer.getLong(1)
+  }
+  // $example off:untyped_custom_aggregation$
+
+  def main(args: Array[String]): Unit = {
+    val spark = SparkSession
+      .builder()
+      .appName("Spark SQL user-defined DataFrames aggregation example")
+      .getOrCreate()
+
+    // $example on:untyped_custom_aggregation$
+    // Register the function to access it
+    spark.udf.register("myAverage", MyAverage)
+
+    val df = spark.read.json("examples/src/main/resources/employees.json")
+    df.createOrReplaceTempView("employees")
+    df.show()
+    // +-------+------+
+    // |   name|salary|
+    // +-------+------+
+    // |Michael|  3000|
+    // |   Andy|  4500|
+    // | Justin|  3500|
+    // |  Berta|  4000|
+    // +-------+------+
+
+    val result = spark.sql("SELECT myAverage(salary) as average_salary FROM employees")
+    result.show()
+    // +--------------+
+    // |average_salary|
+    // +--------------+
+    // |        3750.0|
+    // +--------------+
+    // $example off:untyped_custom_aggregation$
+
+    spark.stop()
+  }
+
+}
+```
+
+(2) Type-Safe User-Defined Aggregate Functions
+
+User-defined aggregations for strongly typed Datasets revolve around the [Aggregator](https://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.expressions.Aggregator) abstract class. 
+
+```scala
+// $example on:typed_custom_aggregation$
+import org.apache.spark.sql.{Encoder, Encoders, SparkSession}
+import org.apache.spark.sql.expressions.Aggregator
+// $example off:typed_custom_aggregation$
+
+object UserDefinedTypedAggregation {
+
+  // $example on:typed_custom_aggregation$
+  case class Employee(name: String, salary: Long)
+  case class Average(var sum: Long, var count: Long)
+
+  object MyAverage extends Aggregator[Employee, Average, Double] {
+    // A zero value for this aggregation. Should satisfy the property that any b + zero = b
+    def zero: Average = Average(0L, 0L)
+    // Combine two values to produce a new value. For performance, the function may modify `buffer`
+    // and return it instead of constructing a new object
+    def reduce(buffer: Average, employee: Employee): Average = {
+      buffer.sum += employee.salary
+      buffer.count += 1
+      buffer
+    }
+    // Merge two intermediate values
+    def merge(b1: Average, b2: Average): Average = {
+      b1.sum += b2.sum
+      b1.count += b2.count
+      b1
+    }
+    // Transform the output of the reduction
+    def finish(reduction: Average): Double = reduction.sum.toDouble / reduction.count
+    // Specifies the Encoder for the intermediate value type
+    def bufferEncoder: Encoder[Average] = Encoders.product
+    // Specifies the Encoder for the final output value type
+    def outputEncoder: Encoder[Double] = Encoders.scalaDouble
+  }
+  // $example off:typed_custom_aggregation$
+
+  def main(args: Array[String]): Unit = {
+    val spark = SparkSession
+      .builder()
+      .appName("Spark SQL user-defined Datasets aggregation example")
+      .getOrCreate()
+
+    import spark.implicits._
+
+    // $example on:typed_custom_aggregation$
+    val ds = spark.read.json("examples/src/main/resources/employees.json").as[Employee]
+    ds.show()
+    // +-------+------+
+    // |   name|salary|
+    // +-------+------+
+    // |Michael|  3000|
+    // |   Andy|  4500|
+    // | Justin|  3500|
+    // |  Berta|  4000|
+    // +-------+------+
+
+    // Convert the function to a `TypedColumn` and give it a name
+    val averageSalary = MyAverage.toColumn.name("average_salary")
+    val result = ds.select(averageSalary)
+    result.show()
+    // +--------------+
+    // |average_salary|
+    // +--------------+
+    // |        3750.0|
+    // +--------------+
+    // $example off:typed_custom_aggregation$
+
+    spark.stop()
+  }
+
+}
+```
 

@@ -269,7 +269,6 @@ A DataFrame is a *Dataset* organized into named columns. It is conceptually equi
     teenagersDF.map(t => t.getValuesMap[Any](List("name", "age"))).collect().foreach(println)
 
     // Programmatically Specifying the Schema
-
     val peopleRDD = spark.sparkContext.textFile("people.txt")
     // the schema is encoded in a string then generate the schema
     // based on the strings of schema
@@ -509,4 +508,75 @@ object UserDefinedTypedAggregation {
 
 }
 ```
+
+## Data Sources
+
+1.Generic Load/Save Functions
+
+In the simplest form, the default data source is Apache Parquet. 
+
+```scala
+val usersDF = spark.read.load("users.parquet")
+```
+
+If you want to load other data source, you need to add some extra options.
+
+```scala
+val peopleDF = spark.read.format("json").load("people.json")
+val peopleDFCsv = spark.read.format("csv")
+  .option("sep", ";")
+  .option("inferSchema", "true")
+  .option("header", "true")
+  .load("people.csv")
+```
+
+Data sources are specified by their fully qualified name (i.e., `org.apache.spark.sql.parquet`), but for built-in sources you can also use their short names (`json`, `parquet`, `jdbc`, `orc`, `libsvm`, `csv`, `text`). DataFrames loaded from any data source type can be converted into other types using this syntax.
+
+2.Run SQL on files directly
+
+Instead of using read API to load a file into DataFrame and query it, you can also query that file directly with SQL.
+
+```scala
+val sqlDF = spark.sql("SELECT * FROM parquet.`users.parquet`")
+```
+
+NOTE: Specify data source using FROM clause like [type].`path`.
+
+3.Bucketing, Sorting and Partitioning
+
+For file-based data source, it is also possible to bucket and sort or partition the output. Bucketing and sorting are applicable only to persistent tables:
+
+```scala
+peopleDF.write.bucketBy(42, "name").sortBy("age").saveAsTable("people_bucketed")
+```
+
+while partitioning can be used with both `save` and `saveAsTable` when using the Dataset APIs.
+
+```scala
+usersDF.write.partitionBy("favorite_color").format("parquet").save("namesPartByColor.parquet")
+```
+
+It is possible to use both partitioning and bucketing for a single table:
+
+```scala
+usersDF
+  .write
+  .partitionBy("favorite_color")
+  .bucketBy(42, "name")
+  .saveAsTable("users_partitioned_bucketed")
+```
+
+`partitionBy` creates a directory structure as described in the [Partition Discovery](https://spark.apache.org/docs/latest/sql-data-sources-parquet.html#partition-discovery) section. Thus, it has limited applicability to columns with high cardinality. In contrast `bucketBy` distributes data across a fixed number of buckets and can be used when a number of unique values is unbounded.
+
+4.save modes
+
+![save modes](img\save modes.jpg)
+
+```scala
+peopleDFCsv.write.mode("").save("")
+```
+
+
+
+
 

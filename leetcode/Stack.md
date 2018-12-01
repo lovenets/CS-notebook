@@ -1308,3 +1308,128 @@ func decodeAtIndex(S string, K int) string {
 ```
 
 Time Complexity: $$O(N)$$, N is the length of `S`.
+
+#### 12.[Asteroid Collision](https://leetcode.com/problems/asteroid-collision)
+
+We are given an array `asteroids` of integers representing asteroids in a row.
+
+For each asteroid, the absolute value represents its size, and the sign represents its direction (positive meaning right, negative meaning left). Each asteroid moves at the same speed.
+
+Find out the state of the asteroids after all collisions. If two asteroids meet, the smaller one will explode. If both are the same size, both will explode. Two asteroids moving in the same direction will never meet.
+
+**Example 1:**
+
+```
+Input: 
+asteroids = [5, 10, -5]
+Output: [5, 10]
+Explanation: 
+The 10 and -5 collide resulting in 10.  The 5 and 10 never collide.
+```
+
+**Example 2:**
+
+```
+Input: 
+asteroids = [8, -8]
+Output: []
+Explanation: 
+The 8 and -8 collide exploding each other.
+```
+
+**Example 3:**
+
+```
+Input: 
+asteroids = [10, 2, -5]
+Output: [10]
+Explanation: 
+The 2 and -5 collide resulting in -5.  The 10 and -5 collide resulting in 10.
+```
+
+**Example 4:**
+
+```
+Input: 
+asteroids = [-2, -1, 1, 2]
+Output: [-2, -1, 1, 2]
+Explanation: 
+The -2 and -1 are moving left, while the 1 and 2 are moving right.
+Asteroids moving the same direction never meet, so no asteroids will meet each other.
+```
+
+**Note:**
+
+The length of `asteroids` will be at most `10000`.
+
+Each asteroid will be a non-zero integer in the range `[-1000, 1000].`.
+
+**My Solution**
+
+A very straightforward solution.
+
+```go
+func asteroidCollision(asteroids []int) []int {
+	result := make([]int, 0)
+	for _, v := range asteroids {
+		if len(result) == 0 {
+			result = append(result, v)
+		} else {
+			// when there is a collision
+			for len(result) > 0 && (result[len(result)-1] > 0 && v < 0) {
+				// pop the stack
+				top := result[len(result)-1]
+				result = result[:len(result)-1]
+				collision := top + v
+				if collision > 0 {
+					result = append(result, top)
+					v = 0
+					break
+				} else if collision == 0 {
+					v = 0
+					break
+				}
+			}
+			// current asteroid doesn't explode
+			if v != 0 {
+				result = append(result, v)
+			}
+		}
+	}
+
+	return result
+}
+```
+
+Time complexity: $$O(n)$$, n is the number of input asteroids.
+
+**Improvement**
+
+Consider following truths:
+
+- In the output asteroids positive asteroids must be in the right and negative in the left.
+- Only when the top positive asteroid explodes should we pop the stack.
+
+We can write more concise codes.
+
+```go
+func asteroidCollision(asteroids []int) []int {
+	result := make([]int, 0)
+	for _, v := range asteroids {
+		// the top positive asteroid explodes
+		for len(result) != 0 && result[len(result)-1] > 0 && result[len(result)-1] < -v {
+			result = result[:len(result)-1]
+		}
+		if len(result) == 0 || v > 0 || result[len(result)-1] < 0 {
+			result = append(result, v)
+		} else if v < 0 && result[len(result)-1] == -v {
+			// two asteroids explodes together
+			result = result[:len(result)-1]
+		}
+	}
+	return result
+}
+```
+
+
+

@@ -576,7 +576,62 @@ usersDF
 peopleDFCsv.write.mode("").save("")
 ```
 
+5.JSON files
 
+Note that the file that is offered as *a json file* is not a typical JSON file. Each line must contain a separate, self-contained valid JSON object. 
+
+Spark SQL can automatically infer the schema of a JSON dataset and load it as a `Dataset[Row]`. 
+
+```scala
+    // For a regular multi-line JSON file, set the multiLine option to true.
+    spark.read.option("multiLine ","true").json(path)
+```
+
+6.JDBC
+
+To get started you will need to include the JDBC driver for your particular database on the spark classpath.
+
+In SBT, you can add the dependency like this:
+
+```scala
+libraryDependencies ++= Seq(
+  "org.apache.spark" %% "spark-sql" % "2.3.2",
+  "mysql" % "mysql-connector-java" % "8.0.13"
+)
+```
+
+```scala
+    // load data from DB using load method
+    val jdbcDF = spark.read
+      .format("jdbc")
+      .option("url", "jdbc:mysql://localhost:3306/db")
+      .option("dbtable", "table")
+      .option("user", "username")
+      .option("password", "password")
+      .option("serverTimezone", "UTC")
+      .load()
+    jdbcDF.show()
+    // load data from DB using jdbc method
+    val connectProp = new Properties()
+    connectProp.put("user", "username")
+    connectProp.put("password", "password")
+    connectProp.put("serverTimezone", "UTC")
+    val jdbcDF2 = spark.read
+      .jdbc("jdbc:mysql://localhost:3306/db", "table", connectProp)
+    jdbcDF2.show()
+
+    // save data to a JDBC source using save method
+    jdbcDF.write
+      .format("jdbc")
+      .option("url", "jdbc:postgresql:dbserver")
+      .option("dbtable", "schema.tablename")
+      .option("user", "username")
+      .option("password", "password")
+      .save()
+    // save data using jdbc method
+    jdbcDF2.write
+      .jdbc("jdbc:postgresql:dbserver", "schema.tablename", connectProp)
+```
 
 
 

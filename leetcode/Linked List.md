@@ -101,3 +101,74 @@ func addTwoNumbers(l1 *ListNode, l2 *ListNode) *ListNode {
 ```
 
 Time Complexity: $$O(n)$$, n is the length of result list.
+
+#### 2.[Add Two Numbers II](https://leetcode.com/problems/add-two-numbers-ii)
+
+You are given two **non-empty** linked lists representing two non-negative integers. The most significant digit comes first and each of their nodes contain a single digit. Add the two numbers and return it as a linked list.
+
+You may assume the two numbers do not contain any leading zero, except the number 0 itself.
+
+**Follow up:**
+What if you cannot modify the input lists? In other words, reversing the lists is not allowed.
+
+**Example:**
+
+```
+Input: (7 -> 2 -> 4 -> 3) + (5 -> 6 -> 4)
+Output: 7 -> 8 -> 0 -> 7
+```
+
+**Solution**
+
+using stack
+
+```go
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+func addTwoNumbers(l1 *ListNode, l2 *ListNode) *ListNode {
+	// use two stacks to store every digit of two numbers
+	digits1 := make([]int, 0)
+	digits2 := make([]int, 0)
+	for ; l1 != nil; l1 = l1.Next {
+		digits1 = append(digits1, l1.Val)
+	}
+	for ; l2 != nil; l2 = l2.Next {
+		digits2 = append(digits2, l2.Val)
+	}
+
+	// add two numbers
+	cur := new(ListNode)
+	sum := 0
+	for len(digits1) != 0 || len(digits2) != 0 {
+		if len(digits1) != 0 {
+			sum += digits1[len(digits1)-1]
+			digits1 = digits1[:len(digits1)-1]
+		}
+		if len(digits2) != 0 {
+			sum += digits2[len(digits2)-1]
+			digits2 = digits2[:len(digits2)-1]
+		}
+		cur.Val = sum % 10
+		// what if two numbers have the same length
+		pre := &ListNode{sum / 10, cur}
+		cur = pre
+		sum /= 10
+	}
+	// avoid leading 0
+	if cur.Val == 0 {
+		return cur.Next
+	} else {
+		return cur
+	}
+}
+```
+
+Time complexity: $$O(n)$$, n is the length of greater number.
+
+
+

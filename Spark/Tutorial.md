@@ -215,6 +215,12 @@ A DataFrame is a *Dataset* organized into named columns. It is conceptually equi
 
 ## Basic
 
+**NOTE**: add the dependency:
+
+```
+"org.apache.spark" %% "spark-sql" % "2.3.2" 
+```
+
 ```scala
     val spark = SparkSession.builder.appName("SQL Example").getOrCreate()
     // for implicit conversions like converting RDDS to DataFrames

@@ -1,6 +1,10 @@
-Spark's Architecture
+# Spark's Architecture
 
 ![Spark architecture](img\Spark architecture.jpg)
+
+# cluster
+
+![Spark cluster](img\Spark cluster.jpg)
 
 # Dataset
 

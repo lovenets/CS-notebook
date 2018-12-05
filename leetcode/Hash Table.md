@@ -110,3 +110,70 @@ func lengthOfLongestSubstring(s string) int {
 
 Time complexity: $$O(n)$$
 
+#### 2.[Word Pattern](https://leetcode.com/problems/word-pattern)
+
+Given a `pattern` and a string `str`, find if `str` follows the same pattern.
+
+Here **follow** means a full match, such that there is a bijection between a letter in `pattern`and a **non-empty** word in `str`.
+
+**Example 1:**
+
+```
+Input: pattern = "abba", str = "dog cat cat dog"
+Output: true
+```
+
+**Example 2:**
+
+```
+Input:pattern = "abba", str = "dog cat cat fish"
+Output: false
+```
+
+**Example 3:**
+
+```
+Input: pattern = "aaaa", str = "dog cat cat dog"
+Output: false
+```
+
+**Example 4:**
+
+```
+Input: pattern = "abba", str = "dog dog dog dog"
+Output: false
+```
+
+**Notes:**
+You may assume `pattern` contains only lowercase letters, and `str` contains lowercase letters separated by a single space.
+
+**Solution**
+
+```go
+func wordPattern(pattern string, str string) bool {
+   words := strings.Split(str, " ")
+   if len(words) != len(pattern) {
+      return false
+   }
+   // go through the pattern letters and words in parallel
+   // compare the indices where they appeared last time
+   patternIndex := make(map[uint8]int)
+   wordIndex := make(map[string]int)
+   for i := 0; i < len(words); i++ {
+      i1,ok1 := patternIndex[pattern[i]]
+      i2,ok2 := wordIndex[words[i]]
+      if ok1 == ok2 {
+         if i1 != i2 {
+            return false
+         }
+         patternIndex[pattern[i]] = i
+         wordIndex[words[i]] = i
+      } else {
+         return false
+      }
+   }
+   return true
+}
+```
+
+Time complexity: $$O(n)$$, n is the length of `str`.

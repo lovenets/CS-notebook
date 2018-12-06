@@ -12,6 +12,10 @@ log4j.rootCategory=ERROR, console
 
 ![Spark properties](img\Spark properties.jpg)
 
+**Precedence**
+
+Properties set directly on the `SparkConf` take highest precedence, then flags passed to `spark-submit` or `spark-shell`, then options in the `spark-defaults.conf` file
+
 # Monitoring
 
 ![Spark monitoring](img\Spark monitoring.jpg)

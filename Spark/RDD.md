@@ -60,5 +60,69 @@ Exercise:
 
 Tip: use `flatMap` to collect lots of collections into a big collection.
 
+## Partitioning mechanism
 
+![generating an RDD](img\generating an RDD.jpg)
+
+![RDD example](img\RDD example.jpg)
+
+Each RDD in a graph has a reference to its dependencies, up to the root RDD which dependents on nothing. The root RDD describes the original partitioning and these partitions are inherited by child RDDs. 
+
+![change partitioning](img\change partitioning.jpg)
+
+### What affects partitioning
+
+![partitioning considerations](img\partitioning considerations.jpg)
+
+### Optimize Partitioning
+
+#### keys co-located
+
+When operating key-value pairs, we can benefit from keeping records with the same keys co-located. This lets transformations run quickly within the same JVM when operating over the same keys. 
+
+![partitionBy](img\partitionBy.jpg)
+
+Calling `partitionBy` will incur a shuffle but downstream operations will benefit from the co-located records. In the case of `HashPartitioner` we specify the number of partitions and it will ensure that all keys with the same hash will be in the same partition.
+
+![optimizing joins by co-partitioning](img\optimizing joins by co-partitioning.jpg)
+
+## Resilience
+
+When  a failure occurs, RDD will re-compute results from root/persisted RDD so RDD is resilient.
+
+![resilience1](img\resilience1.jpg)
+
+![resilience](img\resilience.jpg)
+
+## Serializing
+
+### "Task Not Serializable"
+
+Following codes will not work well:
+
+```scala
+class Helper {
+    def foo(input: String): String = input
+}
+
+val helper = new Helper()
+
+val output = input.map(helper.foo(_))
+```
+
+Remember that codes will be serialized and sent to nodes. The problem is that “Helper” doesn’t implement Serializable. So if we extend our class with `Serializable` and try to run it again it will work properly.
+
+What if “Helper” in turn is also referencing another 3rd party library as a member variable which is not serializable? We may not want (or be able to) change the code to make it serializable. The solution is marking the member variable transient and lazy. This will make it instantiated locally within each task.
+
+```scala
+class Helper extends Serializable {
+    @transient lazy val inner = new External()
+    
+    def foo(input: String): String = inner.bar(input)
+}
+
+val helper = new Helper()
+
+val output = input.map(helper.foo(_))
+```
 

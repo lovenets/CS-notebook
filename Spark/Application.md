@@ -68,7 +68,7 @@ There are some important options:
 
 - `--conf`: Any configuration property you wish to set in key=value format.
 
-Finally, if the application has any arguments, you would supply it after the jar file.
+  Finally, if the application has any arguments, you would supply it after the jar file.
 
 **Example**
 

@@ -31,7 +31,6 @@ object Demo{
 
     //transfer this Dataset to a new one
     // let's say we want to find the line with the most words
-
     val lineWithMostWords = text.map(line => line.split(" ").length).reduce((a,b) => Math.max(a,b))
     println(s"There are $lineWithMostWords words at most in a line.")
 
@@ -123,6 +122,8 @@ RDDs support two types of operations: **transformations**, which create a new da
 (1) All transformations in Spark are *lazy*, in that they do not compute their results right away. Instead, they just remember the transformations applied to some base dataset (e.g. a file).
 
 (2) By default, each transformed RDD may be recomputed each time you run an action on it. However, you may also *persist* an RDD in memory using the `persist` (or `cache`) method, in which case Spark will keep the elements around on the cluster for much faster access the next time you query it.
+
+(3) Note: Actions MUST be invoked by the driver, not inside of other transformations. for example, `rdd1.map(x => rdd2.values.count() * x)` is invalid because the values transformation and count action cannot be performed inside of the `rdd1.map` transformation.
 
 ## 5.closure
 
@@ -642,6 +643,4 @@ libraryDependencies ++= Seq(
     jdbcDF2.write
       .jdbc("jdbc:postgresql:dbserver", "schema.tablename", connectProp)
 ```
-
-
 

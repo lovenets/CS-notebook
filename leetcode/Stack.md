@@ -1431,5 +1431,69 @@ func asteroidCollision(asteroids []int) []int {
 }
 ```
 
+#### 13.[132 Pattern](https://leetcode.com/problems/132-pattern)
 
+Given a sequence of n integers a~1~, a~2~, ..., a~n~, a 132 pattern is a subsequence a~i~, a~j~, a~k~ such that **i** < **j** < **k** and a~i~ < a~k~ < a~j~. Design an algorithm that takes a list of n numbers as input and checks whether there is a 132 pattern in the list.
 
+**Note:** n will be less than 15,000.
+
+**Example 1:**
+
+```
+Input: [1, 2, 3, 4]
+
+Output: False
+
+Explanation: There is no 132 pattern in the sequence.
+```
+
+**Example 2:**
+
+```
+Input: [3, 1, 4, 2]
+
+Output: True
+
+Explanation: There is a 132 pattern in the sequence: [1, 4, 2].
+```
+
+**Example 3:**
+
+```
+Input: [-1, 3, 2, 0]
+
+Output: True
+
+Explanation: There are three 132 patterns in the sequence: [-1, 3, 2], [-1, 3, 0] and [-1, 2, 0].
+```
+
+**Solution**
+
+Suppose we want to find a `123` sequence with `s1 < s2 < s3`, we just need to find `s3`, followed by `s2` and `s1`. Now if we want to find a `132` sequence with `s1 < s3 < s2`, we need to switch up the order of searching. we want to first find `s2`, followed by `s3`, then `s1`.
+
+1. Have a `stack`, each time we store a new number, we `pop` out all numbers that are smaller than the new number. These numbers that are `popped` out becomes candidate for `s3` and the number greater than these probable s3 becomes the candidate for s3 .
+2. We keep track of the `maximum` of such `s3` (which is always the most recently `popped` number from the `stack`).
+3. Once we encounter any number smaller than `s3`, we know we found a valid sequence since `s1 < s3` implies `s1 < s2`.
+
+```go
+func find132pattern(nums []int) bool {
+	s3 := math.MinInt64
+	stack := make([]int, 0)
+	for i := len(nums) - 1; i >= 0; i-- {
+		// find s1
+		if nums[i] < s3 {
+			return true
+		} else {
+			// find s2 candidate
+			for len(stack) > 0 && nums[i] > stack[len(stack)-1] {
+				s3 = stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+			}
+		}
+		stack = append(stack, nums[i])
+	}
+	return false
+}
+```
+
+Time complexity: $$O(n)$$, n is the length of `nums`.

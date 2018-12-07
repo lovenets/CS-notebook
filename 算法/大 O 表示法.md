@@ -25,3 +25,5 @@
 $O(1) < O(logn) < O(n) < O(nlogn) < O(n^2) < O(n^3) < O(n!) < O(n^n) $
 
 ![排序算法时间复杂度](img\排序算法时间复杂度.jpg)
+
+In general, doing something with every item in one dimension is linear, doing something with every item in two dimensions is quadratic, and dividing the working area in half is logarithmic (such as binary search). There are other Big O measures such as cubic, exponential, and square root, but they're not nearly as common. Big O notation is described as O ( ) where is the measure. The quicksort algorithm would be described as $$O ( N * log ( N ) )$$.

@@ -95,5 +95,55 @@ spark-submit --class "SparkPi" --master local[4] sbtspark_2.11-0.1.jar
 
 `local[4]`means using 4 cores of the local machine.
 
+# Test
 
+![test](img\test.jpg)
 
+**Example: Testing in Intellij IDEA**
+
+1. On the project pane on the left, expand `src` => `main`.
+
+2. Right-click on `scala` and select **New** => **Scala class**.
+
+3. Call it `CubeCalculator`, change the **Kind** to `object`, and click **OK**.
+
+4. Replace the code with the following:
+
+   ```scala
+   object Count {
+     def countWord(input: String) = {
+       val conf = new SparkConf().setAppName("test").setMaster("local")
+         .set("spark.driver.allowMultipleContexts","true")
+       val sc = new SparkContext(conf)
+   
+       sc.makeRDD(Seq(input))
+         .flatMap(_.split(" "))
+         .map((_,1))
+         .reduceByKey(_ + _)
+         .collectAsMap()
+     }
+   }
+   ```
+
+5. On the project pane on the left, expand `src` => `test`.
+
+6. Right-click on `scala` and select **New** => **Scala class**.
+
+7. Replace the code with the following:
+
+```scala
+class SampleTestClass extends FunSuite {
+  test("word count") {
+    val input = "hello world world"
+    val expected = Map("hello"->1,"world"->2)
+
+    assert(Count.countWord(input).equals(expected))
+
+    assertResult(expected) {
+      Count.countWord(input)
+    }
+  }
+}
+```
+
+8. Run the test class.

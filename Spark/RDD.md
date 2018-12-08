@@ -126,3 +126,23 @@ val helper = new Helper()
 val output = input.map(helper.foo(_))
 ```
 
+## Avoid shuffling
+
+**Shuffling** is a process of [redistributing data across partitions](https://jaceklaskowski.gitbooks.io/mastering-apache-spark/spark-rdd-partitions.html) (aka *repartitioning*) that may or may not cause moving data across JVM processes or even over the wire (between executors on separate machines).
+
+By default, shuffling doesn’t change the number of partitions, but their content.
+
+**NOTE**: Avoid shuffling at all cost. Think about ways to leverage existing partitions. Leverage partial aggregation to reduce data transfer.
+
+- Avoid `groupByKey` and use `reduceByKey` or `combineByKey` instead.
+  - `groupByKey` shuffles all the data, which is slow.
+  - `reduceByKey` shuffles only the results of sub-aggregations in each partition of the data.
+
+## Persistence
+
+![persistence](img\persistence.jpg)
+
+It's a good idea to persist before map and reduce actions.
+
+![persistence2](img\persistence2.jpg)
+

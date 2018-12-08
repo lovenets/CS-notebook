@@ -255,3 +255,275 @@ Time complexity:
 - `Constructor`: $$O(n)$$. n is the length of queue.
 
 - Others: $$O(1)$$
+
+#### 3.[Design Circular Deque](https://leetcode.com/problems/design-circular-deque/)
+
+Design your implementation of the circular double-ended queue (deque).
+
+Your implementation should support following operations:
+
+- `MyCircularDeque(k)`: Constructor, set the size of the deque to be k.
+- `insertFront()`: Adds an item at the front of Deque. Return true if the operation is successful.
+- `insertLast()`: Adds an item at the rear of Deque. Return true if the operation is successful.
+- `deleteFront()`: Deletes an item from the front of Deque. Return true if the operation is successful.
+- `deleteLast()`: Deletes an item from the rear of Deque. Return true if the operation is successful.
+- `getFront()`: Gets the front item from the Deque. If the deque is empty, return -1.
+- `getRear()`: Gets the last item from Deque. If the deque is empty, return -1.
+- `isEmpty()`: Checks whether Deque is empty or not. 
+- `isFull()`: Checks whether Deque is full or not.
+
+**Example:**
+
+```
+MyCircularDeque circularDeque = new MycircularDeque(3); // set the size to be 3
+circularDeque.insertLast(1);			// return true
+circularDeque.insertLast(2);			// return true
+circularDeque.insertFront(3);			// return true
+circularDeque.insertFront(4);			// return false, the queue is full
+circularDeque.getRear();  			// return 2
+circularDeque.isFull();				// return true
+circularDeque.deleteLast();			// return true
+circularDeque.insertFront(4);			// return true
+circularDeque.getFront();			// return 4
+```
+
+**Note:**
+
+- All values will be in the range of [0, 1000].
+- The number of operations will be in the range of [1, 1000].
+- Please do not use the built-in Deque library.
+
+**Solution**
+
+(1) use circular array
+
+```go
+type MyCircularDeque struct {
+	arr   []int
+	front int
+	rear  int
+}
+
+/** Initialize your data structure here. Set the size of the deque to be k. */
+func Constructor(k int) MyCircularDeque {
+	return MyCircularDeque{make([]int, k, k), -1, 0}
+}
+
+/** Adds an item at the front of Deque. Return true if the operation is successful. */
+func (this *MyCircularDeque) InsertFront(value int) bool {
+	if this.IsFull() {
+		return false
+	}
+
+	if this.front == -1 {
+		// the queue is empty
+		this.front, this.rear = 0, 0
+	} else if this.front == 0 {
+		// the front pointer is in the first position of array
+		this.front = len(this.arr) - 1
+	} else {
+		this.front--
+	}
+	this.arr[this.front] = value
+	return true
+}
+
+/** Adds an item at the rear of Deque. Return true if the operation is successful. */
+func (this *MyCircularDeque) InsertLast(value int) bool {
+	if this.IsFull() {
+		return false
+	}
+
+	if this.front == -1 {
+		this.front, this.rear = 0, 0
+	} else if this.rear == len(this.arr)-1 {
+		// the rear pointer is in the last position of array
+		this.rear = 0
+	} else {
+		this.rear++
+	}
+	this.arr[this.rear] = value
+	return true
+}
+
+/** Deletes an item from the front of Deque. Return true if the operation is successful. */
+func (this *MyCircularDeque) DeleteFront() bool {
+	if this.IsEmpty() {
+		return false
+	}
+
+	if this.front == this.rear {
+		// there is only on element in the queue
+		this.front, this.rear = -1, -1
+	} else {
+		if this.front == len(this.arr)-1 {
+			this.front = 0
+		} else {
+			this.front++
+		}
+	}
+	return true
+}
+
+/** Deletes an item from the rear of Deque. Return true if the operation is successful. */
+func (this *MyCircularDeque) DeleteLast() bool {
+	if this.IsEmpty() {
+		return false
+	}
+
+	if this.front == this.rear {
+		this.front, this.rear = -1, -1
+	} else if this.rear == 0 {
+		this.rear = len(this.arr) - 1
+	} else {
+		this.rear--
+	}
+	return true
+}
+
+/** Get the front item from the deque. */
+func (this *MyCircularDeque) GetFront() int {
+	if this.IsEmpty() {
+		return -1
+	} else {
+		return this.arr[this.front]
+	}
+}
+
+/** Get the last item from the deque. */
+func (this *MyCircularDeque) GetRear() int {
+	if this.IsEmpty() {
+		return -1
+	} else {
+		return this.arr[this.rear]
+	}
+}
+
+/** Checks whether the circular deque is empty or not. */
+func (this *MyCircularDeque) IsEmpty() bool {
+	return this.front == -1
+}
+
+/** Checks whether the circular deque is full or not. */
+func (this *MyCircularDeque) IsFull() bool {
+	return (this.front == 0 && this.rear == len(this.arr)-1) || this.front == this.rear+1
+}
+```
+
+Time complexity: all operations are $$O(1)$$.
+
+(2) use linked list
+
+```go
+type ListNode struct {
+	val  int
+	next *ListNode
+}
+
+// linked-list=based
+type MyCircularDeque struct {
+	front *ListNode
+	rear  *ListNode
+	size  int
+	cap   int
+}
+
+/** Initialize your data structure here. Set the size of the deque to be k. */
+func Constructor(k int) MyCircularDeque {
+	front := &ListNode{-1, nil}
+	rear := &ListNode{-1, nil}
+	front.next = rear
+	return MyCircularDeque{front, rear, 0, k}
+}
+
+/** Adds an item at the front of Deque. Return true if the operation is successful. */
+func (this *MyCircularDeque) InsertFront(value int) bool {
+	if this.IsFull() {
+		return false
+	}
+
+	if this.IsEmpty() {
+		this.front.val = value
+		this.rear.val = value
+	} else {
+		newNode := &ListNode{value, this.front}
+		this.front = newNode
+	}
+	this.size++
+	return true
+}
+
+/** Adds an item at the rear of Deque. Return true if the operation is successful. */
+func (this *MyCircularDeque) InsertLast(value int) bool {
+	if this.IsFull() {
+		return false
+	}
+
+	if this.IsEmpty() {
+		this.rear.val = value
+		this.front.val = value
+	} else {
+		newNode := &ListNode{value, nil}
+		this.rear.next = newNode
+		this.rear = newNode
+	}
+	this.size++
+	return true
+}
+
+/** Deletes an item from the front of Deque. Return true if the operation is successful. */
+func (this *MyCircularDeque) DeleteFront() bool {
+	if this.IsEmpty() {
+		return false
+	}
+
+	this.front = this.front.next
+	this.size--
+	return true
+}
+
+/** Deletes an item from the rear of Deque. Return true if the operation is successful. */
+func (this *MyCircularDeque) DeleteLast() bool {
+	if this.IsEmpty() {
+		return false
+	}
+
+	pre := this.front
+	for pre.next != nil && pre.next.next != nil {
+		pre = pre.next
+	}
+	this.rear = pre
+	this.size--
+	return true
+}
+
+/** Get the front item from the deque. */
+func (this *MyCircularDeque) GetFront() int {
+	if this.IsEmpty() {
+		return -1
+	} else {
+		return this.front.val
+	}
+}
+
+/** Get the last item from the deque. */
+func (this *MyCircularDeque) GetRear() int {
+	if this.IsEmpty() {
+		return -1
+	} else {
+		return this.rear.val
+	}
+}
+
+/** Checks whether the circular deque is empty or not. */
+func (this *MyCircularDeque) IsEmpty() bool {
+	return this.size == 0
+}
+
+/** Checks whether the circular deque is full or not. */
+func (this *MyCircularDeque) IsFull() bool {
+	return this.size == this.cap
+}
+```
+
+Time complexity: `DeleteRear` is $$O(n)$$ and other operations are $$O(1)$$.

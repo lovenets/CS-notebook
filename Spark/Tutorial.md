@@ -1,4 +1,4 @@
-# Spark's Architecture
+#  Spark's Architecture
 
 ![Spark architecture](img\Spark architecture.jpg)
 
@@ -114,6 +114,14 @@ One important parameter for parallel collections is the number of *partitions* t
 (3) By default, Spark creates one partition for each block of the file (blocks being 128MB by default in HDFS), but you can also ask for a higher number of partitions by passing a larger value. Note that you cannot have fewer partitions than blocks.
 
 (4) Spark’s Scala API also supports several other data formats: `SparkContext.wholeTextFiles`, `sequenceFile[K, V]` and son on.
+
+(5) Sometimes you may want to read a local file using Scala's library:
+
+```scala
+val fileContent = scala.io.Source.fromFile("README.md").getLines().toList
+```
+
+This equals reading a file line by line.
 
 ## 4.RDD operations
 

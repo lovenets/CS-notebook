@@ -177,3 +177,95 @@ func wordPattern(pattern string, str string) bool {
 ```
 
 Time complexity: $$O(n)$$, n is the length of `str`.
+
+#### 3.[Daily Temperatures](https://leetcode.com/problems/daily-temperatures/)
+
+Given a list of daily temperatures `T`, return a list such that, for each day in the input, tells you how many days you would have to wait until a warmer temperature. If there is no future day for which this is possible, put `0` instead.
+
+For example, given the list of temperatures `T = [73, 74, 75, 71, 69, 72, 76, 73]`, your output should be `[1, 1, 4, 2, 1, 1, 0, 0]`.
+
+**Note:** The length of `temperatures` will be in the range `[1, 30000]`. Each temperature will be an integer in the range `[30, 100]`.
+
+(1) hash table
+
+The range of temperature is quite small, so it is possible to have a hash map of temperatures to earliest days when that temperature occurred.
+
+We iterate through the list of temperatures from the back, and for each day, loop through higher temperatures and find the minimum day for existing higher temperatures.
+
+Example, for the input, when we are at 72
+
+```
+[73, 74, 75, 71, 69, 72, 76, 73]
+                      ^
+# We have the following hash map:
+{
+  73: 7,
+  76: 6,
+}
+```
+
+```java
+class Solution {
+    public int[] dailyTemperatures(int[] T) {
+        Map<Integer, Integer> temps = new HashMap<>();
+        int[] res = new int[T.length];
+        // iterate the array from back to front
+        for (int i = T.length - 1; i > -1; i--) {
+            int t = T[i];
+            // use a list to store the distances between current and higher temperatures
+            List<Integer> days = new ArrayList<>();
+            for (int higher = t + 1; higher <= 100; higher++) {
+                if (temps.containsKey(higher)) {
+                    days.add(temps.get(higher) - i);
+                }
+            }
+            if (!days.isEmpty()) {
+                res[i] = days.stream().min(Comparator.naturalOrder()).get();
+            }
+            // update the closet position where current temperature appears
+            temps.put(t, i);
+        }
+        return res;
+    }
+}
+```
+
+Time complexity: $$O(n)$$, n is the number of temperatures.
+
+(2) stack
+
+```java
+public int[] dailyTemperatures(int[] temperatures) {
+    Stack<Integer> stack = new Stack<>();
+    int[] ret = new int[temperatures.length];
+    for(int i = 0; i < temperatures.length; i++) {
+        while(!stack.isEmpty() && temperatures[i] > temperatures[stack.peek()]) {
+            int idx = stack.pop();
+            ret[idx] = i - idx;
+        }
+        stack.push(i);
+    }
+    return ret;
+}
+```
+
+Time complexity: $$O(n)$$, n is the number of temperatures.
+
+Since popping and pushing is time-consuming, we can use an array to stimulate stack.
+
+```java
+public int[] dailyTemperatures(int[] temperatures) {
+    int[] stack = new int[temperatures.length];
+    int top = -1;
+    int[] ret = new int[temperatures.length];
+    for(int i = 0; i < temperatures.length; i++) {
+        while(top > -1 && temperatures[i] > temperatures[stack[top]]) {
+            int idx = stack[top--];
+            ret[idx] = i - idx;
+        }
+        stack[++top] = i;
+    }
+    return ret;
+}
+```
+

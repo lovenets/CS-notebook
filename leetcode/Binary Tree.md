@@ -186,3 +186,114 @@ func (this *MyCalendarTwo) Book(start int, end int) bool {
 ```
 
 Time complexity: Time Complexity: $$O(N^2)$$, where $$N$$ is the number of events booked. For each new event, we process every previous event to decide whether the new event can be booked. This leads to $$\sum_k^N O(k) = O(N^2)$$ complexity.
+
+#### 3. [Range Sum Query - Mutable](https://leetcode.com/problems/range-sum-query-mutable/)
+
+Given an integer array *nums*, find the sum of the elements between indices *i* and *j* (*i* ≤ *j*), inclusive.
+
+The *update(i, val)* function modifies *nums* by updating the element at index *i* to *val*.
+
+**Example:**
+
+```
+Given nums = [1, 3, 5]
+
+sumRange(0, 2) -> 9
+update(1, 2)
+sumRange(0, 2) -> 8
+```
+
+**Note:**
+
+1. The array is only modifiable by the *update* function.
+2. You may assume the number of calls to *update* and *sumRange* function is distributed evenly.
+
+**Solution**
+
+Binary Indexed Trees (BIT or Fenwick tree):
+
+Example: given an array a[0]...a[7], we use a array BIT[9] to represent a tree, where index [2] is the parent of [1] and [3], [6] is the parent of [5] and [7], [4] is the parent of [2] and [6], and [8] is the parent of [4]. i.e. BIT[] as a binary tree:
+
+```
+	 * BIT[] as a binary tree:
+	 *            ______________*
+	 *            ______*
+	 *            __*     __*
+	 *            *   *   *   *
+	 * indices: 0 1 2 3 4 5 6 7 8
+```
+
+```
+if BIT[i] is a left child then
+	BIT[i] = the partial sum from its left most descendant to itself
+else 
+	BIT[i] = the partial sum from its parent (exclusive) to itself
+	
+e.g.
+	 BIT[1]=a[0]
+	 BIT[2]=a[1]+a[0]=a[1]+BIT[1]
+	 BIT[3]=a[2]
+	 BIT[4]=a[3]+a[2]+a[1]+a[0]=a[3]+BIT[3]+BIT[2]
+	 BIT[6]=a[5]+a[4]=a[5]+BIT[5]
+	 BIT[8]=a[7]+a[6]+...+a[0]=a[7]+BIT[7]+BIT[6]+BIT[4]
+```
+
+> Why use BIT?
+>
+> In a flat array of $${\displaystyle n}$$ numbers, you can either store the elements, or the prefix sums. In the first case, computing prefix sums requires linear time; in the second case, updating the array elements requires linear time (in both cases, the other operation can be performed in constant time). Fenwick trees allow both operations to be performed in $${\displaystyle O(\log n)}$$ time. This is achieved by representing the numbers as a [tree](https://en.wikipedia.org/wiki/Tree_(data_structure)), where the value of each node is the sum of the numbers in that subtree.
+
+If we update a node in BIT, such as `BIT[2]`,we shall update `BIT[2], BIT[4], BIT[8]`, i.e., for current `[i]`, the next update `[j]` is `j=i+(i&-i)` (double the last 1 bit from `[i]`).
+
+If we want to get the partial sum up to `BIT[7]`, we shall get the sum of `BIT[7], BIT[6], BIT[4]`, i.e., for current `[i]`, the next summand `[j]` is `j=i-(i&-i)` ( delete the last 1 bit from `[i]`).
+
+To obtain the original value of `a[7]`(corresponding to index `[8]` of BIT), we have to subtract `BIT[7], BIT[6], BIT[4]` from `BIT[8]`, i.e. starting from `[idx-1]`, for current `[i]`, the next subtrahend `[j]` is `j=i-(i&-i)`, up to `idx-(idx&-idx)` exclusive. (However, a quicker way but using extra space is to store the original array.)
+
+```go
+type NumArray struct {
+	originals []int
+	BIT       []int
+}
+
+func Constructor(nums []int) NumArray {
+	BIT := make([]int, len(nums)+1, len(nums)+1)
+	for i, n := range nums {
+		initBIT(i, n, &BIT)
+	}
+	return NumArray{nums, BIT}
+}
+
+func initBIT(i, val int, BIT *[]int) {
+	i++
+	for i <= len(*BIT)-1 {
+		(*BIT)[i] += val
+		i += i & -i
+	}
+}
+
+func (this *NumArray) Update(i int, val int) {
+	diff := val - this.originals[i]
+	this.originals[i] = val
+	initBIT(i, diff, &this.BIT)
+}
+
+func (this *NumArray) SumRange(i int, j int) int {
+	return getSum(j, this.BIT) - getSum(i-1, this.BIT)
+}
+
+func getSum(i int, BIT []int) int {
+	sum := 0
+	i++
+	for i > 0 {
+		sum += BIT[i]
+		i -= i & -i
+	}
+	return sum
+}
+```
+
+Time complexity: 
+
+(1) `Constructor`: $$O(nlogn)$$, cuz the time complexity of  `initBIT` is $$O(logn)$$, n is the length pf original array.
+
+(2) Others: $$O(logn)$$, n is the length pf original array.
+

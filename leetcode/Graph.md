@@ -268,3 +268,98 @@ private boolean hasOrder(int from, List<List<Integer>> adjs, BitSet visited, Bit
 ```
 
 Time complexity: $$O(V+E)$$, $$V$$ is the number of vertices and $$E$$ is the number of edges.
+
+#### 3.[Evaluate Division](https://leetcode.com/problems/evaluate-division/)
+
+Equations are given in the format `A / B = k`, where `A` and `B`are variables represented as strings, and `k` is a real number (floating point number). Given some queries, return the answers. If the answer does not exist, return `-1.0`.
+
+**Example:**
+Given `a / b = 2.0, b / c = 3.0.` 
+queries are: `a / c = ?, b / a = ?, a / e = ?, a / a = ?, x / x = ? .` 
+return `[6.0, 0.5, -1.0, 1.0, -1.0 ].`
+
+The input is: `vector<pair<string, string>> equations, vector<double>& values, vector<pair<string, string>> queries `, where `equations.size() == values.size()`, and the values are positive. This represents the equations. Return `vector<double>`.
+
+According to the example above:
+
+```
+equations = [ ["a", "b"], ["b", "c"] ],
+values = [2.0, 3.0],
+queries = [ ["a", "c"], ["b", "a"], ["a", "e"], ["a", "a"], ["x", "x"] ]. 
+```
+
+The input is always valid. You may assume that evaluating the queries will result in no division by zero and there is no contradiction.
+
+**Solution**
+
+```go
+func calcEquation(equations [][]string, values []float64, queries [][]string) []float64 {
+	// construct a directed graph
+    // a directed edge's starting vertex is the dividend and end its vertex is divisor 
+    // the weight of an edge is quotient
+	graph := constructGraph(equations, values)
+
+	res := make([]float64, 0)
+	for _, v := range queries {
+		res = append(res, pathLength(graph, v[0], v[1]))
+	}
+	return res
+}
+
+// key are the vertices
+// values are maps whose keys are adjacent vertices
+// and values are corresponding weights 
+func constructGraph(equations [][]string, values []float64) map[string]map[string]float64 {
+	graph := make(map[string]map[string]float64)
+
+	addEdge := func(f, t string, w float64) {
+		if edges, ok := graph[f]; ok {
+			edges[t] = w
+		} else {
+			graph[f] = make(map[string]float64)
+			graph[f][t] = w
+		}
+	}
+
+	for i := 0; i < len(values); i++ {
+		f, t := equations[i][0], equations[i][1]
+		w := values[i]
+		addEdge(f, t, w)
+		addEdge(t, f, 1.0/w)
+	}
+
+	return graph
+}
+
+func pathLength(g map[string]map[string]float64, f string, t string) float64 {
+	if _, ok := g[f]; !ok {
+		return -1.0
+	}
+	if f == t {
+		return 1.0
+	}
+
+	// BFS
+	queue := make([][]interface{}, 0)
+	queue = append(queue, []interface{}{f, 1.0})
+	visited := make(map[string]bool)
+	for len(queue) > 0 {
+		poll := queue[0]
+		queue = queue[1:]
+		v := poll[0].(string)
+		if v == t {
+			return poll[1].(float64)
+		}
+		visited[v] = true
+		for n, w := range g[v] {
+			if !visited[n] {
+				queue = append(queue, []interface{}{n, poll[1].(float64) * w})
+			}
+		}
+	}
+
+	return -1.0
+}
+```
+
+Time complexity: $$O(e+v)$$, e is the number of edges and v is the number of vertices.

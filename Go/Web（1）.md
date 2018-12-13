@@ -903,6 +903,8 @@ func  CreateJson(){
 
 用`Marshal`生成 JSON 时，需要注意：
 
+- 结构体中首字母小写的字段不会导出，也就是说不会出现在 JSON 中
+
 - JSON 对象只支持`string`作为属性名，所以要编码一个`map`，那么必须是`map[string]T`这种类型(`T`是 Go 语言中任意的类型)
 - `channel`, `complex`和函数不能被编码成 JSON 
 - 嵌套的数据是不能编码的，不然会让 JSON 编码进入死循环

@@ -138,6 +138,10 @@ By default, shuffling doesn’t change the number of partitions, but their conte
   - `groupByKey` shuffles all the data, which is slow.
   - `reduceByKey` shuffles only the results of sub-aggregations in each partition of the data.
 
+![group_by](img\group_by.png)
+
+![reduce_by](img\reduce_by.png)
+
 ## Persistence
 
 ![persistence](img\persistence.jpg)

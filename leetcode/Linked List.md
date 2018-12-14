@@ -331,9 +331,9 @@ We know that the leftmost element in the inorder traversal has to be the head of
 
 1. Iterate over the linked list to find out it's length. We will make use of two different pointer variables here to mark the beginning and the end of the list. Let's call them `start` and `end` with their initial values being `0` and `length - 1` respectively.
 2. Remember, we have to simulate the inorder traversal here. We can find out the middle element by using `(start + end) / 2`. Note that we don't really find out the middle node of the linked list. We just have a variable telling us the index of the middle element. We simply need this to make recursive calls on the two halves.
-3. Recurse on the left half by using `start, mid - 1` as the starting and ending points.
+3. Recur on the left half by using `start, mid - 1` as the starting and ending points.
 4. The invariance that we maintain in this algorithm is that whenever we are done building the left half of the BST, the head pointer in the linked list will point to the root node or the middle node (which becomes the root). So, we simply use the current value pointed to by `head` as the root node and progress the head node by once i.e. `head = head.next`
-5. We recurse on the right hand side using `mid + 1, end` as the starting and ending points.
+5. We recur on the right hand side using `mid + 1, end` as the starting and ending points.
 
 ```java
 /**
@@ -382,7 +382,8 @@ class Solution {
     return node;
   }
 
-  public TreeNode sortedListToBST(ListNode head) {
+  public TreeNode 
+      sortedListToBST(ListNode head) {
     // Get the size of the linked list first
     int size = this.findSize(head);
 
@@ -394,7 +395,89 @@ class Solution {
 }
 ```
 
-Time Complexity: The time complexity is still $$O(N)​$$ since we still have to process each of the nodes in the linked list once and form corresponding BST nodes.
+Time Complexity: The time complexity is still $$O(N)$$ since we still have to process each of the nodes in the linked list once and form corresponding BST nodes.
 
+#### 4.[Copy List With Random Pointer](https://leetcode.com/problems/copy-list-with-random-pointer/)
 
+A linked list is given such that each node contains an additional random pointer which could point to any node in the list or null.
 
+Return a deep copy of the list.
+
+**Solution**
+
+Notice that we need to return a **deep** copy of the list, which means that we must create every node again.
+
+ **The idea is to associate the original node with its copy node in a single linked list. In this way, we don't need extra space to keep track of the new nodes.**
+
+The algorithm is composed of the follow three steps which are also 3 iteration rounds.
+
+1. Iterate the original list and duplicate each node. The duplicate
+   of each node follows its original immediately.
+2. Iterate the new list and assign the random pointer for each
+   duplicated node.
+3. Restore the original list and extract the duplicated nodes.
+
+```java
+/**
+ * Definition for singly-linked list with a random pointer.
+ * class RandomListNode {
+ *     int label;
+ *     RandomListNode next, random;
+ *     RandomListNode(int x) { this.label = x; }
+ * };
+ */
+public class Solution {
+    public RandomListNode copyRandomList(RandomListNode head) {
+        RandomListNode iter = head;
+        RandomListNode next;
+
+        // 1st round: copy every node and
+        // make them linked to their original nodes respectively
+        while (iter != null) {
+            next = iter.next;
+            RandomListNode copy = new RandomListNode(iter.label);
+            // make the copy one become its original node's next node
+            iter.next = copy;
+            copy.next = next;
+            // move forward
+            iter = next;
+        }
+
+        // 2nd round: assign random pointers for the copy ones
+        iter = head;
+        while (iter != null) {
+            if (iter.random != null) {
+                // NOTE: iter.next is the copy one
+                // and iter.random.next is also a copy copy one
+                iter.next.random = iter.random.next;
+            }
+            // iter.next.next is the original one
+            iter = iter.next.next;
+        }
+
+        // 3rd round: restore the original list and
+        // extract the copy ones
+        iter = head;
+        RandomListNode pseudoHead = new RandomListNode(0);
+        RandomListNode copy;
+        RandomListNode copyIter = pseudoHead;
+        while (iter != null) {
+            // iter.next.next is the original one
+            next = iter.next.next;
+
+            // extract the copy one
+            copy = iter.next;
+            copyIter.next = copy;
+            copyIter = copy;
+            // restore the original list
+            iter.next = next;
+
+            iter = next;
+        }
+
+        return pseudoHead.next;
+    }
+}
+```
+
+Time complexity: $$O(n)$$, n is the length of list.

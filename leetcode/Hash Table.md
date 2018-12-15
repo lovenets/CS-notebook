@@ -269,3 +269,104 @@ public int[] dailyTemperatures(int[] temperatures) {
 }
 ```
 
+#### 4. [Array of Doubled Pairs](https://leetcode.com/problems/array-of-doubled-pairs/)
+
+Given an array of integers `A` with even length, return `true` if and only if it is possible to reorder it such that `A[2 * i + 1] = 2 * A[2 * i]` for every `0 <= i < len(A) / 2`.
+
+ 
+
+
+
+**Example 1:**
+
+```
+Input: [3,1,3,6]
+Output: false
+```
+
+**Example 2:**
+
+```
+Input: [2,1,2,6]
+Output: false
+```
+
+**Example 3:**
+
+```
+Input: [4,-2,2,-4]
+Output: true
+Explanation: We can take two groups, [-2,-4] and [2,4] to form [-2,-4,2,4] or [2,4,-2,-4].
+```
+
+**Example 4:**
+
+```
+Input: [1,2,4,16,8,4]
+Output: false
+```
+
+**Note:**
+
+1. `0 <= A.length <= 30000`
+2. `A.length` is even
+3. `-100000 <= A[i] <= 100000`
+
+**Solution**
+
+**Let's see a simple case**
+Assume all interger are positive, for example `[2,4,4,8]`.
+We have one `x = 2`, we need to match it with one `2x = 4`.
+Then one `4` is gone, we have the other `x = 4`.
+We need to match it with one `2x = 8`.
+Finally no number left.
+
+**Why we start from 2?**
+Because it's the smallest and we no there is no `x/2` left.
+So we know we need to find `2x`
+
+**What if the case negative?**
+One way is that start from the biggest (with smallest absolute value),
+and we apply the same logic.
+
+Another way is that start from the smallest (with biggest absolute value ), and we try to find `x/2` each turn.
+
+```go
+func canReorderDoubled(A []int) bool {
+	counter := make(map[int]int)
+	for _, val := range A {
+		counter[val]++
+	}
+	// we need to traverse the map
+	// from the smallest key to the biggest key
+	keys := make([]int, 0)
+	for k := range counter {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+
+	for _, k := range keys {
+        // we have completed matching a number
+		if counter[k] == 0 {
+			continue
+		}
+		var want int
+		if k < 0 {
+			// if k is negative then k is A[2*i+1]
+			want = k / 2
+		} else {
+            // if k is positive then k is A[2*i]
+			want = k * 2
+		}
+		if (k < 0 && k%2 != 0) || counter[k] > counter[want] {
+			return false
+		}
+		counter[want] = counter[want] - counter[k]
+	}
+	return true
+}
+```
+
+Time complexity: $$O(Max{K,N})$$, K is the number of distinct numbers and N is the number of total numbers.
+
+ 

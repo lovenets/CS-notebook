@@ -363,3 +363,118 @@ func pathLength(g map[string]map[string]float64, f string, t string) float64 {
 ```
 
 Time complexity: $$O(e+v)$$, e is the number of edges and v is the number of vertices.
+
+#### 4.[Find Eventual Safe States](https://leetcode.com/problems/find-eventual-safe-states/)
+
+In a directed graph, we start at some node and every turn, walk along a directed edge of the graph.  If we reach a node that is terminal (that is, it has no outgoing directed edges), we stop.
+
+Now, say our starting node is *eventually safe* if and only if we must eventually walk to a terminal node.  More specifically, there exists a natural number `K` so that for any choice of where to walk, we must have stopped at a terminal node in less than `K` steps.
+
+Which nodes are eventually safe?  Return them as an array in sorted order.
+
+The directed graph has `N` nodes with labels `0, 1, ..., N-1`, where `N` is the length of `graph`.  The graph is given in the following form: `graph[i]` is a list of labels `j` such that `(i, j)`is a directed edge of the graph.
+
+```
+Example:
+Input: graph = [[1,2],[2,3],[5],[0],[5],[],[]]
+Output: [2,4,5,6]
+Here is a diagram of the above graph.
+```
+
+![Illustration of graph](https://s3-lc-upload.s3.amazonaws.com/uploads/2018/03/17/picture1.png)
+
+**Note:**
+
+- `graph` will have length at most `10000`.
+- The number of edges in the graph will not exceed `32000`.
+- Each `graph[i]` will be a sorted list of different integers, chosen within the range `[0, graph.length - 1]`.
+
+**Solution**
+
+(1) remove 0 out degree nodes
+
+1. Find nodes with out degree 0, they are terminal nodes, we remove them from graph and they are added to result
+2. For nodes who are connected terminal nodes, since terminal nodes are removed, we decrease in-nodes' out degree by 1 and if its out degree equals to 0, it become new terminal nodes
+3. Repeat 2 until no terminal nodes can be found.
+
+```go
+func eventualSafeNodes(graph [][]int) []int {
+	// outDegree[i]: the out degree of vertex i
+	outDegree := make([]int, len(graph), len(graph))
+	// inVertices[i]: the list of vertices which point to vertex i
+	inVertices := make(map[int][]int)
+	res := make([]int, 0)
+	queue := make([]int, 0)
+    
+    // find the initial terminal vertices
+	for f, e := range graph {
+		outDegree[f] = len(e)
+		if outDegree[f] == 0 {
+			queue = append(queue, f)
+		}
+		for _, t := range graph[f] {
+			inVertices[t] = append(inVertices[t], f)
+		}
+	}
+    // remove the terminal vertices and then update the graph
+    // keep looking for terminal vertices until we can't find any more
+	for len(queue) > 0 {
+		t := queue[0]
+		queue = queue[1:]
+		res = append(res, t)
+		for _, f := range inVertices[t] {
+			outDegree[f]--
+			if outDegree[f] == 0 {
+				queue = append(queue, f)
+			}
+		}
+	}
+	sort.Ints(res)
+	return res
+}
+```
+
+Time complexity: $$O(n^2)$$,n is the number of nodes.
+
+(2) DFS
+
+Actually, we are looking for nodes which will not form a circle.
+
+For DFS, we need to do some optimization.When we travel a path, we mark the node with 2 which represents having been visited, and when we encounter a node which results in a cycle, we return false, all node in the path stays 2 and it represents unsafe. And in the following traveling, whenever we encounter a node which points to a node marked with 2, we know it will results in a cycle, so we can stop traveling. On the contrary, when a node is safe, we can mark it with 1 and whenever we encounter a safe node, we know it will not results in a cycle.
+
+```go
+const NOT_VISITED = 0
+const SAFE = 1
+const UNSAFE = 2
+
+func eventualSafeNodes(graph [][]int) []int {
+	res := make([]int, 0)
+	if len(graph) == 0 {
+		return res
+	}
+	nodeState := make([]int, len(graph), len(graph))
+	for i := 0; i < len(graph); i++ {
+		if dfs(graph, i, nodeState) {
+			res = append(res, i)
+		}
+	}
+	sort.Ints(res)
+	return res
+}
+
+func dfs(graph [][]int, f int, nodeState []int) bool {
+	if nodeState[f] != NOT_VISITED {
+		return nodeState[f] == SAFE
+	}
+	nodeState[f] = UNSAFE
+	for _, t := range graph[f] {
+		if !dfs(graph, t, nodeState) {
+			return false
+		}
+	}
+	nodeState[f] = SAFE
+	return true
+}
+```
+
+Time complexity: $$O(v+e)$$, v is the number of vertices and e is the number of edges.

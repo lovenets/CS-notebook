@@ -478,3 +478,118 @@ func dfs(graph [][]int, f int, nodeState []int) bool {
 ```
 
 Time complexity: $$O(v+e)$$, v is the number of vertices and e is the number of edges.
+
+#### 5. [Is Graph Bipartite?](https://leetcode.com/problems/is-graph-bipartite/)
+
+Given an undirected `graph`, return `true` if and only if it is bipartite.
+
+Recall that a graph is *bipartite* if we can split it's set of nodes into two independent subsets A and B such that every edge in the graph has one node in A and another node in B.
+
+The graph is given in the following form: `graph[i]` is a list of indexes `j` for which the edge between nodes `i` and `j` exists.  Each node is an integer between `0` and `graph.length - 1`.  There are no self edges or parallel edges: `graph[i]` does not contain `i`, and it doesn't contain any element twice.
+
+```
+Example 1:
+Input: [[1,3], [0,2], [1,3], [0,2]]
+Output: true
+Explanation: 
+The graph looks like this:
+0----1
+|    |
+|    |
+3----2
+We can divide the vertices into two groups: {0, 2} and {1, 3}.
+Example 2:
+Input: [[1,2,3], [0,2], [0,1,3], [0,2]]
+Output: false
+Explanation: 
+The graph looks like this:
+0----1
+| \  |
+|  \ |
+3----2
+We cannot find a way to divide the set of nodes into two independent subsets.
+```
+
+**Note:**
+
+- `graph` will have length in range `[1, 100]`.
+- `graph[i]` will contain integers in range `[0, graph.length - 1]`.
+- `graph[i]` will not contain `i` or duplicate values.
+- The graph is undirected: if any element `j` is in `graph[i]`, then `i` will be in `graph[j]`.
+
+**Solution**
+
+(1) DFS
+
+Try to use two colors to color the graph and see if there are any adjacent nodes having the same color.
+
+```java
+class Solution {
+    public boolean isBipartite(int[][] graph) {
+        int n = graph.length;
+        int[] colors = new int[n];			
+        
+        //This graph might be a disconnected graph. So check each unvisited node.
+        for (int i = 0; i < n; i++) {              
+            if (colors[i] == 0 && !validColor(graph, colors, 1, i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    public boolean validColor(int[][] graph, int[] colors, int color, int node) {
+        if (colors[node] != 0) {
+            return colors[node] == color;
+        }       
+        colors[node] = color;       
+        for (int next : graph[node]) {
+            if (!validColor(graph, colors, -color, next)) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+```
+
+Time complexity: $$O(V+E)$$
+
+(2) BFS
+
+```go
+func isBipartite(graph [][]int) bool {
+	// 0: not colored, 1: white, -1: black
+	color := make([]int, len(graph), len(graph))
+	queue := make([]int, 0)
+	queue = append(queue, 0)
+
+	for i := range graph {
+		if color[i] == 0 {
+			color[i] = 1
+			queue := make([]int, 0)
+			queue = append(queue, i)
+			for len(queue) > 0 {
+				cur := queue[0]
+				queue = queue[1:]
+				for _, adj := range graph[cur] {
+					if color[adj] == 0 {
+						// color the adjacent vertex different color
+						color[adj] = -color[cur]
+						queue = append(queue, adj)
+					} else if color[cur] == color[adj] {
+						// if two adjacent vertices have the same color,
+						// then return false
+						return false
+					}
+				}
+			}
+		}
+	}
+	return true
+}
+```
+
+Time complexity: $$O(V+E)$$
+

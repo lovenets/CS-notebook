@@ -420,3 +420,349 @@ fmt.Println(x)
 ```
 
 Without that `...`, it wouldn't compile because the types would be wrong; `y` is not of type `int`.
+
+# Initialization
+
+1.constants
+
+(1) They are created at compile time, even when defined as locals in functions, and can only be numbers, characters (runes), strings or booleans. 
+
+(2) The expressions that define them must be constant expressions, evaluatable by the compiler.
+
+2.variables
+
+Variables can be initialized just like constants but the initializer can be a general expression computed at run time.
+
+3.`init`function
+
+(1) Actually each file can have multiple `init` functions.
+
+(2) `init` is called after all the variable declarations in the package have evaluated their initializers, and those are evaluated only after all the imported packages have been initialized.
+
+(3) A common use of `init`functions is to verify or repair correctness of the program state before real execution begins.
+
+```go
+func init() {
+    if user == "" {
+        log.Fatal("$USER not set")
+    }
+    if home == "" {
+        home = "/home/" + user
+    }
+    if gopath == "" {
+        gopath = home + "/go"
+    }
+    // gopath may be overridden by --gopath flag on command line.
+    flag.StringVar(&gopath, "gopath", gopath, "override default GOPATH")
+}
+```
+
+# Methods
+
+pointers vs. values
+
+(1)  Methods can be defined for any named type (except a pointer or an interface); the receiver does not have to be a struct.
+
+(2) The rule about pointers vs. values for receivers is that value methods can be invoked on pointers and values, but pointer methods can only be invoked on pointers.
+
+This rule arises because pointer methods can modify the receiver; invoking them on a value would cause the method to receive a copy of the value, so any modifications would be discarded.
+
+The language takes care of the common case of invoking a pointer method on a value by inserting the address operator automatically.
+
+# Interfaces and other types
+
+1.interfaces
+
+(1) Interfaces in Go provide a way to specify the behavior of an object: if something can do *this*, then it can be used *here*.
+
+(2) A type can implement multiple interfaces
+
+2.conversions
+
+(1) A conversion may not create a new value, it just temporarily acts as though the existing value has a new type. (There are other legal conversions, such as from integer to floating point, that do create a new value.)
+
+(2) It's an idiom in Go programs to convert the type of an expression to access a different set of methods. That's more unusual in practice but can be effective.
+
+```go
+type Sequence []int
+
+// Method for printing - sorts the elements before printing
+func (s Sequence) String() string {
+    sort.IntSlice(s).Sort()
+    return fmt.Sprint([]int(s))
+}
+```
+
+3.interfaces and methods
+
+Interfaces are just sets of methods, which can be defined for (almost) any type.
+
+#  The blank identifier
+
+1.multiple assignment
+
+If an assignment requires multiple values on the left side, but one of the values will not be used by the program, a blank identifier on the left-hand-side of the assignment avoids the need to create a dummy variable and makes it clear that the value is to be discarded.
+
+2.unused imports and variables
+
+To silence complaints about the unused imports, use a blank identifier to refer to a symbol from the imported package. Similarly, assigning the unused variables to the blank identifier will silence the unused variable error.
+
+3.import for side effect
+
+But sometimes it is useful to import a package only for its side effects, without any explicit use. For example, during its `init`function, the `net/http/pprof` package registers HTTP handlers that provide debugging information. It has an exported API, but most clients need only the handler registration and access the data through a web page. To import the package only for its side effects, rename the package to the blank identifier.
+
+4.interface checks
+
+If it's necessary only to ask whether a type implements an interface, without actually using the interface itself, perhaps as part of an error check, use the blank identifier to ignore the type-asserted value:
+
+```go
+if _, ok := val.(json.Marshaler); ok {
+    fmt.Printf("value %v of type %T implements json.Marshaler\n", val, val)
+}
+```
+
+
+One place this situation arises is when it is necessary to guarantee within the package implementing the type that it actually satisfies the interface.
+
+```go
+var _ json.Marshaler = (*RawMessage)(nil)
+```
+
+In this declaration, the assignment involving a conversion of a `*RawMessage` to a `Marshaler`requires that `*RawMessage` implements `Marshaler`, and that property will be checked at compile time. Should the `json.Marshaler` interface change, this package will no longer compile and we will be on notice that it needs to be updated.
+
+Don't do this for every type that satisfies an interface, though. By convention, such declarations are only used when there are **no static conversions** already present in the code, which is a rare event.
+
+# Embedding
+
+(1) Only interfaces can be embedded within interfaces.
+
+```go
+type Reader interface {
+    Read(p []byte) (n int, err error)
+}
+
+type Writer interface {
+    Write(p []byte) (n int, err error)
+}
+
+// ReadWriter is the interface that combines the Reader and Writer interfaces.
+type ReadWriter interface {
+    Reader
+    Writer
+}
+```
+
+(2) We can embed the structs directly without giving them filed names. By doing this, we avoid promoting the methods of the fields and satisfying some interfaces. 
+
+When we embed a type, the methods of that type become methods of the outer type, but when they are invoked the receiver of the method is the inner type, not the outer one.
+
+(3) Embedding can also be a simple convenience.
+
+```go
+type Job struct {
+    Command string
+    *log.Logger
+}
+```
+
+The `Job` type now has the `Log`, `Logf` and other methods of `*log.Logger`. We could have given the `Logger` a field name, of course, but it's not necessary to do so. And now, once initialized, we can log to the `Job`:
+
+```go
+job.Log("starting now...")
+```
+
+If we need to refer to an embedded field directly, the type name of the field, ignoring the package qualifier, serves as a field name, as it did in the `Read` method of our `ReadWriter`struct. Here, if we needed to access the `*log.Logger` of a `Job` variable `job`, we would write `job.Logger`, which would be useful if we wanted to refine the methods of `Logger`.
+
+```go
+func (job *Job) Logf(format string, args ...interface{}) {
+    job.Logger.Logf("%q: %s", job.Command, fmt.Sprintf(format, args...))
+}
+```
+
+Embedding types introduces the problem of name conflicts but the rules to resolve them are simple. First, a field or method `X` hides any other item `X` in a more deeply nested part of the type. If `log.Logger` contained a field or method called `Command`, the `Command` field of `Job` would dominate it.
+
+Second, if the same name appears at the same nesting level, it is usually an error; it would be erroneous to embed `log.Logger` if the `Job` struct contained another field or method called `Logger`. However, there is no problem if a field is added that conflicts with another field in another subtype if neither field is ever used.
+
+# Concurrency
+
+1.shared by communicating
+
+> Do not communicate by sharing memory; instead, share memory by communicating.
+
+Go encourages a different approach in which shared values are passed around on channels and, in fact, never actively shared by separate threads of execution. Only one goroutine has access to the value at any given time. Data races cannot occur, by design.
+
+2.goroutine
+
+They're called *goroutines* because the existing terms—threads, coroutines, processes, and so on—convey inaccurate connotations. A goroutine has a simple model: it is **a function executing concurrently with other goroutines in the same address space**. It is lightweight, costing little more than the allocation of stack space. And the stacks start small, so they are cheap, and grow by allocating (and freeing) heap storage as required.
+
+3.channel
+
+(1) A channel can allow the launching goroutine to wait for things to complete.
+
+```go
+c := make(chan int)  // Allocate a channel.
+// Start the sort in a goroutine; when it completes, signal on the channel.
+go func() {
+    list.Sort()
+    c <- 1  // Send a signal; value does not matter.
+}()
+doSomethingForAWhile()
+<-c   // Wait for sort to finish; discard sent value.
+```
+
+(2) A buffered channel can be used like a semaphore, for instance to limit throughput.
+
+```go
+var sem = make(chan int, MaxOutstanding)
+
+func Serve(queue chan *Request) {
+    for req := range queue {
+        sem <- 1
+        go func(req *Request) {
+            process(req)
+            <-sem
+        }(req)
+    }
+}
+```
+
+In a Go `for` loop, the loop variable is reused for each iteration, so the `req`variable is shared across all goroutines. That's not what we want. We need to make sure that `req` is unique for each goroutine so we pass  the value of `req` as an argument to the closure in the goroutine.
+
+Another approach that manages resources well is to start a fixed number of `handle` goroutines all reading from the request channel. The number of goroutines limits the number of simultaneous calls to `process`. 
+
+```go
+func handle(queue chan *Request) {
+    for r := range queue {
+        process(r)
+    }
+}
+
+func Serve(clientRequests chan *Request, quit chan bool) {
+    // Start handlers
+    for i := 0; i < MaxOutstanding; i++ {
+        go handle(clientRequests)
+    }
+    <-quit  // Wait to be told to exit.
+}
+```
+
+4.channels of channels
+
+```go
+type Request struct {
+    args        []int
+    f           func([]int) int
+    resultChan  chan int
+}
+```
+
+The client provides a function and its arguments, as well as a channel inside the request object on which to receive the answer.
+
+```go
+func sum(a []int) (s int) {
+    for _, v := range a {
+        s += v
+    }
+    return
+}
+
+request := &Request{[]int{3, 4, 5}, sum, make(chan int)}
+// Send request
+clientRequests <- request
+// Wait for response.
+fmt.Printf("answer: %d\n", <-request.resultChan)
+```
+
+On the server side, the handler function is the only thing that changes.
+
+```go
+func handle(queue chan *Request) {
+    for req := range queue {
+        req.resultChan <- req.f(req.args)
+    }
+}
+```
+
+There's clearly a lot more to do to make it realistic, but this code is a framework for a **rate-limited, parallel, non-blocking RPC system**, and there's not a mutex in sight.
+
+5.parallelization
+
+Let's say we have an expensive operation to perform on a vector of items, and that the value of the operation on each item is independent, as in this idealized example.
+
+```go
+type Vector []float64
+
+// Apply the operation to v[i], v[i+1] ... up to v[n-1].
+func (v Vector) DoSome(i, n int, u Vector, c chan int) {
+    for ; i < n; i++ {
+        v[i] += u.Op(v[i])
+    }
+    c <- 1    // signal that this piece is done
+}
+```
+
+We launch the pieces independently in a loop, one per CPU. They can complete in any order but it doesn't matter; we just count the completion signals by draining the channel after launching all the goroutines.
+
+```go
+const numCPU = runtime.NumCPU() // number of CPU cores
+
+func (v Vector) DoAll(u Vector) {
+    c := make(chan int, numCPU)  // Buffering optional but sensible.
+    for i := 0; i < numCPU; i++ {
+        go v.DoSome(i*len(v)/numCPU, (i+1)*len(v)/numCPU, u, c)
+    }
+    // Drain the channel.
+    for i := 0; i < numCPU; i++ {
+        <-c    // wait for one task to complete
+    }
+    // All done.
+}
+```
+
+Be sure not to confuse the ideas of concurrency—structuring a program as independently executing components—and parallelism—executing calculations in parallel for efficiency on multiple CPUs. Although the concurrency features of Go can make some problems easy to structure as parallel computations, **Go is a concurrent language, not a parallel one, and not all parallelization problems fit Go's model.** For a discussion of the distinction, see the talk cited in [this blog post](https://blog.golang.org/2013/01/concurrency-is-not-parallelism.html).
+
+6.a leaky buffer
+
+The tools of concurrent programming can even make non-concurrent ideas easier to express. Here's an example abstracted from an RPC package. The client goroutine loops receiving data from some source, perhaps a network. To avoid allocating and freeing buffers, it keeps a free list, and uses a buffered channel to represent it. If the channel is empty, a new buffer gets allocated. Once the message buffer is ready, it's sent to the server on `serverChan`.
+
+```go
+var freeList = make(chan *Buffer, 100)
+var serverChan = make(chan *Buffer)
+
+func client() {
+    for {
+        var b *Buffer
+        // Grab a buffer if available; allocate if not.
+        select {
+        case b = <-freeList:
+            // Got one; nothing more to do.
+        default:
+            // None free, so allocate a new one.
+            b = new(Buffer)
+        }
+        load(b)              // Read next message from the net.
+        serverChan <- b      // Send to server.
+    }
+}
+```
+
+The server loop receives each message from the client, processes it, and returns the buffer to the free list.
+
+```go
+func server() {
+    for {
+        b := <-serverChan    // Wait for work.
+        process(b)
+        // Reuse buffer if there's room.
+        select {
+        case freeList <- b:
+            // Buffer on free list; nothing more to do.
+        default:
+            // Free list full, just carry on.
+        }
+    }
+}
+```
+
+This implementation builds a **leaky bucket** free list in just a few lines, relying on the buffered channel and the garbage collector for bookkeeping.
+

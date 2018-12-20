@@ -1601,3 +1601,73 @@ public class BSTIterator {
 }
 ```
 
+#### 15. [Binary Tree Inorder Traversal](https://leetcode.com/problems/binary-tree-inorder-traversal/)
+
+Given a binary tree, return the *inorder* traversal of its nodes' values.
+
+**Solution**
+
+(1) recursion
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func inorderTraversal(root *TreeNode) []int {
+    res := make([]int,0)
+    
+    if root != nil {
+        solve(root,&res)
+    }
+    
+    return res
+}
+
+func solve(root *TreeNode,res *[]int) {
+    if root.Left != nil {
+        solve(root.Left,res)
+    }    
+    
+    *res = append(*res,root.Val)
+    
+    if root.Right != nil {
+        solve(root.Right,res)
+    }
+}
+```
+
+Time complexity: $$O(n)$$, n is the number of nodes.
+
+(2) iteration
+
+ ```go
+func inorderTraversal(root *TreeNode) []int {
+    res := make([]int,0)
+    stack := make([]*TreeNode,0)
+    
+    node := root
+    for node != nil || len(stack) != 0 {
+        for node != nil {
+            stack = append(stack,node)
+            node = node.Left
+        }
+        node = stack[len(stack)-1]
+        stack = stack[:len(stack)-1]
+        res = append(res,node.Val)
+        node = node.Right
+    }
+    
+    
+    return res
+}
+ ```
+
+Time complexity: $$O(n)$$, n is the number of nodes.
+
+
+

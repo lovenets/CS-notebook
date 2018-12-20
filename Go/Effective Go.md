@@ -766,3 +766,50 @@ func server() {
 
 This implementation builds a **leaky bucket** free list in just a few lines, relying on the buffered channel and the garbage collector for bookkeeping.
 
+# Errors
+
+(1) Library routines must often return some sort of error indication to the caller. As mentioned earlier, Go's multivalue return makes it easy to return a detailed error description alongside the normal return value. It is good style to use this feature to provide detailed error information. 
+
+(2) When feasible, error strings should identify their origin, such as by having a prefix naming the operation or package that generated the error. For example, in package `image`, the string representation for a decoding error due to an unknown format is "image: unknown format".
+
+(3) Callers that care about the precise error details can use a type switch or a type assertion to look for specific errors and extract details.
+
+1.panic
+
+(1) `panic`creates a run-time error that will stop the program. 
+
+(2) Real library functions should avoid `panic`. If the problem can be masked or worked around, it's better to let things continue to run rather than taking down the whole program. 
+
+2.recover
+
+(1) When `panic` is called, including implicitly for run-time errors such as indexing a slice out of bounds or failing a type assertion, it immediately stops execution of the current function and begins unwinding the stack of the goroutine, running any deferred functions along the way. If that unwinding reaches the top of the goroutine's stack, the program dies.  A call to `recover` stops the unwinding and returns the argument passed to `panic`. Because the only code that runs while unwinding is inside deferred functions, `recover` is only useful inside deferred functions.
+
+One application of `recover` is to shut down a failing goroutine inside a server without killing the other executing goroutines.
+
+```go
+func server(workChan <-chan *Work) {
+    for work := range workChan {
+        go safelyDo(work)
+    }
+}
+
+func safelyDo(work *Work) {
+    defer func() {
+        if err := recover(); err != nil {
+            log.Println("work failed:", err)
+        }
+    }()
+    do(work)
+}
+```
+
+In this example, if `do(work)` panics, the result will be logged and the goroutine will exit cleanly without disturbing the others. There's no need to do anything else in the deferred closure; calling `recover` handles the condition completely.
+
+(2)If **something unexpected** happens, such as an index out of bounds, the code will fail even though we are using `panic` and `recover` to handle errors.
+
+(3) With error handling in place, the `error` method (because it's a method bound to a type, it's fine, even natural, for it to have the same name as the builtin `error` type) makes it easy to report parse errors without worrying about unwinding the parse stack by hand.
+
+Useful though this pattern is, it should be used only within a package.  it does not expose `panics` to its client. That is a good rule to follow.
+
+
+

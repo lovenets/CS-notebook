@@ -527,3 +527,57 @@ func (this *MyCircularDeque) IsFull() bool {
 ```
 
 Time complexity: `DeleteRear` is $$O(n)$$ and other operations are $$O(1)$$.
+
+#### 4. [Max Sum of Rectangle No Larger Than K](https://leetcode.com/problems/max-sum-of-rectangle-no-larger-than-k/)
+
+Given a non-empty 2D matrix *matrix* and an integer *k*, find the max sum of a rectangle in the *matrix* such that its sum is no larger than *k*.
+
+**Example:**
+
+```
+Input: matrix = [[1,0,1],[0,-2,3]], k = 2
+Output: 2 
+Explanation: Because the sum of rectangle [[0, 1], [-2, 3]] is 2,
+             and 2 is the max number no larger than k (k = 2).
+```
+
+**Note:**
+
+1. The rectangle inside the matrix must have an area > 0.
+2. What if the number of rows is much larger than the number of columns?
+
+**Solution**
+
+Reference: 
+
+1. maximum subarray-[Kadane's algorithm](https://en.wikipedia.org/wiki/Maximum_subarray_problem)
+2. [2D Kadane](https://www.slideshare.net/TusharBindal/2-d-kadane)
+
+```java
+public int maxSumSubmatrix(int[][] matrix, int k) {
+        int row=matrix.length, col=matrix[0].length, ans=Integer.MIN_VALUE;
+        for(int left=0;left<col;left++){
+            int[] sum=new int[row];
+            for(int right=left;right<col;right++){
+                for(int r=0;r<row;r++){
+                    sum[r]+=matrix[r][right];
+                }
+                TreeSet<Integer> curSums=new TreeSet<Integer>();
+                curSums.add(0);
+                int curMax=Integer.MIN_VALUE, cum=0;
+                for(int s:sum){
+                    cum+=s;
+                    // val >= cum-k ie. k >= cum-val
+                    Integer val=curSums.ceiling(cum-k);
+                    if(val!=null) curMax=Math.max(curMax,cum-val);
+                    curSums.add(cum);
+                }
+                ans=Math.max(ans,curMax);
+            }
+        }
+        return ans;
+    }
+```
+
+Time complexity: $$O(min(rows,cols)^2*max(rows,cols)*log(max(rows,cols)))$$.
+

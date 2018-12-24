@@ -273,10 +273,6 @@ public int[] dailyTemperatures(int[] temperatures) {
 
 Given an array of integers `A` with even length, return `true` if and only if it is possible to reorder it such that `A[2 * i + 1] = 2 * A[2 * i]` for every `0 <= i < len(A) / 2`.
 
- 
-
-
-
 **Example 1:**
 
 ```
@@ -369,4 +365,71 @@ func canReorderDoubled(A []int) bool {
 
 Time complexity: $$O(Max{K,N})$$, K is the number of distinct numbers and N is the number of total numbers.
 
- 
+ #### 4.[Binary Subarrays With Sum](https://leetcode.com/problems/binary-subarrays-with-sum)
+
+In an array `A` of `0`s and `1`s, how many **non-empty** subarrays have sum `S`?
+
+**Example 1:**
+
+```
+Input: A = [1,0,1,0,1], S = 2
+Output: 4
+Explanation: 
+The 4 subarrays are bolded below:
+[1,0,1,0,1]
+[1,0,1,0,1]
+[1,0,1,0,1]
+[1,0,1,0,1]
+```
+
+**Note:**
+
+1. `A.length <= 30000`
+2. `0 <= S <= A.length`
+3. `A[i]` is either `0` or `1`.
+
+**Solution**
+
+Here are two important basic ideas to go through the algorithm:
+
+(1) Let `P[i] = A[0] + A[1] + ... + A[i-1]`. Then `P[j+1] - P[i] = A[i] + A[i+1] + ... + A[j]`, the sum of the subarray `[i, j]`. **This is a very important idea to solve this kind of problem. **
+
+(2) Subarrays are **continuous**. 
+
+Let's say now we arrive `A[j]`in array `A`and `P[j]>=S`, so if we can find the number of subarrays summing to `P[j]-S`then we will find the number of subarrays, **which end at index `j`**, summing to S. We can subtract `P[j+1]`by`P[i]`to get `S`. Since subarrays are continuous, extract a smaller subarray from a larger subarray then we will surely get another subarray as long as the two subarrays end at the same position. 
+
+```go
+func numSubarraysWithSum(A []int, S int) int {
+    // count[i] means unitl now we know there are count[i]
+    // subarrays summing to i
+	psum, res, count := 0, 0, make(map[int]int)
+	count[0] = 1
+	for _, val := range A {
+		psum += val
+		if psum >= S {
+			res += count[psum-S]
+		}
+		count[psum]++
+	}
+	return res
+}
+```
+
+Using slice instead of map may be faster.
+
+```go
+func numSubarraysWithSum(A []int, S int) int {
+    psum, res, count := 0, 0, make([]int, len(A)+1)
+	count[0] = 1
+	for _, val := range A {
+		psum += val
+		if psum >= S {
+			res += count[psum-S]
+		}
+		count[psum]++
+	}
+	return res
+}
+```
+
+Time complexity: $$O(n)$$, n is the length of `A`.

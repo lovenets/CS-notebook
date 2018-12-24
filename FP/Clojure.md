@@ -621,3 +621,454 @@ In general, we can use `partial`when we find we are repeating the same combinati
 (my-neg? -1) ;;=> true
 ```
 
+# Functional programming
+
+## pure functions
+
+A function is a pure if it meets two qualifications: 
+
+- It always returns the same result if given the same arguments. This is called *reference transparency*.
+- It can't cause any side effects. That is, the function can't make any changes that are observable outside the function itself. For example, by changing an externally accessible mutable object or writing to a file.
+
+### 1. referentially transparent
+
+To return the same result when called with the same argument, pure functions rely only on:
+
+- their own arguments
+- immutable values 
+
+The following function is pure:
+
+```clojure
+(defn wisdom
+    [words]
+    (str words ", Daniel-san")
+```
+
+### 2. no side effects
+
+To perform a side effect is to change the association between a name and its value within a given scope. Side effects are potentially harmful because they introduce uncertainty what the names in your code are referring to. This leads to situations where it's very difficult for you to trace why and how a name came to be associated with a value, which makes it hard to debug.
+
+## immutable data structures
+
+### 1. recursion instead of for/while
+
+```clojure
+(defn sum
+    ([vals] (sum vals 0))
+    ([vals accumulator] 
+     (if (empty? vals)
+         accumulator
+         (sum (rest vals) (+ (first vals) accumulator)))))
+```
+
+Note that you should generally use `recur`considering performance.
+
+```clojure
+(defn sum
+    ([vals] (sum vals 0))
+    ([vals accumulator] 
+     (if (empty? vals)
+         accumulator
+         (recur (rest vals) (+ (first vals) accumulator)))))
+```
+
+Using `recur`is quite important when you're recursively operating on a large collection. The reason is that Clojure doesn't support tail recursion optimization.
+
+Also, Clojure's immutable data structures are implemented using structural sharing so don't worry about any crash because of GC or whatever.
+
+### 2. function composition instead of attribute mutation
+
+```clojure
+(require '[clojure.string :as s])
+(defn clean 
+    [text]
+    (s/replace (s/trim text) #"lol" "LOL"))
+```
+
+Instead of mutating an object, the `clean`function works by passing an immutable value `text`to a pure function `s/trim`which returns an immutable value. 
+
+Combining functions like this--so that the return value of a function is passed as an argument to another--is called *function composition*. In general, functional programming encourages you to build more complex functions by combining simpler functions. 
+
+## derive new functions
+
+### 1. comp
+
+Using math notations, we'd say that using `comp`on the functions $$f_1,f_2,...f_n$$, create a new function $$g$$ such that $$g(x_1,x_2,...x_n)=f_1(f_2(f_n(x_1,x_2,...,x_n)))$$. Notice that the first function can take any number of arguments, whereas the remaining functions must be able to take only one argument. 
+
+```clojure
+(def times-inc (comp inc *))
+(times-inc 2 3) ;;=> 7
+```
+
+If one of the functions we want to compose needs to take more than on arguments, we wrap it in an anonymous function. 
+
+### 2. memoize
+
+Memoization lets you take the advantage of referential transparency by storing the arguments passed to a function and the returned value of the function. That way, subsequent calls to the function with the same arguments can return the result immediately. 
+
+ ```clojure
+(def memo-sum (memoize #(reduce + &%)))
+ ```
+
+# Clojure's Model
+
+## Clojure's evaluation model
+
+### conceptual model
+
+Clojure (like all Lisps) reads textual source code, producing Clojure data structures. These data structures are then evaluated: Clojure traverses the data structures and performs actions like function application or var lookup based on the type of the data structure.
+
+When compiling, Clojure evaluates trees ie. AST using Clojure **lists** and the nodes are Clojure values.
+
+Lists are ideal for constructing trees. The first element of a list is used as the root and each subsequent  element is treated as a branch. 
+
+![evaluation in Clojure](img\evaluation in Clojure.jpg)
+
+We can evaluate custom data structures with `eval`:
+
+```clojure
+(eval '(+ 1 2)) ;;=> 3
+```
+
+### reader
+
+We can read text without evaluating it and pass the result to other functions. Use `read-string`to do this:
+
+```clojure
+(list? (read-string "(+ 1 2)"))
+```
+
+Usually the reader will transform strings to corresponding data structures which is a one-to-one relationship. However, it just can be more complex.
+
+#### reader macro
+
+```clojure
+(read-string "#(+ 1 %)") ;;=> (fn* [p1_423#] (+ 1 p1_423#))
+```
+
+In the above example, the reader uses a *reader macro* to transform the string "#(+ 1 %)". Reader macros are sets of rules for transforming text into data structures. They often allow you to represent data structures in more compact  ways because **they take an abbreviated reader form and expand it in to a full expression.** They're designated by macro characters like ', #, and @. 
+
+### evaluator 
+
+We can think of Clojure's evaluator as a function that takes a data structure as an argument, processes it using corresponding rules and return a result. For example, to evaluate a list, Clojure looks at the first element of the list and calls a function, macro or special expression. Any other values (including strings, numbers, and keywords) simply evaluate themselves. 
+
+Let's say we type `(+ 1 2)`in the REPL. Because it's a list, the evaluator starts by evaluating the first element in the list i.e. plus symbol and the evaluator resolves that by returning the plus function. Because the first element is a function, the evaluator evaluates each of the operands. The operands 1 and 2 evaluate to themselves of course.  The the evaluator calls the plus function with 1 and 2 as the arguments and returns the result. 
+
+#### things evaluated to themselves
+
+Whenever Clojure evaluates data structures that aren't a list or symbol, the result is the data structure itself.
+
+#### symbols
+
+Clojures uses the term symbols to name functions, macros, data and anything else you can use, and evaluates them by resolving them. 
+
+In general, Clojure resolves a symbol by:
+
+1. Looking up whether the symbol names a expression e.g. `if` expression. If it doesn't...
+2. Looking up whether the symbol corresponds to a local binding i.e. `let` expression. If it doesn't...
+3. Trying to find a namespace mapping introduced by `def`. If it doesn't...
+4. Throwing an exception.
+
+#### lists
+
+If the data structure is a non-empty list, it's evaluated as a call to the 1st element in the list. The way the call is performed depends on the nature of that 1st element. 
+
+1.function calls
+
+```clojure
+(+ 1 2)
+```
+
+Clojure sees that the 1st element of list is a function so it proceeds to evaluate the rest of the elements in the list. The operands 1 and 2 both evaluate to themselves and are passed as arguments. 
+
+2.special expressions 
+
+Special expressions like `if`don't follow the same rules as normal functions. For example, when you call a function, each operand gets evaluated. However, with `if`you don't want each operand to be evaluated. 
+
+Another important special expression is quote. 
+
+```clojure
+'(1 2 3)
+```
+
+In this case, Clojure will not evaluate the data structure after quote instead. It will just return the data structure itself. 
+
+>  Special expressions are special because they implement the core behavior that can't be implemented with functions. 
+
+3.macros
+
+Macros give you a convenient way to manipulate lists before Clojure evaluates them. They are executed between the reader and the evaluator so they can manipulate the data structures that that reader spits out and transform with those data structures before passing them to the evaluator. 
+
+```clojure
+(defmacro ignore-last-operand
+    [function-call]
+    (butlast function-call))
+
+(ignore-last-operand (+ 1 2 10))
+;;=> 3
+
+(ignore-last (+ 1 2 (println "What's up?")))
+;;=> 3
+```
+
+When you call a macro, the operands are **not** evaluated. In particular, symbols are not resolved; they are passed as symbols. Lists are not evaluated either; that is, the 1st element in the list is not called as a function, special expression or macro. Rather, the unevaluated list data structure is passed in. 
+
+Another difference is that the data structure returned by a function is not evaluated but the one returned by a macro is. The process of determining the return value of a macro is called macro expansion and we can use `macroexpand`to see what data structure a macro returns.
+
+ ```clojure
+(macroexpand '(ignore-last-operand (+ 1 2 3))) 
+;;=> (+ 1 2)
+ ```
+
+### Syntax abstraction 
+
+```clojure
+(defmacro infix 
+    [infixed]
+    (list (second infixed)
+          (first infixed)
+          (last infixed)))
+
+(infixed (1 + 2))
+;;=> 3
+```
+
+What happened in the above example is pictured here:
+
+![macro](img\macro.jpg)
+
+This is called syntax abstraction used by Clojure to extend itself to fit into our program. 
+
+```clojure
+(defn read-resource
+    [path]
+    (read-string (slurp (clojure.java.io/resource path))))
+```
+
+This function is hard to understand. When we have too many nested parentheses, codes will be ugly. 
+
+```clojure
+(defn read-resource
+    [path]
+    (-> path
+        clojure.java.io/resource
+        slurp
+        read-string))
+```
+
+`->`macro, aka the threading or stabby macro, lets us write our codes from top to bottom, which we are used to. 
+
+# Macro
+
+In general, macro definition look much like function definitions. They have a name, an optional document string, an argument list, and a body. The body will almost always return a list. This makes sense because macros are used to transform a data structure into a form Clojure can evaluate. 
+
+One key difference between functions and macros is that functions argument are fully evaluated before they are passed to the function, whereas macros receive arguments as **unevaluated** data. 
+
+## building lists for evaluation 
+
+Macro writing is all about building a list for Clojure to evaluate. For one, we need to quote expressions to get **unevaluated data  structures**. More generally, we need to be extra careful about the difference between a symbol and its value.
+
+ ```clojure
+(defmacro my-print
+    [expr]
+    (list let [result expr]
+          (list println result)
+          result))
+ ```
+
+If we tried this code, we'd get an exception. The reason is that the macro body tries to get the *value* that the *symbol* let refers to, whereas we just want to return the let itself. There are other problems which are also caused by mixing symbols with values. Use the single quote character can make this work.
+
+```clojure
+(defmacro my-print
+    [expr]
+    (list 'let ['result expr]
+          (list 'println 'result)
+          'result))
+```
+
+Single quote character tells Clojure to turn off evaluation for whatever follows, in this case preventing Clojure from trying to resolve the symbols and instead just returning the symbols. 
+
+### simple quoting 
+
+We'll almost always use quoting within macros to obtain an unevaluated symbols. Here is the source code of macro `when`.
+
+```clojure
+(defmacro when
+    {:added "1.0"}
+    [test & body]
+    (list 'if test (cons 'do body)))
+```
+
+Notice that the macro quotes both `if` and `do`. 
+
+### syntax quoting 
+
+Syntax quoting is more powerful. It can return unevaluated data structures similar to normal quoting. However, syntax quoting will return the fully qualified symbols (that is, with the symbol's namespace included). This can help you avoid namespace collision.
+
+```clojure
+`+
+;;=> clojure.core/+
+```
+
+Syntax quoting a list will recursively quote all the elements. There is also a difference. Syntax quoting allows us to unquote the expressions using `~`. 
+
+```clojure
+`(+ 1 ~(inc 2))
+;;=> (+ 1 3)
+```
+
+We can use syntax quoting to write concise codes.
+
+```clojure
+(defmacro code-critic
+    [bad good]
+    `(do (println "Great, this is bad code:"
+                  (quote ~bad))
+         (println "Bad, this is good code:"
+                  (quote ~good))))
+```
+
+In this case, we want to quote everything except for the symbols `good`and `bad`. With syntax quoting, we can just wrap the whole `do`expression in a quote and simply unquote the two symbols we want to evaluate. 
+
+ To sum up, our macros will mostly return lists. We can build up the list to be returned by using `list` function or by using syntax quoting. Syntax quoting usually leads to clearer and more concise code. It's important to distinguish a symbol and the value it evaluates to. And if we want macros to return multiple expressions make sure to wrap them in a `do`.
+
+### unquote splicing 
+
+```clojure
+(defn criticize
+  [criticism code]
+  `(println ~criticism (quote ~code)))
+
+(defmacro code-critic
+  [bad good]
+  `(do ~(map #(apply criticize %)
+              [["good, this is bad:" bad] ["bad, this is good:" good]])))
+```
+
+If we run this, it will cause an exception `NullPointerException`. Let's expand the macro:
+
+```clojure
+(macroexpand '(code-critic (1 + 1) (+ 1 1)))
+;;=> (do ((clojure.core/println "good, this is bad:" (quote (1 + 1))) (clojure.core/println "bad, this is good:" (quote (+ 1 1)))))
+```
+
+We can see that `println`function is executed and because it returns `nil`, `do`will try to call `nil`. But we don't want `println`to be executed before `do`is executed. We can use unquote splicing `~@`. Unquote splicing unwraps a seqable data structure, placing its contents directly within the enclosing syntax-quoted data structure. 
+
+```clojure
+`(+ ~@(list 1 2 3))
+;;=> (clojure.core/+ 1 2 3)
+
+`(+ ~(list 1 2 3))
+;;=> (clojure.core/+ (1 2 3))
+```
+
+So we can use it to correct `code-critic`:
+
+```clojure
+(defmacro code-critic
+  [bad good]
+  `(do ~@(map #(apply criticize %)
+              [["good, this is bad:" bad] ["bad, this is good:" good]])))
+
+(macroexpand '(code-critic (1 + 1) (+ 1 1)))
+;;=> (do (clojure.core/println "good, this is bad:" (quote (1 + 1))) (clojure.core/println "bad, this is good:" (quote (+ 1 1))))
+```
+
+Now `println`will be called by `do`.
+
+## things to watch out for
+
+### variable capture 
+
+Variable capture occurs when a macro introduces a binding that eclipses an existing binding. 
+
+```clojure
+(def message "Good job!")
+
+(defmacro with-mischief
+    [& stuff-to-do]
+    `(let [message "Oh, big deal!"]
+         ~@stuff-to-do))
+
+(with-mischief 
+    (println "Here's how I feel about that thing you did: " message))
+;;=> CompilerException java.lang.RuntimeException: Can't let qualified name: user/message
+```
+
+Syntax quoting can prevent you from accidentally capturing variables within macros. 
+
+We can deal with this problem using `gensym`, which can produce an unique name:
+
+```clojure
+(gensym)
+;;=>  G__1165
+(gensym)
+;;=> G__1168
+(gensym "message") ;; give it a prefix
+;;=> => message1171
+```
+
+There is a more concise way called `auto-gensym`:
+
+```clojure
+`(blarge# blarge#)
+;;=> (blarge__1172__auto__ blarge__1172__auto__) 
+```
+
+Now we can correct the codes:
+
+```clojure
+(defmacro without-mischief
+	[& stuff-to-do]
+	(let [macro-message (gensym 'message)]
+		`(let [~macro-message "Oh, big deal!"]
+			~@stuff-to-do
+			(println "I still need to say: " ~macro-message))))
+(without-mischief
+	(println "Here's how I feel about that thing you did: " message))
+; => Here's how I feel about that thing you did: Good job!
+; => I still need to say: Oh, big deal!
+```
+
+### double evaluation 
+
+This problem occurs when a form passed to a macro as an argument gets evaluated more than once. 
+
+```clojure
+(defmacro report 
+    [to-try]
+    `(if ~to-try
+         (println (quote ~to-try) "was successful:" ~to-try)
+         (println (quote ~to-try) "was not successful:" ~to-try	)))
+
+(report (do (Thread/sleep 1000) (+ 1 1)))
+```
+
+When we try to call `report`, the program will sleep for 2s and the reason can be seen below.
+
+```clojure
+(if (do (java.lang.Thread/sleep 1000) (clojure.core/+ 1 1))
+    (clojure.core/println (quote (do (java.lang.Thread/sleep 1000) (clojure.core/+ 1 1))) "was successful:" (do (java.lang.Thread/sleep 1000) (clojure.core/+ 1 1))) 
+    (clojure.core/println (quote (do (java.lang.Thread/sleep 1000) (clojure.core/+ 1 1))) "was not successful:" (do (java.lang.Thread/sleep 1000) (clojure.core/+ 1 1))))
+```
+
+We expand the expression `(report (do (Thread/sleep 1000) (+ 1 1)))`and find that `Thread/sleep 1000`gets evaluated twice: once right after `if`and again when `println`gets called. 
+
+Here's how we could avoid this problem: 
+
+```clojure
+(defmacro report
+    [to-try]
+    `(let [result# ~to-try]
+         (if result#
+             (println (quote ~to-try) "was successful:" result#)
+             (println (quote ~to-try) "was unsuccessful:" result#))))
+```
+
+By placing `to-try`in a let expression, we only evaluate that code once and bind the result to an auto-gensym'd symbol. 
+
+### macros all the way down
+
+We may have to write more and more macros to get anything done. This is a consequence of the fact that macro expansion happens before evaluation. 
+

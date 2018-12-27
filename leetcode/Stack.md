@@ -1669,5 +1669,88 @@ func inorderTraversal(root *TreeNode) []int {
 
 Time complexity: $$O(n)$$, n is the number of nodes.
 
+#### 15. [Binary Tree Preorder Traversal](https://leetcode.com/problems/binary-tree-preorder-traversal/)
 
+Given a binary tree, return the *preorder* traversal of its nodes' values.
+
+**Example:**
+
+```
+Input: [1,null,2,3]
+   1
+    \
+     2
+    /
+   3
+
+Output: [1,2,3]
+```
+
+**Follow up:** Recursive solution is trivial, could you do it iteratively?
+
+**Solution**
+
+(1) recursion
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func preorderTraversal(root *TreeNode) []int {
+    res := make([]int, 0)
+    if root != nil {
+        recur(root, &res)
+    }
+    return res
+}
+
+func recur(node *TreeNode, res *[]int) {
+    *res = append(*res, node.Val)
+    
+    if node.Left != nil {
+        recur(node.Left, res)
+    }
+    
+    if node.Right != nil {
+        recur(node.Right, res)
+    }
+}
+```
+
+Time complexity: $$O(n)$$, n is the number of nodes. It's obvious because we just visit every node once.
+
+(2) iteration
+
+```go
+func preorderTraversal(root *TreeNode) []int {
+    res := make([]int, 0)
+    stack := make([]*TreeNode, 0)
+    
+    if root == nil {
+        return res
+    }
+    
+    stack = append(stack, root)
+    for len(stack) > 0 {
+        node := stack[len(stack)-1]
+        stack = stack[:len(stack)-1]
+        res = append(res, node.Val)
+        if node.Right != nil {
+            stack = append(stack, node.Right)
+        }
+        if node.Left != nil {
+            stack = append(stack, node.Left)
+        }
+    }
+    return res
+}
+
+```
+
+Time complexity: $$O(n)$$, n is the number of nodes. 
 

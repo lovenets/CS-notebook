@@ -581,3 +581,126 @@ public int maxSumSubmatrix(int[][] matrix, int k) {
 
 Time complexity: $$O(min(rows,cols)^2*max(rows,cols)*log(max(rows,cols)))$$.
 
+#### 5. [BInary Tree Zigzag Level Order Traversal](https://leetcode.com/problems/binary-tree-zigzag-level-order-traversal)
+
+Given a binary tree, return the *zigzag level order* traversal of its nodes' values. (ie, from left to right, then right to left for the next level and alternate between).
+
+For example:
+Given binary tree `[3,9,20,null,null,15,7]`,
+
+```
+    3
+   / \
+  9  20
+    /  \
+   15   7
+```
+
+return its zigzag level order traversal as:
+
+```
+[
+  [3],
+  [20,9],
+  [15,7]
+]
+
+```
+
+**Solution**
+
+(1) straightforward
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func zigzagLevelOrder(root *TreeNode) [][]int {
+    res := make([][]int, 0)
+    traverse(root, &res, 0)
+    return res
+}
+
+func traverse(cur *TreeNode, res *[][]int, level int) {
+    if cur == nil {
+        return 
+    }
+    
+    if len(*res) <= level {
+        newLevel := make([]int, 0)
+        *res = append(*res, newLevel)
+    }
+    
+    nodes := (*res)[level]
+    if level % 2 == 0 {
+        // LTR
+        nodes = append(nodes, cur.Val)
+    } else {
+        // RTL
+        nodes = append([]int{cur.Val}, nodes...)
+    }
+    (*res)[level] = nodes
+    
+    traverse(cur.Left, res, level+1)
+    traverse(cur.Right, res, level+1)
+}
+```
+
+Time complexity: $$O(n)$$, n is the number of nodes.
+
+(2) queue
+
+Assuming after traversing the 1st level, nodes in queue are {9, 20, 8}, And we are going to traverse 2nd level, which is even line and should print value from right to left.
+
+Let's say when we finish 2nd level, we know there are 3 nodes in current queue, and the nodes are also {9, 20, 8} so the list for this level in final result should be of size 3. For example, for node(9), it's index in queue is 0, so its index in the list for this level in final result should be (3-1-0) = 2.
+
+```go
+func zigzagLevelOrder(root *TreeNode) [][]int {
+    if root == nil {
+        return [][]int{}
+    }
+    
+    res := make([][]int, 0)
+    queue := make([]*TreeNode, 0)
+    queue = append(queue, root)
+    LTR := true
+    for len(queue) > 0 {
+        size := len(queue)
+        // insert nodes' values of current level into result 
+        row := make([]int, size)
+        for i := 0; i < size; i++ {
+            node := queue[0]
+            queue = queue[1:]
+            // find the position of current node
+            var index int
+            if LTR {
+                index = i
+            } else {
+                index = size - 1 - i
+            }
+            row[index] = node.Val
+            
+            if node.Left != nil {
+                queue = append(queue, node.Left)
+            } 
+            if node.Right != nil {
+                queue = append(queue, node.Right)
+            }
+        }       
+        // after this level
+        LTR  = !LTR
+        res = append(res, row)
+    }
+    return res
+}
+```
+
+Time complexity: $$O(n)$$
+
+
+

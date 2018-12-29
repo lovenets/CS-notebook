@@ -185,8 +185,90 @@ A Stream acts in many ways like a collection, but it has no backing values, and 
 
 For the lazy operations, intelligent runtimes can reorder the result of the operation for us in order to make the program more efficient. Therefore, we don't need to struggle with mundane details and we just focus on the problem domain. 
 
-## Memoization & Laziness
+# Memoization & Laziness
 
+## Memoization
 
+Memoization helps improve the performance of intensive workloads.
+
+Of course we can cache data manually but that means we have to worry about both its correctness and its execution conditions. Functional languages provide memoization as a built-in feature which enables automatic caching recurring function-return values. 
+
+Building a cache by hand is straightforward but it adds statefulness and complexity to the code too. What's more, you can barely be able to create a cache as efficient as the language designers can because they can bend their rules.
+
+**Scala**
+
+Scala doesn't implement memoization directly but has a collection method named `getOrElseUpdate`that handles most of the work of implementing it.
+
+```scala
+def memoize[A, B](f: A => B) = new (A => B) {
+    val cache = scala.collection.mutable.Map[A, B]()
+    def apply(x: A): B = cache.getOrElseUpdate(x, f(x))
+}
+```
+
+Make sure all memoized functions have no side effects and never rely on outside information.
+
+## Laziness 
+
+Lazy evaluation has several benefits. 
+
+- You can defer expensive calculation until they are absolutely needed. 
+- You can create infinite collections. At the same time, you can reduce storage size. 
+- Lazy use of functional concepts such as map and filter enable you to generate more efficient code.
+
+**Scala**
+
+In Scala, you can use `view`method of a collection to get a lazy view. 
+
+```scala
+def isPalindrome(x: String) = x == x.reverse
+def findPalidrome(s: Seq[String]) = s find isPalindrome
+findPalidrome(words.view.take(100000))
+```
+
+By prepending `lazy`onto the `val`declaration, you can convert fields in Scala from eager to as-needed evaluation.
+
+# Evolution of Languages 
+
+## Few Data Structures, Many Operations 
+
+FP languages prefer a few key data structures with highly optimized operations on those data structures. You pass data structures plus high-order functions to "plug into" this machinery, customizing it for a particular use. 
+
+## Bending the language Toward the Problem
+
+Developers who use malleable languages see the opportunity to bend the language more toward the problem rather than the problem toward their language. 
+
+**Scala**
+
+Scala was designed to accommodate hosting internal DSLs. For instance, use the XML primitives in Scala to parse XML succinctly. 
+
+```scala
+val url = "https://samples.openweathermap.org/data/2.5/weather?q=London&mode=xml&appid=b6907d289e10d714a6e88b30761fae22"
+val xmlStr = Source.fromURL(new URL(url)).mkString
+val xml = XML.loadString(xmlStr)
+val city = xml \\ "city" \@ "name"
+val temperature = xml \\ "temperature" \@ "value"
+println(s"The current temperature of $city is $temperature.")
+```
+
+Scala is extended to allow XPath-like queries using the `\\`operator to get a node with its children and using `\@` to get the attributes.
+
+## Rethinking Dispatch 
+
+Scala pattern matching is an example of an alternative dispatch mechanism. 
+
+## Operator Overloading 
+
+A common feature of functional programming languages is operator overloading. Overload operators to bend your language toward an existing problem domain not to create a brand new language. 
+
+**Scala**
+
+Scala allows operator overloading by discarding the distinction between operators and methods: operators are merely methods with special names. Thus, to override the multiplication operator in Scala, you override the `*`method. 
+
+## Functional Data Structures 
+
+ ### 1. Functional Error Handling 
+
+Functional languages prefer to deal with values, preferring to react to return values that indicates an error rather than interrupt program flow. 
 
  

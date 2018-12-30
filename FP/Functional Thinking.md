@@ -271,4 +271,313 @@ Scala allows operator overloading by discarding the distinction between operator
 
 Functional languages prefer to deal with values, preferring to react to return values that indicates an error rather than interrupt program flow. 
 
- 
+### 2. The Either Class
+
+The need to return two distinct values occurs frequently in functional languages, and a common data structures used to model this behavior is the `Either`class. `Either`holds either a left value or right value (but never both), that is, it has slots for two types but holds an instance for only one of them. 
+
+Armed with `Either`, we can write code that returns either an exception or a legitimate result while retaining type safety. We can also wrap exceptions, provide default values etc..
+
+**Scala**
+
+Scala includes an instance of `Either`. For example, you could use `Either[String, Int]` to indicate whether a received input is a `String` or an `Int`.
+
+```scala
+import scala.io.StdIn._
+val in = readLine("Type Either a string or an Int: ")
+val result: Either[String,Int] =
+  try Right(in.toInt)
+  catch {
+    case e: NumberFormatException => Left(in)
+  }
+
+result match {
+  case Right(x) => s"You passed me the Int: $x, which I will increment. $x + 1 = ${x+1}"
+  case Left(x)  => s"You passed me the String: $x"
+}
+```
+
+`Either` is right-biased, which means that `Right` is assumed to be the default case to operate on. If it is `Left`, operations like `map` and `flatMap` return the `Left` value unchanged.
+
+### 3. The Option Class
+
+`Option`class provides a simpler exception case: either none, indicating no legitimate value, or some, indicating successful return. 
+
+**Scala**
+
+```scala
+  def main(args: Array[String]): Unit = {
+    getInt match {
+      case Some(num) => println(num)
+      case None => println("non-positive")
+    }
+  }
+
+  // Get a positive integer from user input.
+  def getInt: Option[Int] = {
+    println("Please input a positive integer: ")
+    val num = scala.io.StdIn.readInt()
+    if (num > 0) {
+      Some(num)
+    } else {
+      None
+    }
+  }
+```
+
+The `Option`class is considered a simpler subset of `Either` which typically holds success or failure.
+
+# Advance of Functional Languages 
+
+> Most modern languages is multiparadigm. Learning to use different paradigm for suitable problems is part of the evolution toward being a better developer. 
+
+## Function-Level Reuse 
+
+OO systems consist of objects that communicate by sending messages to (more specifically, executing methods on) other objects. When discovering a useful collection of classes and their corresponding messages, you extract that graph of classes for reuse.
+
+Functional programming rely on first-class functions as parameter and return values. Using the ability to pass code as a parameter (as to the `filter`method) illustrates thinking about code reuse in a different way. 
+
+### 1. Template Method 
+
+First-class functions make Template Method design pattern simpler to implement because they remove potentially unnecessary structure. Template Method defines the skeleton of an algorithm in a method, deferring some steps to subclasses and forcing them to define those steps without changing the algorithm's structure. 
+
+A traditional Java's implementation may be like this:
+
+```java
+interface Customer {
+    List<Object> plan;
+    
+    void checkCredit();
+    
+    void checkInventory();
+    
+    void ship();
+    
+    default void process() {
+        checkCredit();
+        checkInventory();
+        ship();
+    }
+}
+```
+
+The interface requires subclasses to implement the dependent methods. 
+
+A functional solution may be like this:
+
+```scala
+class Customer(plan: List[Any], checkCredit: () => Unit, checkInventory: () => Unit, ship: () => Unit) {
+  def process(): Unit = {
+    checkCredit()
+    checkInventory()
+    ship()
+  }
+}
+```
+
+The steps in the algorithm are properties of the class, assignable like any other property. The ability of high-order functions allows you to avoid unnecessary boilerplate code in the most common use of classic design patterns. 
+
+Moreover, you can make it safer:
+
+```scala
+class Customer(plan: List[Any], checkCredit: () => (), checkInventory: () => (), ship: () => ()) {
+  def process(): Unit = {
+    if (Some(checkCredit).isDefined) {
+      checkCredit
+    }
+    if (Some(checkInventory).isDefined) {
+      checkInventory
+    }
+    if (Some(ship).isDefined) {
+      ship
+    }
+  }
+```
+
+Of course it has too much verbose. In some languages like Groovy, syntactic sugar like `?.`operator allows developers to cede repetitive code.
+
+ ### 2. Strategy 
+
+Strategy defines a family of algorithms, encapsulating each one and making them interchangeable. It lets the algorithm vary independently from clients that use it. First-class functions make it simple to build and manipulate strategies. 
+
+A traditional implementations of the strategy design pattern may be like this:
+
+```java
+interface Calc {
+    int product(int n, int m);
+}
+
+class CalcMult implements Calc {
+    @Override 
+    int product(int n, int m) {
+        return n * m;
+    }
+}
+
+class CalcAdd implements Calc {
+    @Override 
+    int product(int n, int m) {
+        int result = 0;
+        for(int i = 0; i < n; i++) {
+            result += m;
+        }
+        return result;
+    }
+}
+```
+
+Using code blocks as first-class functions, we can reduce much of the ceremony from the previous example. 
+
+```scala
+val listOfExp = List(
+  (i: Double, j: Double) => Math.pow(i, j),
+  (i: Double, j: Double) => List.fill(j.toInt)(i).product
+)
+listOfExp.foreach(e => {
+  println(e(2, 5) == 32)
+  println(e(10, 2) == 100)
+  println(e(10, 3) == 1000)
+})
+```
+
+We can just define strategies directly inline, trading formality for convenience though. 
+
+### 3. The Flyweight Design Pattern and Memoization 
+
+This pattern is an optimization technique that sharing to support a large number of fine-grained object references. You keep a pool of objects available, creating references into the pool for particular views. 
+
+Let's say we have a base class called `Computer` and some derived classes. We also have a `AssignedComputer` class which represents the association between a computer and a user. A common way to make code more efficient is combining Factory and Flyweight patterns.
+
+```java
+class Computer {
+    private String type;
+    private String cpu;
+    //...
+}
+
+class Desktop extends Computer {
+    //...
+}
+
+class Laptop extends Computer {
+    //...
+}
+
+class AssignedComputer {
+    private String computerType;
+    
+    private String user;
+    
+    public AssignedComputer(String computerType, String user) {
+        this.computerType = computerType;
+        this.user = user;
+    }
+}
+
+class CompFactory {
+    private Map<String, Computer> types = new HashMap<>();
+    
+    public static instance = null;
+    
+    private CompFactory() {
+        Laptop laptop = new Laptop();
+        Desktop desktop = new Desktop();
+        types.put("MacBook Pro", laptop);
+        types.put("iMac", desktop);
+    }
+    
+    public static CompFactory getInstance() {
+        return instance == null? new CompFactory : instance;
+    }
+    
+    public Computer ofType(String computer) {
+        return types.get(computer);
+    }
+}
+```
+
+Singleton is a design pattern as well and it serves as a good example of a pattern ceded to the runtime. Saving common information across instances is a good idea too and it's an idea that we want to preserve as we cross into functional programming. Combining these, we can get a different implementation. 
+
+```scala
+class Computer(kind: String, cpu: String) {
+  //...
+}
+
+class Desktop(kind: String, cpu: String, driveBays: String) extends Computer(kind, cpu) {
+  //...
+}
+
+class Laptop(kind: String, cpu: String, usbPorts: String) extends Computer(kind, cpu) {
+  //...
+}
+
+class AssignedComputer(computerType: String, user: String) {
+  //...
+}
+
+// object is singleton
+object CompFactory {
+  private val types = Map(
+    "MacBook Pro" -> new Laptop("laptop", "i9", "3.0"),
+    "iMac" -> new Desktop("desktop", "i9", "usb")
+  )
+
+  def ofType(computer: String): Computer = {
+      // memoization 
+    types.getOrElse(computer, new Computer("default", "i9"))
+  }
+}
+```
+
+### 4. Factory and Currying 
+
+In the context of design patterns, currying acts as a factory for functions. 
+
+```scala
+val list = (1 to 10).toList
+def divideBy(n: Int)(x: Int) = (x % n) == 0
+list.filter(divideBy(2))
+```
+
+Currying is built into the language or runtime so the concept of a function factory is ingrained and doesn't require extra structure. Using currying to implement a pattern seems dramatic to OO programmers who have never really had portable code and certainly never thought about **constructing specific functions from more general ones**.
+
+ ## Structure VS. Functional Reuse 
+
+### Code Reuse Via Structure 
+
+OO languages reuse code via coupling: tying together two elements (more specifically, classes) via the shared state and method from superclass. In other words, this works by using the built-in coupling rules in the language. 
+
+### Code reuse via composition 
+
+The distinction between coupling and composition is subtle. However, when you end up refactoring a large code base, coupling pops up everywhere because that's one of the reuse mechanism in OO languages. 
+
+# Functional Infrastructure 
+
+## Architecture 
+
+Functional architectures embrace immutability at the core level, leveraging it as much as possible. 
+
+- The more mutable states you have, the more tests you need. If you isolate the places where changes occur by severely restricting mutation, you create a much smaller space for errors to occur and have fewer places to test.
+- Immutable objects are automatically thread-safe and have no synchronization issues. Because all initialization occurs at construction time.
+
+**Java**
+
+To make a Java class immutable, you must:
+
+- make all fields final
+- make the class final so that it can't be overridden 
+- do not provide a no-argument constructor (If you have no state to set, why should you have an object?)
+- provide at least one constructor 
+- do not provide any mutating methods other than the constructor 
+
+## CORS
+
+![CORS](img/CORS.jpg)
+
+In CORS world, one part of the models deal with database updates while other parts handle presentation and reporting. The logic on the query side is typically much simpler because developers can assume immutability; updates go through another mechanism. 
+
+While making some things easier, CORS complicates others. For example, if you have a monolithic database, transactions are easy. In CORS, you will likely need to move on to an eventual consistency model rather than transactional. 
+
+
+
+
+

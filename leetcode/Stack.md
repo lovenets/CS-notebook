@@ -1752,5 +1752,5 @@ func preorderTraversal(root *TreeNode) []int {
 
 ```
 
-Time complexity: $$O(n)$$, n is the number of nodes. 
+Time complexity: $$O(n)$$, n is the number of nodes.
 

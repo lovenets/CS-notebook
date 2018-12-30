@@ -608,3 +608,102 @@ Time complexity: $$O(n)$$, since it just visits every node.
 ```
 
 Time complexity: $$O(n)$$, since it just visits every node.
+
+#### 6. [Linked List Cycle II](https://leetcode.com/problems/linked-list-cycle-ii/)
+
+Given a linked list, return the node where the cycle begins. If there is no cycle, return `null`.
+
+**Note**: Do not modify the linked list.
+
+**Follow up**:
+Can you solve it without using extra space?
+
+**Solution**
+
+[Floyd's cycle detection algorithm](https://www.youtube.com/watch?time_continue=2&v=zbozWoMgKW0)
+
+(1) detect a loop
+
+The algorithm is to start two pointers, slow and fast from head of linked list. We move slow one node at a time and fast two nodes at a time. If there is a loop, then they will definitely meet. This approach works because of the following facts.
+
+1) When slow pointer enters the loop, the fast pointer must be inside the loop. Let fast pointer be distance `k` from slow.
+
+2) Now if consider movements of slow and fast pointers, we can notice that distance between them (from slow to fast) increase by one after every iteration. After one iteration (of `slow = next` and `fast = next of next`), distance between slow and fast becomes `k+1`, after two iterations, `k+2`, and so on. When distance becomes `n`, they meet because they are moving in a cycle of length `n`.
+
+For example, we can see in below diagram, initial distance is 2. After one iteration, distance becomes 3, after 2 iterations, it becomes 4. After 3 iterations, it becomes 5 which is distance 0. And they meet.
+
+![img](https://cdncontribute.geeksforgeeks.org/wp-content/uploads/Floyd-Proof.jpg)
+
+(2) find the start of loop
+
+Let slow and fast meet at some point after Floyd’s Cycle finding algorithm. Below diagram shows the situation when cycle is found.
+
+[![LinkedListCycle](http://www.geeksforgeeks.org/wp-content/uploads/LinkedListCycle.jpg)](http://www.geeksforgeeks.org/wp-content/uploads/LinkedListCycle.jpg)
+
+We can conclude below from above diagram
+
+```
+Distance traveled by fast pointer = 2 * (Distance traveled 
+                                         by slow pointer)
+
+(m + n*x + k) = 2*(m + n*y + k)
+
+Note that before meeting the point shown above, fast
+was moving at twice speed.
+
+x -->  Number of complete cyclic rounds made by 
+       fast pointer before they meet first time
+
+y -->  Number of complete cyclic rounds made by 
+       slow pointer before they meet first time
+```
+
+From above equation, we can conclude below
+
+```
+    m + k = (x-2y)*n
+
+Which means m+k is a multiple of n. 
+```
+
+So if we start moving both pointers again at the **same speed** such that one pointer (say slow) begins from head node of linked list and other pointer (say fast) begins from meeting point. When slow pointer reaches beginning of loop (has made m steps), fast pointer would have made also moved m steps as they are now moving same pace. Since `m+k` is a multiple of `n` and fast starts from `k`, they would meet at the beginning.
+
+```go
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+func detectCycle(head *ListNode) *ListNode {
+        if p := detect(head); p != nil {
+            return start(p, head)
+        } else {
+            return nil
+        }
+}
+
+func detect(head *ListNode) *ListNode {
+    slow, fast := head, head
+    for slow != nil && fast != nil && fast.Next != nil {
+        slow = slow.Next
+        fast = fast.Next.Next
+        if slow == fast {
+            return slow
+        }
+    }
+    return nil
+}
+
+func start(p, head *ListNode) *ListNode {
+    q := head
+    for p != q {
+        p = p.Next
+        q = q.Next
+    }
+    return q
+}
+```
+
+Time complexity: $$O(n)$$

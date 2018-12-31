@@ -379,7 +379,7 @@ The steps in the algorithm are properties of the class, assignable like any othe
 Moreover, you can make it safer:
 
 ```scala
-class Customer(plan: List[Any], checkCredit: () => (), checkInventory: () => (), ship: () => ()) {
+class Customer(plan: List[Any], checkCredit: () => Unit, checkInventory: () => Unit, ship: () => Unit) {
   def process(): Unit = {
     if (Some(checkCredit).isDefined) {
       checkCredit
@@ -516,14 +516,13 @@ class AssignedComputer(computerType: String, user: String) {
 
 // object is singleton
 object CompFactory {
-  private val types = Map(
+  private var types = mutable.Map(
     "MacBook Pro" -> new Laptop("laptop", "i9", "3.0"),
     "iMac" -> new Desktop("desktop", "i9", "usb")
   )
 
   def ofType(computer: String): Computer = {
-      // memoization 
-    types.getOrElse(computer, new Computer("default", "i9"))
+    types.getOrElseUpdate(computer, new Computer("default", "i9"))
   }
 }
 ```

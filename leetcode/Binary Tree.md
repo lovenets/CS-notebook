@@ -518,3 +518,99 @@ public class Solution {
 ```
 
 Time complexity: $$O(n)$$
+
+#### 6. [All Nodes Distance K in Binary Tree](https://leetcode.com/problems/all-nodes-distance-k-in-binary-tree/)
+
+We are given a binary tree (with root node `root`), a `target` node, and an integer value `K`.
+
+Return a list of the values of all nodes that have a distance `K` from the `target` node.  The answer can be returned in any order.
+
+**Example 1:**
+
+![img](https://s3-lc-upload.s3.amazonaws.com/uploads/2018/06/28/sketch0.png)
+
+```
+Input: root = [3,5,1,6,2,0,8,null,null,7,4], target = 5, K = 2
+
+Output: [7,4,1]
+
+Explanation: 
+The nodes that are a distance 2 from the target node (with value 5)
+have values 7, 4, and 1.
+
+Note that the inputs "root" and "target" are actually TreeNodes.
+The descriptions of the inputs above are just serializations of these objects.
+```
+
+**Note:**
+
+1. The given tree is non-empty.
+2. Each node in the tree has unique values `0 <= node.val <= 500`.
+3. The `target` node is a node in the tree.
+4. `0 <= K <= 1000`.
+
+**Solution**
+
+Transfer the tree to a undirected graph then search vertices by BFS.
+
+```go
+func distanceK(root *TreeNode, target *TreeNode, K int) []int {
+	res := make([]int, 0)
+	if root == nil || K < 0 {
+		return res
+	}
+	
+	graph := make(map[*TreeNode][]*TreeNode)
+	constructGraph(root, nil, graph)
+	if _, ok := graph[target]; !ok {
+		return res
+	}
+	// BFS
+	visited := make(map[*TreeNode]bool)
+	queue := make([]*TreeNode, 0)
+	queue = append(queue, target)
+	visited[target] = true
+	for len(queue) > 0 {
+		if K == 0 {
+			for len(queue) > 0 {
+				res = append(res, queue[0].Val)
+				queue = queue[1:]
+			}
+			return res
+		}
+		size := len(queue)
+		for i := 0; i < size; i++ {
+			node := queue[0]
+			queue = queue[1:]
+			for _, next := range graph[node] {
+				if visited[next] {
+					continue
+				}
+				visited[next] = true
+				queue = append(queue, next)
+			}
+		}
+		K--
+	}
+	return res
+}
+
+// Transfer a binary tree to a undirected graph. 
+func constructGraph(node *TreeNode, parent *TreeNode, graph map[*TreeNode][]*TreeNode) {
+	if node == nil {
+		return
+	}
+	if _, ok := graph[node]; !ok {
+		graph[node] = make([]*TreeNode, 0)
+		if parent != nil {
+			graph[node] = append(graph[node], parent)
+			graph[parent] = append(graph[parent], node)
+		}
+		constructGraph(node.Left, node, graph)
+		constructGraph(node.Right, node, graph)
+	}
+}
+```
+
+Time complexity: `constructGraph`costs $$O(V)$$, `distanceK` costs $$O(V+ E)$$.
+

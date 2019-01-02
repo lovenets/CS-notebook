@@ -685,3 +685,99 @@ class Solution {
 }
 ```
 
+#### 7. [Minimum Height Trees](https://leetcode.com/problems/minimum-height-trees)
+
+For an undirected graph with tree characteristics, we can choose any node as the root. The result graph is then a rooted tree. Among all possible rooted trees, those with minimum height are called minimum height trees (MHTs). Given such a graph, write a function to find all the MHTs and return a list of their root labels.
+
+**Format**
+The graph contains `n` nodes which are labeled from `0` to `n - 1`. You will be given the number `n` and a list of undirected `edges`(each edge is a pair of labels).
+
+You can assume that no duplicate edges will appear in `edges`. Since all edges are undirected, `[0, 1]` is the same as `[1, 0]`and thus will not appear together in `edges`.
+
+**Example 1 :**
+
+```
+Input: n = 4, edges = [[1, 0], [1, 2], [1, 3]]
+
+        0
+        |
+        1
+       / \
+      2   3 
+
+Output: [1]
+```
+
+**Example 2 :**
+
+```
+Input: n = 6, edges = [[0, 3], [1, 3], [2, 3], [4, 3], [5, 4]]
+
+     0  1  2
+      \ | /
+        3
+        |
+        4
+        |
+        5 
+
+Output: [3, 4]
+```
+
+**Note**:
+
+- According to the [definition of tree on Wikipedia](https://en.wikipedia.org/wiki/Tree_(graph_theory)): “a tree is an undirected graph in which any two vertices are connected by *exactly* one path. In other words, any connected graph without simple cycles is a tree.”
+- The height of a rooted tree is the number of edges on the longest downward path between the root and a leaf.
+
+**Solution**
+
+It is easy to see that the root of an MHT has to be the middle point (or two middle points) of the longest path of the tree.
+
+We start from every leaf node. We let the pointers move the same speed. When two pointers meet, we keep only one of them, until the last two pointers meet or one step away we then find the roots. It is easy to see that the last two pointers are from the two ends of the longest path in the graph.
+
+The actual implementation is similar to the BFS topological sort. Remove the leaves, update the degrees of inner vertexes. Then remove the new leaves. Doing so until there are 2 or 1 nodes left.
+
+```go
+func findMinHeightTrees(n int, edges [][]int) []int {
+    if n == 1 {
+        return []int{0}
+    }
+    
+    // adj[i]: adjacent vertices of i
+    adj := make([][]int, n, n)
+    for _, edge := range edges {
+        adj[edge[0]] = append(adj[edge[0]], edge[1])
+        adj[edge[1]] = append(adj[edge[1]], edge[0])
+    }
+    
+    // leaves: current leaf nodes
+    leaves := make([]int, 0)
+    for v, e:= range adj {
+        if len(e) == 1 {
+            leaves = append(leaves, v)
+        }
+    }
+    
+    for n > 2 {
+        n -= len(leaves)
+        newLeaves := make([]int, 0)
+        for _, l := range leaves {
+            v := adj[l][0]
+            // remove leaf nodes and remove them from adj too
+            for i, j := range adj[v] {
+                if j == l {
+                    adj[v] = append(adj[v][:i], adj[v][i+1:]...)
+                    break
+                }
+            }
+            // update current leaf nodes
+            if len(adj[v]) == 1 {
+                newLeaves = append(newLeaves, v)
+            }
+        }
+        leaves = newLeaves
+    }
+    return leaves
+}
+```
+

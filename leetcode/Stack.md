@@ -1754,3 +1754,74 @@ func preorderTraversal(root *TreeNode) []int {
 
 Time complexity: $$O(n)$$, n is the number of nodes.
 
+#### 16. []()
+
+
+
+**Solution**
+
+(1) stack
+
+```scala
+object Solution {
+  def decodeString(s: String): String = {
+    val stack = new mutable.ArrayStack[(String, Int)]
+    stack.push(("", 1))
+    var countStr = ""
+    s.foreach(ch => {
+      if (ch.isDigit) {
+        countStr += ch.toString
+      } else if (ch == '[') {
+        stack.push(("", countStr.toInt))
+        countStr = ""
+      } else if (ch == ']') {
+        val top1 = stack.pop()
+        val top2 = stack.pop()
+        stack.push(top2._1.concat(top1._1 * top1._2), top2._2)
+      } else {
+        val top = stack.pop()
+        stack.push(top._1.concat(ch.toString), top._2)
+      }
+    })
+    stack.top._1
+  }
+}
+```
+
+Time complexity: $$O(n)$$
+
+(2) recursion
+
+```go
+func decodeString(s string) string {
+	i := 0
+	return dfs(s, &i)
+}
+
+func dfs(s string, i *int) string {
+	res := ""
+	for *i < len(s) && s[*i] != ']' {
+		if !unicode.IsDigit(rune(s[*i])) {
+			res += string(s[*i])
+			*i++
+		} else {
+			// get repeated times
+			count := 0
+			for *i < len(s) && unicode.IsDigit(rune(s[*i])) {
+				num, _ := strconv.Atoi(string(s[*i]))
+				count = count*10 + num
+				*i++
+			}
+			// decode the nested string
+			*i++
+			nested := dfs(s, i)
+			*i++
+			// concat decoded strings
+			res += strings.Repeat(nested, count)
+		}
+	}
+	return res
+}
+```
+
+Time complexity: $$O(n+m)$$ where n is the length of input string and m is the length of output string.

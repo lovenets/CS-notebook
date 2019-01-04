@@ -702,5 +702,104 @@ func zigzagLevelOrder(root *TreeNode) [][]int {
 
 Time complexity: $$O(n)$$
 
+#### 6. [Shortest Subarray with Sum at Least K](https://leetcode.com/problems/shortest-subarray-with-sum-at-least-k/)
 
+Return the **length** of the shortest, non-empty, contiguous subarray of `A` with sum at least `K`.
 
+If there is no non-empty subarray with sum at least `K`, return `-1`.
+
+**Example 1:**
+
+```
+Input: A = [1], K = 1
+Output: 1
+```
+
+**Example 2:**
+
+```
+Input: A = [1,2], K = 4
+Output: -1
+```
+
+**Example 3:**
+
+```
+Input: A = [2,-1,2], K = 3
+Output: 3
+```
+
+**Note:**
+
+1. `1 <= A.length <= 50000`
+2. `-10 ^ 5 <= A[i] <= 10 ^ 5`
+3. `1 <= K <= 10 ^ 9`
+
+**Solution**
+
+_Recall of the Sliding window solution in a positive array_
+
+The `Sliding window` solution finds the subarray we are looking for in a `linear` time complexity. The idea behind it is to maintain two pointers: **start** and **end**, moving them in a `smart way` to avoid examining all possible values `0<=end<=n-1` and `0<=start<=end` (to avoid brute force).
+What it does is:
+
+1. Incremeting the **end** pointer while the sum of current subarray (defined by current values of `start` and `end`) is smaller than the target.
+2. `Once we satisfy` our condition (the sum of current subarray >= target) we keep `incrementing` the **start** pointer until we `violate` it (until `sum(array[start:end+1]) < target`).
+3. Once we violate the condition we keep incrementing the **end** pointer until the condition is satisfied again and so on.
+
+The reason why we stop incrementing `start` when we violate the condition is that we are sure we will not satisfy it again if we keep incrementing `start`. In other words, if the sum of the current subarray `start -> end` is smaller than the target then the sum of `start+1 -> end` is neccessarily smaller than the target. (positive values)
+The problem with this solution is that it doesn't work if we have negative values, this is because of the sentence above `Once we "violate" the condition we stop incrementing start`.
+
+_Problem of the Sliding window with negative values_
+
+Now, let's take an example with negative values `nums = [3, -2, 5]` and `target=4`. Initially `start=0`, we keep moving the **end** pointer until we satisfy the condition, here we will have `start=0` and `end=2`. Now we are going to move the start pointer `start=1`. The sum of the current subarray is `-2+5=3 < 4` so we violate the condition. However if we just move the **start** pointer another time `start=2` we will find `5 >= 4` and we are satisfying the condition. And this is not what the Sliding window assumes.
+
+_Deque solution_
+
+The Deque solution is just a `modification` of the Sliding window solution above. We will modify the way we are updating `start`.
+
+```go
+func shortestSubarray(A []int, K int) int {
+    N, res := len(A), len(A) + 1
+    B := make([]int, N + 1, N + 1)
+    for i := 0; i < N; i++ {
+        B[i+1] = B[i] + A[i]
+    }
+    deque := make([]int, 0)
+    for i := 0; i < N + 1; i++ {
+        for len(deque) > 0 && B[i] - B[deque[0]] >= K {
+            if res > i - deque[0] {
+                res = i - deque[0]
+            }
+            deque = deque[1:]
+        }
+        for len(deque) > 0 && B[i] <= B[deque[len(deque)-1]] {
+            deque = deque[:len(deque)-1]
+        }
+        deque = append(deque, i)
+    }
+    if res <= N {
+        return res
+    } else {
+        return -1
+    }
+}
+```
+
+**What does the Deque store :**
+The deque stores the `possible` values of the **start** pointer. Unlike the sliding window, values of the `start` variable will not necessarily be contiguous.
+
+**Why is it increasing :**
+So that when we move the **start** pointer and we violate the condition, we are sure we will violate it if we keep taking the other values from the Deque. In other words, if the sum of the subarray from `start=first value in the deque` to `end` is smaller than `target`, then the sum of the subarray from `start=second value in the deque` to `end` is necessarily smaller than `target`.
+So because the Deque is increasing (`B[d[0]] <= B[d[1]]`), we have `B[i] - B[d[0]] >= B[i] - B[d[1]]`, which means the sum of the subarray starting from `d[0]` is greater than the sum of the sub array starting from `d[1]`.
+
+**Why are we having a prefix array and not just the initial array like in the sliding window :**
+Because in the sliding window when we move `start` (typically when we increment it) we can just substract `nums[start-1]` from the current sum and we get the sum of the new subarray. Here the value of the `start` is `jumping` and the only way to compute the sum of the current subarray in a `constant` time is to have the prefix array.
+
+**Why using Deque and not simply an array :**
+We can use an array, however we will find ourselves doing only three operations:
+1- `remove_front` : when we satisfy our condition and we want to move the start pointer
+2- `append_back` : for any index that may be a future *start pointer*
+3- `remove_back` : When we are no longer satisfying the increasing order of the array
+Deque enables doing these 3 operations in a constant time.
+
+Time complexity: $$O(n)$$, n is the length of input array.

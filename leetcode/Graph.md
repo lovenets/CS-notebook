@@ -91,7 +91,7 @@ func canFinish(numCourses int, prerequisites [][]int) bool {
 	for key, _ := range matrix {
 		matrix[key] = make([]int,numCourses)
 	}
-	// the in degree of vertices,which also means
+	// the in degree of vertices, which also means
 	// the number of prerequisites
 	indegree := make([]int, numCourses)
 
@@ -780,4 +780,156 @@ func findMinHeightTrees(n int, edges [][]int) []int {
     return leaves
 }
 ```
+
+#### 8. [Redundant Connection](https://leetcode.com/problems/redundant-connection/)
+
+In this problem, a tree is an **undirected** graph that is connected and has no cycles.
+
+The given input is a graph that started as a tree with N nodes (with distinct values 1, 2, ..., N), with one additional edge added. The added edge has two different vertices chosen from 1 to N, and was not an edge that already existed.
+
+The resulting graph is given as a 2D-array of `edges`. Each element of `edges` is a pair `[u, v]` with `u < v`, that represents an **undirected** edge connecting nodes `u` and `v`.
+
+Return an edge that can be removed so that the resulting graph is a tree of N nodes. If there are multiple answers, return the answer that occurs last in the given 2D-array. The answer edge `[u, v]` should be in the same format, with `u < v`.
+
+**Example 1:**
+
+```
+Input: [[1,2], [1,3], [2,3]]
+Output: [2,3]
+Explanation: The given undirected graph will be like this:
+  1
+ / \
+2 - 3
+```
+
+**Example 2:**
+
+```
+Input: [[1,2], [2,3], [3,4], [1,4], [1,5]]
+Output: [1,4]
+Explanation: The given undirected graph will be like this:
+5 - 1 - 2
+    |   |
+    4 - 3
+```
+
+**Note:**
+
+The size of the input 2D-array will be between 3 and 1000.
+
+Every integer represented in the 2D-array will be between 1 and N, where N is the size of the input array.
+
+**Solution**
+
+(1) Union Find
+
+We can make use of [Disjoint Sets (Union Find)](https://en.wikipedia.org/wiki/Disjoint-set_data_structure).
+If we regard a node as an element, a connected component is actually a disjoint set.
+
+For example,
+
+```
+Given edges [1, 2], [1, 3], [2, 3],
+  1
+ / \
+2 - 3
+```
+
+Initially, there are 3 disjoint sets: 1, 2, 3.
+Edge [1,2] connects 1 to 2, i.e., 1 and 2 are winthin the same connected component.
+Edge [1,3] connects 1 to 3, i.e., 1 and 3 are winthin the same connected component.
+Edge [2,3] connects 2 to 3, but 2 and 3 have been within the same connected component already, so [2, 3] is redundant.
+
+```go
+func findRedundantConnection(edges [][]int) []int {
+	u := newUnionFind(len(edges))
+	for _, e := range edges {
+		if !u.union(e[0], e[1]) {
+			return e
+		}
+	}
+	return nil
+}
+
+// Union Find
+type UnionFind struct {
+	Parent []int
+	Rank   []int  
+}
+
+func newUnionFind(n int) *UnionFind {
+	u := &UnionFind{make([]int, n+1), make([]int, n+1)}
+	for i := 1; i < n+1; i++ {
+		u.Parent[i] = i
+		u.Rank[i] = 1
+	}
+	return u
+}
+
+func (u *UnionFind) find(x int) int {
+	if u.Parent[x] == x {
+		return x
+	}
+	u.Parent[x] = u.find(u.Parent[x])
+	return u.Parent[x]
+}
+
+func (u *UnionFind) union(x, y int) bool {
+	rootX := u.find(x)
+	rootY := u.find(y)
+	if rootX == rootY {
+		return false
+	}
+	if u.Rank[rootX] < u.Rank[rootY] {
+		u.Parent[rootX] = rootY
+		u.Rank[rootY] += u.Rank[rootX]
+	} else {
+		u.Parent[rootY] = rootX
+		u.Rank[rootX] += u.Rank[rootY]
+	}
+	return true
+}
+```
+
+Time complexity: $$O(N\alpha(N)) \approx O(N)$$, where $$N$$ is the number of vertices (and also the number of edges) in the graph, and $$\alpha$$ is the *Inverse-Ackermann* function. We make up to $$N$$ queries of `union`, which takes (amortized) $$O(\alpha(N))$$ time.
+
+(2) DFS
+
+For each edge `(u, v)`, traverse the graph with a depth-first search to see if we can connect `u` to `v`. If we can, then it must be the duplicate edge.
+
+```go
+func findRedundantConnection(edges [][]int) []int {
+	MAX_EDGE := 1000
+	graph := make([][]int, MAX_EDGE+1)
+	for i := range graph {
+		graph[i] = make([]int, 0)
+	}
+	for _, e := range edges {
+		visited := make(map[int]bool)
+		if len(graph[e[0]]) > 0 && len(graph[e[1]]) > 0 && dfs(graph, e[0], e[1], visited) {
+			return e
+		}
+		graph[e[0]] = append(graph[e[0]], e[1])
+		graph[e[1]] = append(graph[e[1]], e[0])
+	}
+	return nil
+}
+
+func dfs(graph [][]int, u int, v int, visited map[int]bool) bool {
+	if !visited[u] {
+		visited[u] = true
+		if u == v {
+			return true
+		}
+		for _, adj := range graph[u] {
+			if dfs(graph, adj, v, visited) {
+				return true
+			}
+		}
+	}
+	return false
+}
+```
+
+Time Complexity: $$O(N^2)$$ where $$N$$ is the number of vertices (and also the number of edges) in the graph. In the worst case, for every edge we include, we have to search every previously-occurring edge of the graph.
 

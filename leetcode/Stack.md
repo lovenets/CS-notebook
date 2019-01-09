@@ -1754,9 +1754,23 @@ func preorderTraversal(root *TreeNode) []int {
 
 Time complexity: $$O(n)$$, n is the number of nodes.
 
-#### 16. []()
+#### 16. [Decode String](https://leetcode.com/problems/decode-string/)
 
+Given an encoded string, return it's decoded string.
 
+The encoding rule is: `k[encoded_string]`, where the *encoded_string* inside the square brackets is being repeated exactly *k* times. Note that *k* is guaranteed to be a positive integer.
+
+You may assume that the input string is always valid; No extra white spaces, square brackets are well-formed, etc.
+
+Furthermore, you may assume that the original data does not contain any digits and that digits are only for those repeat numbers, *k*. For example, there won't be input like `3a` or `2[4]`.
+
+**Examples:**
+
+```
+s = "3[a]2[bc]", return "aaabcbc".
+s = "3[a2[c]]", return "accaccacc".
+s = "2[abc]3[cd]ef", return "abcabccdcdcdef".
+```
 
 **Solution**
 
@@ -1825,3 +1839,80 @@ func dfs(s string, i *int) string {
 ```
 
 Time complexity: $$O(n+m)$$ where n is the length of input string and m is the length of output string.
+
+#### 17. [Minimum Add to Make Parentheses Valid](https://leetcode.com/problems/minimum-add-to-make-parentheses-valid/)
+
+Given a string `S` of `'('` and `')'`parentheses, we add the minimum number of parentheses ( `'('` or `')'`, and in any positions ) so that the resulting parentheses string is valid.
+
+Formally, a parentheses string is valid if and only if:
+
+- It is the empty string, or
+- It can be written as `AB` (`A`concatenated with `B`), where `A` and `B` are valid strings, or
+- It can be written as `(A)`, where `A` is a valid string.
+
+Given a parentheses string, return the minimum number of parentheses we must add to make the resulting string valid.
+
+**Example 1:**
+
+```
+Input: "())"
+Output: 1
+```
+
+**Example 2:**
+
+```
+Input: "((("
+Output: 3
+```
+
+**Example 3:**
+
+```
+Input: "()"
+Output: 0
+```
+
+**Example 4:**
+
+```
+Input: "()))(("
+Output: 4
+```
+
+**Note:**
+
+1. `S.length <= 1000`
+2. `S` only consists of `'('` and `')'`characters.
+
+**Solution**
+
+```go
+func minAddToMakeValid(S string) int {
+    if len(S) == 0 {
+        return 0
+    }
+    stack := make([]rune, 0)
+    count := 0
+    for _, p := range S {
+        if p == '(' {
+            stack = append(stack, p)
+        } else {
+            if len(stack) > 0 {
+                stack = stack[:len(stack)-1]
+            } else {
+                // inadequate left parentheses
+                count++
+            }
+        }
+    }
+    if l := len(stack); l > 0 {
+        // inadequate right parentheses
+        return count + l
+    } else {
+        return count 
+    }
+}
+```
+
+Time complexity: $$O(n)$$, n is the length of `S`.

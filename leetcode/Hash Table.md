@@ -493,3 +493,55 @@ func leastBricks(wall [][]int) int {
 ```
 
 Time complexity: $$O(n^2)$$
+
+#### 7. [Contiguous Array](https://leetcode.com/problems/contiguous-array)
+
+Given a binary array, find the maximum length of a contiguous subarray with equal number of 0 and 1.
+
+**Example 1:**
+
+```
+Input: [0,1]
+Output: 2
+Explanation: [0, 1] is the longest contiguous subarray with equal number of 0 and 1.
+```
+
+**Example 2:**
+
+```
+Input: [0,1,0]
+Output: 2
+Explanation: [0, 1] (or [1, 0]) is a longest contiguous subarray with equal number of 0 and 1.
+```
+
+**Note:** The length of the given binary array will not exceed 50,000.
+
+**Solution**
+
+Use this problem directly using hash map and prefix sum. Change 0 in the original array to 1 then calculate the prefix sum. If `sum[0, i] == sum[0, j]`, we can know that there are equal 0 and 1 in the subarray `[i + 1, j]`. We can use a hash map to accelerate the process by mapping sum to its corresponding index.
+
+```go
+func findMaxLength(nums []int) int {
+    sum2index := make(map[int]int)
+    sum2index[0] = -1
+    sum, res := 0, 0 
+    for i, v := range nums {
+        if v == 0 {
+            sum--
+        } else {
+            sum++
+        }
+        if j, ok := sum2index[sum]; ok {
+            if i - j > res {
+                res = i - j
+            }
+        } else {
+            sum2index[sum] = i
+        }
+    }
+    return res
+}
+```
+
+Time complexity: $$O(n)$$, n is the length of array.
+

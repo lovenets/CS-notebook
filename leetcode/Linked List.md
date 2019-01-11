@@ -788,3 +788,84 @@ func oddEvenList(head *ListNode) *ListNode {
 }
 ```
 
+#### 8. [Partition List](https://leetcode.com/problems/partition-list/)
+
+Given a linked list and a value *x*, partition it such that all nodes less than *x* come before nodes greater than or equal to *x*.
+
+You should preserve the original relative order of the nodes in each of the two partitions.
+
+**Example:**
+
+```
+Input: head = 1->4->3->2->5->2, x = 3
+Output: 1->2->2->4->3->5
+```
+
+**Solution**
+
+```go
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+func partition(head *ListNode, x int) *ListNode {
+	if head == nil {
+		return nil
+	}
+	var less, curLess, greater, curGreater *ListNode
+	for cur := head; cur != nil; cur = cur.Next {
+		if cur.Val < x {
+			if less == nil {
+				less = &ListNode{cur.Val, nil}
+				curLess = less
+			} else {
+				curLess.Next = cur
+				curLess = curLess.Next
+			}
+		} else {
+			if greater == nil {
+				greater = &ListNode{cur.Val, nil}
+				curGreater = greater
+			} else {
+				curGreater.Next = cur
+				curGreater = curGreater.Next
+			}
+		}
+	}
+    if less != nil {
+        if greater != nil {
+            curGreater.Next = nil
+            curLess.Next = greater
+        }
+        return less
+    } else {
+        return greater
+    }
+}
+```
+
+More concise:
+
+```go
+func partition(head *ListNode, x int) *ListNode {
+	less, greater := new(ListNode), new(ListNode)
+	pLess, pGreater := less, greater
+	for cur := head ; cur != nil ; cur = cur.Next {
+		if cur.Val < x {
+			pLess.Next = cur
+			pLess = pLess.Next
+		} else {
+			pGreater.Next = cur
+			pGreater = pGreater.Next
+		}
+	}
+	pGreater.Next = nil
+	pLess.Next = greater.Next
+	return less.Next
+}
+```
+
+Time complexity: $$O(n)$$, n is the number of nodes.

@@ -614,7 +614,7 @@ func constructGraph(node *TreeNode, parent *TreeNode, graph map[*TreeNode][]*Tre
 
 Time complexity: `constructGraph`costs $$O(V)$$, `distanceK` costs $$O(V+ E)$$.
 
-#### 6. [Binary Tree Level Order Traversal](https://leetcode.com/problems/binary-tree-level-order-traversal)
+#### 7. [Binary Tree Level Order Traversal](https://leetcode.com/problems/binary-tree-level-order-traversal)
 
 Given a binary tree, return the *level order*traversal of its nodes' values. (ie, from left to right, level by level).
 
@@ -685,3 +685,73 @@ func levelOrder(root *TreeNode) [][]int {
 ```
 
 Time complexity: $$O(n)$$, n is the number of nodes in the whole tree.
+
+#### 8. [Check Completeness of a Binary Tree](https://leetcode.com/problems/check-completeness-of-a-binary-tree/)
+
+Given a binary tree, determine if it is a *complete binary tree*.
+
+**Definition of a complete binary tree from Wikipedia:**
+In a complete binary tree every level, except possibly the last, is completely filled, and all nodes in the last level are as far left as possible. It can have between 1 and 2h nodes inclusive at the last level h.
+
+**Example 1:**
+
+**![img](https://assets.leetcode.com/uploads/2018/12/15/complete-binary-tree-1.png)**
+
+```
+Input: [1,2,3,4,5,6]
+Output: true
+Explanation: Every level before the last is full (ie. levels with node-values {1} and {2, 3}), and all nodes in the last level ({4, 5, 6}) are as far left as possible.
+```
+
+**Example 2:**
+
+**![img](https://assets.leetcode.com/uploads/2018/12/15/complete-binary-tree-2.png)**
+
+```
+Input: [1,2,3,4,5,null,7]
+Output: false
+Explanation: The node with value 7 isn't as far left as possible.
+```
+
+**Note:**
+
+1. The tree will have between 1 and 100 nodes.
+
+**Solution**
+
+The properties of binary tree show that if we assign the root to `i`, the left child will be `2*i+1`and the right child will be `2+i+2`. A complete binary tree can be represented by an array `[0,1,...,n-1]`, which n is the number of nodes minus 1.
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func isCompleteTree(root *TreeNode) bool {
+    return checkComplete(root, 0, countNodes(root))
+}
+
+func countNodes(root *TreeNode) int {
+    if root == nil {
+        return 0
+    }
+    return 1 + countNodes(root.Left) + countNodes(root.Right)
+}
+
+func checkComplete(root *TreeNode, index, numberOfNodes int) bool {
+    if root == nil {
+        return true
+    }
+    
+    if index >= numberOfNodes {
+        return false
+    }
+    
+    return checkComplete(root.Left, 2*index+1, numberOfNodes) && checkComplete(root.Right, 2*index+2, numberOfNodes)
+}
+```
+
+Time complexity: $$O(n)$$, n is the number of nodes.

@@ -549,14 +549,10 @@ Time complexity: $$O(n)$$, n is the length of array.
 
 Design a simplified version of Twitter where users can post tweets, follow/unfollow another user and is able to see the 10 most recent tweets in the user's news feed. Your design should support the following methods:
 
-
-
 1. **postTweet(userId, tweetId)**: Compose a new tweet.
 2. **getNewsFeed(userId)**: Retrieve the 10 most recent tweet ids in the user's news feed. Each item in the news feed must be posted by users who the user followed or by the user herself. Tweets must be ordered from most recent to least recent.
 3. **follow(followerId, followeeId)**: Follower follows a followee.
 4. **unfollow(followerId, followeeId)**: Follower unfollows a followee.
-
-
 
 **Example:**
 
@@ -601,10 +597,10 @@ class Twitter() {
 
   /** Compose a new tweet. */
   def postTweet(userId: Int, tweetId: Int) {
-    if (!tweets.contains(userId)) {
-      tweets = tweets.updated(userId, List((timer, tweetId)))
-    } else {
+    if (tweets.contains(userId)) {
       tweets = tweets.updated(userId, (timer, tweetId) :: tweets(userId))
+    } else {
+      tweets = tweets.updated(userId, List((timer, tweetId)))
     }
     timer += 1
   }
@@ -612,17 +608,24 @@ class Twitter() {
   /** Retrieve the 10 most recent tweet ids in the user's news feed. Each item in the news feed must be posted by users who the user followed or by the user herself. Tweets must be ordered from most recent to least recent. */
   def getNewsFeed(userId: Int): List[Int] = {
     var tmp: List[(Int, Int)] = Nil
-    if (tweets.get(userId).isDefined) {
+    if (tweets.contains(userId)) {
       tmp = tweets(userId) ::: tmp
     }
-    if (followees.get(userId).isDefined) {
-      tmp = followees(userId).flatMap(tweets(_)).toList ::: tmp
+    if (followees.contains(userId)) {
+      tmp = followees(userId).filter(tweets.contains(_)).flatMap(tweets(_)).toList ::: tmp
     }
-    tmp.sortWith(_._1 > _._1).take(10).map(_._2)
+    if (tmp.nonEmpty) {
+      tmp.sortWith(_._1 > _._1).take(10).map(_._2)
+    } else {
+      Nil
+    }
   }
 
   /** Follower follows a followee. If the operation is invalid, it should be a no-op. */
   def follow(followerId: Int, followeeId: Int) {
+    if (followeeId == followerId) {
+      return
+    }
     if (followees.contains(followerId)) {
       followees = followees.updated(followerId, followees(followerId) + followeeId)
     } else {

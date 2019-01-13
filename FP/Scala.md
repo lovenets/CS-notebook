@@ -633,8 +633,7 @@ object Account { // The companion object
 
 The class and its companion object can access each other’s private features. They must be located in the _same source file_. 
 
-NOTE: the companion object’s features are not in the scope of the class. For example, the  `Account` class has to use `Account.newUniqueNumber()` and not just
-`newUniqueNumber()` to invoke the method of the companion object. 
+NOTE: the companion object’s features are not in the scope of the class. For example, the  `Account` class has to use `Account.newUniqueNumber()` and not just `newUniqueNumber()` to invoke the method of the companion object. 
 
 ## Objects Extending a Class or Trait 
 

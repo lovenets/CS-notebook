@@ -1361,3 +1361,413 @@ inline var bar: Bar
 
 At the call site, inline accessors are inlined as regular inline functions.
 
+# Other 
+
+## Destructuring Declarations
+
+```kotlin
+val (name, age) = person
+```
+
+This syntax is called a *destructuring declaration*. A destructuring declaration creates multiple variables at once.
+
+A destructuring declaration is compiled down to the following code:
+
+```kotlin
+val name = person.component1()
+val age = person.component2()
+```
+
+Note that the `componentN()` functions need to be marked with the `operator` keyword to allow using them in a destructuring declaration.
+
+(1) Returning Two Values from a Function
+
+```kotlin
+data class Result(val result: Int, val status: Status)
+fun function(...): Result {
+    // computations
+    
+    return Result(result, status)
+}
+
+// Now, to use this function:
+val (result, status) = function(...)
+```
+
+Since data classes automatically declare `componentN()` functions, destructuring declarations work here.
+
+(2) Destructuring Declarations and Maps
+
+```kotlin
+for ((key, value) in map) {
+   // do something with the key and the value
+}
+```
+
+To make this work, we should
+
+- present the map as a sequence of values by providing an `iterator()` function;
+- present each of the elements as a pair by providing functions `component1()` and `component2()`.
+
+(3) Underscore for unused variables (since 1.1)
+
+```kotlin
+val (_, status) = getResult()
+```
+
+(4) Destructuring in Lambdas (since 1.1)
+
+If a lambda has a parameter of the `Pair` type (or `Map.Entry`, or any other type that has the appropriate `componentN`functions), you can introduce several new parameters instead of one by putting them in parentheses:
+
+```kotlin
+{ a -> ... } // one parameter
+{ a, b -> ... } // two parameters
+{ (a, b) -> ... } // a destructured pair
+{ (a, b), c -> ... } // a destructured pair and another parameter
+```
+
+## Collections 
+
+Kotlin distinguishes between mutable and immutable collections (lists, sets, maps, etc). It is important to understand up front the difference between a read-only *view* of a mutable collection, and an actually immutable collection. Both are easy to create, but the type system doesn't express the difference, so keeping track of that (if it's relevant) is up to you.
+
+(1) create
+
+Use methods from the standard library, such as `listOf()`, `mutableListOf()`, `setOf()`, `mutableSetOf()`. Map creation in NOT performance-critical code can be accomplished with a simple [idiom](https://kotlinlang.org/docs/reference/idioms.html#read-only-map): `mapOf(a to b, c to d)`
+
+```kotlin
+val numbers: MutableList<Int> = mutableListOf(1, 2, 3)
+val readOnlyView: List<Int> = numbers
+println(numbers)        // prints "[1, 2, 3]"
+numbers.add(4)
+println(readOnlyView)   // prints "[1, 2, 3, 4]"
+readOnlyView.clear()    // -> does not compile
+
+val strings = hashSetOf("a", "b", "c", "c")
+assert(strings.size == 3)
+
+val readWriteMap = hashMapOf("foo" to 1, "bar" to 2)
+println(readWriteMap["foo"])  // prints "1"
+val snapshot: Map<String, Int> = HashMap(readWriteMap)
+```
+
+(2) extension methods 
+
+There are various useful extension methods on lists and sets that are worth being familiar with:
+
+```kotlin
+val items = listOf(1, 2, 3, 4)
+items.first() == 1
+items.last() == 4
+items.filter { it % 2 == 0 }   // returns [2, 4]
+
+val rwList = mutableListOf(1, 2, 3)
+rwList.requireNoNulls()        // returns [1, 2, 3]
+if (rwList.none { it > 6 }) println("No items above 6")  // prints "No items above 6"
+val item = rwList.firstOrNull()
+```
+
+(3) covariant 
+
+Note that the **read-only** types are [covariant](https://kotlinlang.org/docs/reference/generics.html#variance). That means, you can take a `List<Rectangle>` and assign it to `List<Shape>` assuming `Rectangle` inherits from `Shape` (the collection types have the same inheritance relationship as the element types).
+
+## Ranges 
+
+Range expressions are formed with `rangeTo` functions that have the operator form `..` which is complemented by *in* and *!in*.
+
+### 1. Integral type ranges
+
+Integral type ranges (`IntRange`, `LongRange`, `CharRange`) have an extra feature: they can be iterated over. 
+
+```kotlin
+fun main() {
+    for (i in 1..4) print(i)
+    for (i in 4 downTo 1) print(i) // in reverse order 
+    for (i in 1..4 step 2) print(i) // iterating with arbitary step 
+    for (i in 1 until 10) print(i) // [1, 10)
+}
+```
+
+### 2. Utility functions 
+
+(1) `rangeTo()`
+
+The `rangeTo()` operators on integral types simply call the constructors of `*Range` classes.
+
+```kotlin
+class Int {
+    //...
+    operator fun rangeTo(other: Long): LongRange = LongRange(this, other)
+    //...
+    operator fun rangeTo(other: Int): IntRange = IntRange(this, other)
+    //...
+}
+```
+
+Floating point numbers (`Double`, `Float`) do not define their `rangeTo` operator, and the one provided by the standard library for generic `Comparable` types is used instead:
+
+```kotlin
+public operator fun <T: Comparable<T>> T.rangeTo(that: T): ClosedRange<T>
+```
+
+The range returned by this function cannot be used for iteration.
+
+(2) `downTo()`
+
+(3) `reverse()`
+
+(4) `step()`
+
+## Type Checks and Casts
+
+### 1. `is` and `!is` Operators
+
+We can check whether an object conforms to a given type at runtime by using the `is` operator or its negated form `!is`.
+
+```kotlin
+if (obj is String) {
+    print(obj.length)
+}
+
+if (obj !is String) { // same as !(obj is String)
+    print("Not a String")
+}
+```
+
+### 2. Smart Casts
+
+In many cases, one does not need to use explicit cast operators in Kotlin, because the compiler tracks the `is`-checks and [explicit casts](https://kotlinlang.org/docs/reference/typecasts.html#unsafe-cast-operator)for immutable values and inserts (safe) casts automatically when needed.
+
+```kotlin
+fun demo(x: Any) {
+    if (x is String) {
+        print(x.length) // x is automatically cast to String
+    }
+}
+```
+
+Note that smart casts do not work when the compiler cannot guarantee that the variable cannot change between the check and the usage. More specifically, smart casts are applicable according to the following rules:
+
+- `val` local variables - always except for [local delegated properties](https://kotlinlang.org/docs/reference/delegated-properties.html#local-delegated-properties-since-11);
+- `val` properties - if the property is private or internal or the check is performed in the same module where the property is declared. Smart casts aren't applicable to open properties or properties that have custom getters;
+- `var` local variables - if the variable is not modified between the check and the usage, is not captured in a lambda that modifies it, and is not a local delegated property;
+- `var` properties - never (because the variable can be modified at any time by other code).
+
+### 3. Cast Operators
+
+(1) "Unsafe" cast operator
+
+The unsafe cast in Kotlin is done by the infix operator `as`.
+
+```kotlin
+val x: String = y as String
+```
+
+(2) "Safe" (nullable) cast operator
+
+You can use a *safe* cast operator `as?` that returns *null* on failure:
+
+```kotlin
+val x: String? = y as? String
+```
+
+Note that despite the fact that the right-hand side of *as?* is a non-null type `String` the result of the cast is nullable.
+
+### 4. Type erasure and generic type checks
+
+Kotlin ensures type safety of operations involving [generics](https://kotlinlang.org/docs/reference/generics.html) at compile time, while, at runtime, instances of generic types hold no information about their actual type arguments. In general, there is no way to check whether an instance belongs to a generic type with certain type arguments at runtime.
+
+You can, however, check an instance against a [star-projected type](https://kotlinlang.org/docs/reference/generics.html#star-projections):
+
+```kotlin
+if (something is List<*>) {
+    something.forEach { println(it) } // The items are typed as `Any?`
+}
+```
+
+Similarly, when you already have the type arguments of an instance checked statically (at compile time), you can make an *is*-check or a cast that involves the non-generic part of the type. Note that angle brackets are omitted in this case:
+
+```kotlin
+fun handleStrings(list: List<String>) {
+    if (list is ArrayList) {
+        // `list` is smart-cast to `ArrayList<String>`
+    }
+}
+```
+
+## This Expression 
+
+- In a member of a [class](https://kotlinlang.org/docs/reference/classes.html#inheritance),`this`refers to the current object of that class.
+- In an [extension function](https://kotlinlang.org/docs/reference/extensions.html) or a [function literal with receiver](https://kotlinlang.org/docs/reference/lambdas.html#function-literals-with-receiver) `this`denotes the *receiver* parameter that is passed on the left-hand side of a dot.
+
+If `this` has no qualifiers, it refers to the *innermost enclosing scope*. To refer to `this` in other scopes, *label qualifiers* are used:
+
+```kotlin
+class A { // implicit label @A
+    inner class B { // implicit label @B
+        fun Int.foo() { // implicit label @foo
+            val a = this@A // A's this
+            val b = this@B // B's this
+
+            val c = this // foo()'s receiver, an Int
+            val c1 = this@foo // foo()'s receiver, an Int
+
+            val funLit = lambda@ fun String.() {
+                val d = this // funLit's receiver
+            }
+
+
+            val funLit2 = { s: String ->
+                // foo()'s receiver, since enclosing lambda expression
+                // doesn't have any receiver
+                val d1 = this
+            }
+        }
+    }
+}
+```
+
+## Equality 
+
+### 1. Structural equality
+
+Structural equality means a check for `equals()`. It's done by the `==` operation (and its negated counterpart `!=`). By convention, an expression like `a == b` is translated to:
+
+```kotlin
+a?.equals(b) ?: (b === null)
+```
+
+To provide a custom equals check implementation, override the [`equals(other: Any?): Boolean`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/equals.html) function. Functions with the same name and other signatures, like `equals(other: Foo)`, don't affect equality checks with the operators `==` and `!=`.
+
+Structural equality has nothing to do with comparison defined by the `Comparable<...>` interface, so only a custom `equals(Any?)`implementation may affect the behavior of the operator.
+
+### 2. Referential equality
+
+Referential equality checks whether two references point to the same object. It is checked by the `===` operation (and its negated counterpart `!==`). `a === b` evaluates to true if and only if `a` and `b`point to the same object.  For values which are represented as primitive types at runtime (for example, `Int`), the `===` equality check is equivalent to the `==` check.
+
+## Operator overloading 
+
+Kotlin allows us to provide implementations for a predefined set of operators on our types. Functions that overload operators need to be marked with the `operator`modifier.
+
+## Null Safety
+
+### 1. Nullable types and Non-Null Types
+
+In Kotlin, the type system distinguishes between references that can hold *null* (nullable references) and those that can not (non-null references). 
+
+```kotlin
+var a: String = "abc"
+a = null // compilation error because we declared a as a value of non-null type
+
+var b: String? = "abc"
+b = null // ok because we declared b as a value of nullable type
+```
+
+### 2. Safe Calls
+
+If you want to, let's say, access a property of on a variable of nullable type, you can use the safe call operator `?.`.
+
+```kotlin
+val b: String? = null
+println(b?.length)
+```
+
+This returns `b.length` if `b` is not null, and *null* otherwise. The type of this expression is `Int?`. Safe calls are useful in chains.
+
+To perform a certain operation only for non-null values, you can use the safe call operator together with [`let`](https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/let.html):
+
+```kotlin
+val listWithNulls: List<String?> = listOf("Kotlin", null)
+for (item in listWithNulls) {
+    item?.let { println(it) } // prints Kotlin and ignores null
+}
+```
+
+A safe call can also be placed on the left side of an assignment. Then, if one of the receivers in the safe calls chain is null, the assignment is skipped, and the expression on the right is not evaluated at all:
+
+```kotlin
+// If either `person` or `person.department` is null, the function is not called:
+person?.department?.head = managersPool.getManager()
+```
+
+### 3. Elvis Operator
+
+```kotlin
+val l = b?.length ?: -1
+```
+
+If the expression to the left of `?:` is not null, the elvis operator returns it, otherwise it returns the expression to the right. 
+
+### 4. The `!!` Operator
+
+```kotlin
+val l = b!!.length
+```
+
+The not-null assertion operator (`!!`) converts any value to a non-null type and throws an exception if the value is null. 
+
+### 5. Safe Casts
+
+Regular casts may result into a `ClassCastException` if the object is not of the target type. Another option is to use safe casts that return *null* if the attempt was not successful:
+
+```kotlin
+val aInt: Int? = a as? Int
+```
+
+### 6. Collections of Nullable Type
+
+If you have a collection of elements of a nullable type and want to filter non-null elements, you can do so by using `filterNotNull`:
+
+```kotlin
+val nullableList: List<Int?> = listOf(1, 2, null, 4)
+val intList: List<Int> = nullableList.filterNotNull()
+```
+
+## Exceptions 
+
+### 1. Exception Classes
+
+All exception classes in Kotlin are descendants of the class `Throwable`. Every exception has a message, stack trace and an optional cause.
+
+To throw an exception object, use the `throw`-**expression**. To catch an exception, use the `try`-**expression**.
+
+The returned value of a `try`-expression is either the last expression in the `try` block or the last expression in the `catch` block (or blocks). Contents of the `finally` block do not affect the result of the expression.
+
+### 2. Checked Exceptions
+
+Kotlin does not have checked exceptions. 
+
+### 3. The Nothing Type
+
+The type of the `throw` expression is the special type `Nothing`. The type has no values and is used to mark code locations that can never be reached. In your own code, you can use `Nothing` to mark a function that never returns.
+
+```kotlin
+fun fail(message: String): Nothing {
+    throw IllegalArgumentException(message)
+}
+```
+
+If you use `null` to initialize a value of an inferred type and there's no other information that can be used to determine a more specific type, the compiler will infer the `Nothing?`type:
+
+```kotlin
+val x = null           // 'x' has type `Nothing?`
+val l = listOf(null)   // 'l' has type `List<Nothing?>
+```
+
+## Type aliases 
+
+It's useful to shorten long generic types. 
+
+```kotlin
+typealias NodeSet = Set<Network.Node>
+
+typealias FileTable<K> = MutableMap<K, MutableList<File>>
+```
+
+You can provide different aliases for function types:
+
+```kotlin
+typealias MyHandler = (Int, String, Any) -> Unit
+
+typealias Predicate<T> = (T) -> Boolean
+```
+

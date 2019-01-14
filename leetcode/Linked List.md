@@ -869,3 +869,90 @@ func partition(head *ListNode, x int) *ListNode {
 ```
 
 Time complexity: $$O(n)$$, n is the number of nodes.
+
+#### 9. [Remove Duplicates from Sorted List II](https://leetcode.com/problems/remove-duplicates-from-sorted-list-ii/)
+
+Given a sorted linked list, delete all nodes that have duplicate numbers, leaving only *distinct*numbers from the original list.
+
+**Example 1:**
+
+```
+Input: 1->2->3->3->4->4->5
+Output: 1->2->5
+```
+
+**Example 2:**
+
+```
+Input: 1->1->1->2->3
+Output: 2->3
+```
+
+**Solution**
+
+(1) iteration 
+
+```go
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+func deleteDuplicates(head *ListNode) *ListNode {
+    if head == nil {
+        return nil
+    }
+    
+    tmp := &ListNode{ Next: head }
+    pre, cur := tmp, head
+    for cur != nil {
+        for cur.Next != nil && cur.Val == cur.Next.Val {
+            cur = cur.Next
+        }
+        if pre.Next == cur {
+            pre = pre.Next // cur.Val is distinct, move pre to next
+        } else {
+            pre.Next = cur.Next // skip duplicates, but pre shouldn't move now
+        }
+        cur = cur.Next
+    }
+    return tmp.Next
+}
+```
+
+Time complexity: $$O(n)$$, n is the length of list.
+
+(2) recursion 
+
+```kotlin
+/**
+ * Definition for singly-linked list.
+ * class ListNode(var `val`: Int = 0) {
+ *     var next: ListNode? = null
+ * }
+ */
+class Solution {
+    fun deleteDuplicates(head: ListNode?): ListNode? {
+        if (head == null) {
+            return null
+        }
+        var _head = head
+        if (_head.`val` == _head.next?.`val`) {
+            while (_head?.`val` == _head?.next?.`val`) {
+                _head = _head?.next
+            }
+            return deleteDuplicates(_head?.next)
+        } else {
+            _head.next = deleteDuplicates(_head.next)
+        }
+        return _head
+    }
+}
+```
+
+Time complexity: $$O(n)$$ , n is the length of list. 
+
+
+

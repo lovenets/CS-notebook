@@ -755,3 +755,286 @@ func checkComplete(root *TreeNode, index, numberOfNodes int) bool {
 ```
 
 Time complexity: $$O(n)$$, n is the number of nodes.
+
+#### 9. [Construct Binary Tree from Inorder and Postorder Traversal](https://leetcode.com/problems/construct-binary-tree-from-inorder-and-postorder-traversal/)
+
+Given inorder and postorder traversal of a tree, construct the binary tree.
+
+**Note:**
+You may assume that duplicates do not exist in the tree.
+
+For example, given
+
+```
+inorder = [9,3,15,20,7]
+postorder = [9,15,7,20,3]
+```
+
+Return the following binary tree:
+
+```
+    3
+   / \
+  9  20
+    /  \
+   15   7
+```
+
+**Solution**
+
+The the basic idea is to take the last element in postorder array as the root, find the position of the root in the inorder array; then locate the range for left sub-tree and right sub-tree and do recursion. Use a HashMap to record the index of roots in the inorder array.
+
+```kotlin
+/**
+ * Definition for a binary tree node.
+ * class TreeNode(var `val`: Int = 0) {
+ *     var left: TreeNode? = null
+ *     var right: TreeNode? = null
+ * }
+ */
+class Solution {
+    fun buildTree(inorder: IntArray, postorder: IntArray): TreeNode? {
+        if (inorder.isEmpty() || postorder.isEmpty() || inorder.size != postorder.size) {
+            return null
+        }
+        val map = mutableMapOf<Int, Int>()
+        for (i in inorder.indices) {
+            map[inorder[i]] = i
+        }
+        return build(inorder, 0, inorder.size - 1, postorder, 0, postorder.size - 1, map)
+    }
+
+    private fun build(
+        inorder: IntArray,
+        inStart: Int,
+        inEnd: Int,
+        postorder: IntArray,
+        postStart: Int,
+        postEnd: Int,
+        map: MutableMap<Int, Int>
+    ): TreeNode? {
+        if (postStart > postEnd || inStart > inEnd) {
+            return null
+        }
+
+        val root = TreeNode(postorder[postEnd])
+        val indexOfRoot = map[postorder[postEnd]]
+        root.left =
+                build(
+                    inorder,
+                    inStart,
+                    indexOfRoot!! - 1,
+                    postorder,
+                    postStart,
+                    postStart + indexOfRoot - inStart - 1,
+                    map
+                )
+        root.right =
+                build(
+                    inorder,
+                    indexOfRoot + 1,
+                    inEnd,
+                    postorder,
+                    postStart + indexOfRoot - inStart,
+                    postEnd - 1,
+                    map
+                )
+        return root
+    }
+}
+```
+
+Time complexity: $$O(n)​$$
+
+#### 10. [Construct Binary Tree from Preorder and Inorder Traversal](https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/)
+
+Given preorder and inorder traversal of a tree, construct the binary tree.
+
+**Note:**
+You may assume that duplicates do not exist in the tree.
+
+For example, given
+
+```
+preorder = [3,9,20,15,7]
+inorder = [9,3,15,20,7]
+```
+
+Return the following binary tree:
+
+```
+    3
+   / \
+  9  20
+    /  \
+   15   7
+```
+
+**Solution**
+
+(1) 
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func buildTree(preorder []int, inorder []int) *TreeNode {
+	return build(&preorder, inorder)
+}
+
+func build(preorder *[]int, inorder []int) *TreeNode {
+	if len(inorder) == 0 {
+		return nil
+	}
+
+	rootVal := (*preorder)[0]
+	*preorder = (*preorder)[1:]
+	var indexOfRoot int
+	for i, v := range inorder {
+		if v == rootVal {
+			indexOfRoot = i
+			break
+		}
+	}
+	return &TreeNode{
+		rootVal,
+		build(preorder, inorder[0:indexOfRoot]),
+		build(preorder, inorder[indexOfRoot+1:]),
+	}
+}
+```
+
+Time complexity: $$O(n)​$$
+
+(2) 
+
+```kotlin
+/**
+ * Definition for a binary tree node.
+ * class TreeNode(var `val`: Int = 0) {
+ *     var left: TreeNode? = null
+ *     var right: TreeNode? = null
+ * }
+ */
+class Solution {
+    fun buildTree(preorder: IntArray, inorder: IntArray): TreeNode? {
+        return build(0, 0, inorder.size - 1, preorder, inorder)
+    }
+
+    private fun build(preStart: Int, inStart: Int, inEnd: Int, preorder: IntArray, inorder: IntArray): TreeNode? {
+        if (preStart > preorder.size - 1 || inStart > inEnd) {
+            return null
+        }
+
+        val root = TreeNode(preorder[preStart])
+        val indexOfRoot = inorder.indexOf(root.`val`)
+        root.left = build(preStart + 1, inStart, indexOfRoot - 1, preorder, inorder)
+        root.right = build(preStart + 1 + indexOfRoot - inStart, indexOfRoot + 1, inEnd, preorder, inorder)
+        return root
+    }
+}
+```
+
+Time complexity: $$O(n)$$
+
+#### 11. [Construct Binary Tree from Preorder and Postorder Traversal](https://leetcode.com/problems/construct-binary-tree-from-preorder-and-postorder-traversal/)
+
+Return any binary tree that matches the given preorder and postorder traversals.
+
+Values in the traversals `pre` and `post` are distinct positive integers.
+
+**Example 1:**
+
+```
+Input: pre = [1,2,4,5,3,6,7], post = [4,5,2,6,7,3,1]
+Output: [1,2,3,4,5,6,7]
+```
+
+**Note:**
+
+- `1 <= pre.length == post.length <= 30`
+- `pre[]` and `post[]` are both permutations of `1, 2, ..., pre.length`.
+- It is guaranteed an answer exists. If there exists multiple answers, you can return any of them.
+
+(1) recursion
+
+```
+[root][......left......][...right..]  ---pre
+[......left......][...right..][root]  ---post
+```
+
+```go
+func constructFromPrePost(pre []int, post []int) *TreeNode {
+	valToIdx := make(map[int]int)
+	for i, v := range post {
+		valToIdx[v] = i
+	}
+	return construct(pre, post, 0, len(post)-1, 0, len(post)-1, valToIdx)
+}
+
+func construct(pre []int, post []int, preS int, preE int, postS int, postE int, valToIdx map[int]int) *TreeNode {
+	n := &TreeNode{Val: pre[preS]}
+	// no subtree
+	if preS == preE {
+		return n
+	}
+	subTreeRootVal := pre[preS+1]
+	indexOfRoot := valToIdx[subTreeRootVal]
+	l := indexOfRoot - postS + 1
+	n.Left = construct(pre, post, preS+1, preS+l, postS, postS+l-1, valToIdx)
+	// no right child because post[postE] indicates the root of current subtree
+	if indexOfRoot+1 == postE {
+		return n
+	}
+	n.Right = construct(pre, post, preS+l+1, preE, indexOfRoot+1, postE-1, valToIdx)
+	return n
+}
+```
+
+Time complexity: $$O(n)$$, we use a hashmap to reduce complexity.
+
+(2) iteration
+
+We will **preorder** generate TreeNodes, push them to `stack` and **postorder** pop them out.
+
+1. Loop on `pre` array and construct node one by one.
+2. `stack` save the current path of tree.
+3. `node = new TreeNode(pre[i])`, if not left child, add node to the left. otherwise add it to the right.
+4. If we meet a same value in the pre and post, it means we complete the construction for current subtree. We pop it from `stack`.
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func constructFromPrePost(pre []int, post []int) *TreeNode {
+	stack := make([]*TreeNode, 0)
+	stack = append(stack, &TreeNode{Val: pre[0]})
+	j := 0
+	for _, v := range pre[1:] {
+		node := &TreeNode{Val: v}
+		for stack[len(stack)-1].Val == post[j] {
+			stack = stack[:len(stack)-1]
+			j++
+		}
+		if stack[len(stack)-1].Left == nil {
+			stack[len(stack)-1].Left = node
+		} else {
+			stack[len(stack)-1].Right = node
+		}
+		stack = append(stack, node)
+	}
+	return stack[0]
+}
+```
+
+Time complexity: $$O(n)$$

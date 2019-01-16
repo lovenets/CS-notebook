@@ -651,3 +651,63 @@ class Twitter() {
  */
 ```
 
+#### 9. [Group Anagrams](https://leetcode.com/problems/group-anagrams/)
+
+Given an array of strings, group anagrams together.
+
+**Example:**
+
+```
+Input: ["eat", "tea", "tan", "ate", "nat", "bat"],
+Output:
+[
+  ["ate","eat","tea"],
+  ["nat","tan"],
+  ["bat"]
+]
+```
+
+**Note:**
+
+- All inputs will be in lowercase.
+- The order of your output does not matter.
+
+**Solution**
+
+(1) straightforward 
+
+```kotlin
+class Solution {
+    fun groupAnagrams(strs: Array<String>): List<List<String>> {
+        // key: character -> frequency, value: word
+        val map = mutableMapOf<MutableMap<Char, Int>, MutableList<String>>()
+        strs.forEach {
+            val charToCount = mutableMapOf<Char, Int>()
+            it.forEach { c -> charToCount[c] = charToCount.getOrDefault(c, 0) + 1 }
+            // update the map
+            map.computeIfAbsent(charToCount) { mutableListOf() }.add(it)
+        }
+        return map.values.toList()
+    }
+}
+```
+
+Time complexity: $$O(n^2)$$
+
+(2) another way to generate keys 
+
+```kotlin
+class Solution {
+    fun groupAnagrams(strs: Array<String>): List<List<String>> {
+        if (strs.isEmpty()) return listOf()
+        val map = mutableMapOf<String, MutableList<String>>()
+        strs.forEach {
+            val key = java.lang.String.valueOf(it.toCharArray().sorted())
+            map.computeIfAbsent(key) { mutableListOf() }.add(it)
+        }
+        return map.values.toList()
+    }
+}
+```
+
+Time complexity: $$O(n)$$

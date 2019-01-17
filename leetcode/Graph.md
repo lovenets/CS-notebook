@@ -997,5 +997,160 @@ class Solution {
 
 Time complexity: $$O(ElogE)$$, where E is the number of edges.
 
+#### 10. [Couples Holding Hands](https://leetcode.com/problems/couples-holding-hands/)
+
+N couples sit in 2N seats arranged in a row and want to hold hands. We want to know the minimum number of swaps so that every couple is sitting side by side. A *swap* consists of choosing **any** two people, then they stand up and switch seats.
+
+The people and seats are represented by an integer from `0` to `2N-1`, the couples are numbered in order, the first couple being `(0, 1)`, the second couple being `(2, 3)`, and so on with the last couple being `(2N-2, 2N-1)`.
+
+The couples' initial seating is given by `row[i]` being the value of the person who is initially sitting in the i-th seat.
+
+**Example 1:**
+
+```
+Input: row = [0, 2, 1, 3]
+Output: 1
+Explanation: We only need to swap the second (row[1]) and third (row[2]) person.
+```
+
+**Example 2:**
+
+```
+Input: row = [3, 2, 0, 1]
+Output: 0
+Explanation: All couples are already seated side by side.
+```
+
+**Note:**
+
+1. `len(row)` is even and in the range of `[4, 60]`.
+2. `row` is guaranteed to be a permutation of `0...len(row)-1`.
+
+**Solution**
+
+First we need to dive into N integers problem and then we can generalize it to N couples problem.
+
+(1) N integers problem 
+
+Assume we have an integer array `row` of length `N`, which contains integers from `0` up to `N-1` but in random order. You are free to choose any two numbers and swap them. What is the minimum number of swaps needed so that we have `i == row[i]` for `0 <= i < N` (or equivalently, to sort this integer array)?
+
+**First**, to apply the cyclic swapping algorithm, we need to divide the `N` indices into mutually exclusive index groups, where indices in each group form a cycle: `i0 --> i1 --> ... --> ik --> i0`. Here we employ the notation `i --> j` to indicate that we expect the element at index `i` to appear at index `j` at the end of the swapping process.
+
+Before we dive into the procedure for building the index groups, here is a simple example to illustrate the ideas, assuming we have the following integer array and corresponding indices:
+
+```
+row: 2, 3, 1, 0, 5, 4
+idx: 0, 1, 2, 3, 4, 5
+```
+
+Starting from index `0`, what is the index that the element at index `0` is expected to appear? The answer is `row[0]`, which is `2`. Using the above notation, we have `0 --> 2`. Then starting from index `2`, what is the index that the element at index `2` is expected to appear? The answer will be `row[2]`, which is `1`, so we have `2 --> 1`. We can continue in this fashion until the indices form a cycle, which indicates an index group has been found: `0 --> 2 --> 1 --> 3 --> 0`. Then we choose another start index that has not been visited and repeat what we just did. This time we found another group: `4 --> 5 --> 4`, after which all indices are visited so we conclude there are two index groups.
+
+Now for an arbitrary integer array, we can take similar approaches to build the index groups. Starting from some unvisited index `i0`, we compute the index `i1` at which the element at `i0` is expected to appear. In this case, `i1 = row[i0]`. We then continue from index `i1` and compute the index `i2` at which the element at `i1` is expected to appear. Similarly we have, `i2 = row[i1]`. We continue in this fashion to construct a list of indices: `i0 --> i1 --> i2 --> ... --> ik`. Next we will show that eventually the list will repeat itself from index `i0`, which has two implications:
+
+1. Eventually the list will repeat itself.
+2. It will repeat itself from index `i0`, not other indices.
+
+**Next** suppose we have produced two such index groups, `g1` and `g2`, which are not identical (there exists at least one index contained in `g1` but not in `g2` and at least one index contained in `g2` but not in `g1`). We will show that all indices in `g1` cannot appear in `g2`, and vice versa - - `g1` and `g2` are mutually exclusive. The proof is straightforward: if there is some index `j` that is common to both `g1` and `g2`, then both `g1` and `g2` can be constructed by starting from index `j` and following the aforementioned procedure. Since each index is only dependent on its predecessor, the groups generated from the same start index will be identical to each other, contradicting the assumption. Therefore `g1` and `g2` will be mutually exclusive. This also implies the union of all groups will cover all the `N` indices exactly once.
+
+**Lastly**, we will show that the minimum number of swaps needed to resolve an index group of size `k` is given by `k - 1`. Here we define the size of a group as the number of distinct indices contained in the group, for example:
+
+1. Size **1** groups: `0 --> 0`, `2 --> 2`, etc.
+2. Size **2** groups: `0 --> 3 --> 0`, `2 --> 1 --> 2`, etc.
+   ......
+3. Size **k** groups: `0 --> 1 --> 2 --> ... --> (k-1) --> 0`, etc.
+
+And by saying "resolving a group", we mean placing the elements at each index contained in the group to their expected positions at the end of the swapping process. In this case, we want to put the element at index `i`, which is `row[i]`, to its expected position, which is `row[i]` again (the fact that the element itself coincides with its expected position is a result of the placement requirement `row[i] == i`).
+
+**In conclusion**, the minimum number of swaps needed to resolve the whole array can be obtained by summing up the minimum number of swaps needed to resolve each of the index groups. To resolve each index group, we are free to choose any two distinct indices in the group and swap them so as to reduce the group to two smaller disjoint groups. In practice, we can always choose a pivot index and continuously swap it with its expected index until the pivot index is the same as its expected index, meaning the entire group is resolved and all placement requirements within the group are satisfied.
+
+```java
+public int miniSwapsArray(int[] row) {
+    int res = 0, N = row.length;
+
+    for (int i = 0; i < N; i++) {
+		for (int j = row[i]; i != j; j = row[i]) {
+			swap(row, i, j);
+			res++;
+		}
+    }
+
+    return res;
+}
+
+private void swap(int[] arr, int i, int j) {
+    int t = arr[i];
+    arr[i] = arr[j];
+    arr[j] = t;
+}
+```
+
+(2) N couples problem 
+
+The `N` couples problem can be solved using exactly the same idea as the `N` integers problem, except now we have different placement requirements: instead of `i == row[i]`, we require `i == ptn[pos[ptn[row[i]]]]`, where we have defined two additional arrays `ptn` and `pos`:
+
+1. `ptn[i]` denotes the partner of label `i` (`i` can be either a seat or a person) - - `ptn[i] = i + 1` if `i` is even; `ptn[i] = i - 1` if `i` is odd.
+
+   
+
+2. `pos[i]` denotes the index of the person with label `i` in the `row` array - - `row[pos[i]] == i`.
+
+The meaning of `i == ptn[pos[ptn[row[i]]]]` is as follows:
+
+1. The person sitting at seat `i` has a label `row[i]`, and we want to place him/her next to his/her partner.
+
+   
+
+2. So we first find the label of his/her partner, which is given by `ptn[row[i]]`.
+
+   
+
+3. We then find the seat of his/her partner, which is given by `pos[ptn[row[i]]]`.
+
+   
+
+4. Lastly we find the seat next to his/her partner's seat, which is given by `ptn[pos[ptn[row[i]]]]`.
+
+Therefore, for each pivot index `i`, its expected index `j` is given by `ptn[pos[ptn[row[i]]]]`. As long as `i != j`, we swap the two elements at index `i` and `j`, and continue until the placement requirement is satisfied. A minor complication here is that for each swapping operation, we need to swap both the `row` and `pos` arrays.
+
+Note that there are several optimizations we can do, just to name a few:
+
+1. The `ptn` array can be replaced with a simple function that takes an index `i` and returns `i + 1` or `i - 1` depending on whether `i` is even or odd.
+
+   
+
+2. We can check every other seat instead of all seats. This is because we are matching each person to his/her partners, so technically speaking there are always half of the people sitting at the right seats.
+
+   
+
+3. There is an alternative way for building the index groups which goes in backward direction, that is instead of building the cycle like `i0 --> i1 --> ... --> jk --> i0`, we can also build it like `i0 <-- i1 <-- ... <-- ik <-- i0`, where `i <-- j` means the element at index `j` is expected to appear at index `i`. In this case, the pivot index will be changing along the cycle as the swapping operations are applied. The benefit is that we only need to do swapping on the `row` array.
+
+```go
+func minSwapsCouples(row []int) int {
+    count, N := 0, len(row)
+    ptn, pos := make([]int, N), make([]int, N)
+    
+    for i := range row {
+        if i % 2 == 0 {
+            ptn[i] = i + 1
+        } else {
+            ptn[i] = i - 1
+        }
+        pos[row[i]] = i
+    }
+    
+    for i := range row {
+        for j := ptn[pos[ptn[row[i]]]]; i != j; j = ptn[pos[ptn[row[i]]]] {
+            row[i], row[j] = row[j], row[i]
+            pos[row[i]], pos[row[j]] = pos[row[j]], pos[row[i]]
+            count++
+        }
+    }
+    
+    return count 
+}
+```
+
+Time complexity: $$O(n)$$
+
 
 

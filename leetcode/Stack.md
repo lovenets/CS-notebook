@@ -1973,6 +1973,88 @@ func validateStackSequences(pushed []int, popped []int) bool {
 
 Time complexity: $$O(n)$$, n is the number of elements. 
 
+#### 19. [Basic Calculator](https://leetcode.com/problems/basic-calculator)
+
+Implement a basic calculator to evaluate a simple expression string.
+
+The expression string may contain open `(`and closing parentheses `)`, the plus `+` or minus sign `-`, **non-negative** integers and empty spaces ``.
+
+**Example 1:**
+
+```
+Input: "1 + 1"
+Output: 2
+```
+
+**Example 2:**
+
+```
+Input: " 2-1 + 2 "
+Output: 3
+```
+
+**Example 3:**
+
+```
+Input: "(1+(4+5+2)-3)+(6+8)"
+Output: 23
+```
+
+Note:
+
+- You may assume that the given expression is always valid.
+- **Do not** use the `eval` built-in library function.
+
+**Solution**
+
+```go
+func calculate(s string) int {
+	stack := make([]int, 0)
+	// res: the final result
+	// number: current operand
+	// sign: sign of current calculation result
+	res, number, sign := 0, 0, 1
+	for _, c := range s {
+		switch {
+		case unicode.IsDigit(c):
+			n, _ := strconv.Atoi(string(c))
+			number = 10*number + n
+		case c == '-':
+			res += sign * number
+			// reset number to 0 and set the sign of next calculation result
+			number, sign = 0, -1
+		case c == '+':
+			res += sign * number
+			number, sign = 0, 1
+		case c == '(':
+			// push the result before the parentheses
+			// and the sign of result in the parentheses
+			stack = append(stack, res)
+			stack = append(stack, sign)
+			// reset the result and sign for the operations in the parentheses
+			sign, res = 1, 0
+		case c == ')':
+			// finish all operations in the parentheses
+			res += sign * number
+			number = 0
+			// pop the sign of result in the parentheses
+			res *= stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			// pop the result before the parentheses
+			res += stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+		}
+	}
+	// corner case: there is only one number in the input expression
+	if number != 0 {
+		res += sign * number
+	}
+	return res
+}
+```
+
+Time complexity: $$O(n)​$$
+
 
 
 

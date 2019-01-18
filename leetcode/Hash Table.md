@@ -820,6 +820,46 @@ class MagicDictionary() {
 }
 ```
 
+```go
+type MagicDictionary struct {
+	Words map[string]bool
+	Near  map[string]int
+}
+
+/** Initialize your data structure here. */
+func Constructor() MagicDictionary {
+	return MagicDictionary{make(map[string]bool), make(map[string]int)}
+}
+
+/** Build a dictionary through a list of words */
+func (this *MagicDictionary) BuildDict(dict []string) {
+	for _, w := range dict {
+		this.Words[w] = true
+		for _, c := range this.candidate(w) {
+			this.Near[c]++
+		}
+	}
+}
+
+/** Returns if there is any word in the trie that equals to the given word after modifying exactly one character */
+func (this *MagicDictionary) Search(word string) bool {
+	for _, c := range this.candidate(word) {
+		if this.Near[c] > 1 || (this.Near[c] == 1 && !this.Words[word]) {
+			return true
+		}
+	}
+	return false
+}
+
+func (this *MagicDictionary) candidate(word string) []string {
+	cands := make([]string, 0)
+	for i := range word {
+		cands = append(cands, word[:i]+"*"+word[i+1:])
+	}
+	return cands
+}
+```
+
 
 
 

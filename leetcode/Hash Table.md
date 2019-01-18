@@ -711,3 +711,116 @@ class Solution {
 ```
 
 Time complexity: $$O(n)$$
+
+#### 10. [Implement Magic Dictionary](https://leetcode.com/problems/implement-magic-dictionary)
+
+Implement a magic directory with `buildDict`, and `search` methods.
+
+For the method `buildDict`, you'll be given a list of non-repetitive words to build a dictionary.
+
+For the method `search`, you'll be given a word, and judge whether if you modify **exactly**one character into **another** character in this word, the modified word is in the dictionary you just built.
+
+**Example 1:**
+
+```
+Input: buildDict(["hello", "leetcode"]), Output: Null
+Input: search("hello"), Output: False
+Input: search("hhllo"), Output: True
+Input: search("hell"), Output: False
+Input: search("leetcoded"), Output: False
+```
+
+**Note:**
+
+1. You may assume that all the inputs are consist of lowercase letters `a-z`.
+2. For contest purpose, the test data is rather small by now. You could think about highly efficient algorithm after the contest.
+3. Please remember to **RESET** your class variables declared in class MagicDictionary, as static/class variables are **persisted across multiple test cases**. Please see [here](https://leetcode.com/faq/#different-output) for more details.
+
+**Solution**
+
+(1)
+
+1. For each word in `dict`, for each char, remove the char and put the rest of the word as key, a pair of index of the removed char and the char as `part of` value list into a map. e.g.
+   "hello" -> {"ello":[[0, 'h']], "hllo":[[1, 'e']], "helo":[[2, 'l'],[3, 'l']], "hell":[[4, 'o']]}
+2. During search, generate the keys as in step 1. When we see there's pair of same index but different char in the value array, we know the answer is true. e.g.
+   "healo" when remove `a`, key is "helo" and there is a pair [2, 'l'] which has same index but different char. Then the answer is true.
+
+The solution is very space consuming.
+
+```kotlin
+class MagicDictionary() {
+    private val map = mutableMapOf<String, MutableList<IntArray>>()
+
+    /** Initialize your data structure here. */
+
+    /** Build a dictionary through a list of words */
+    fun buildDict(dict: Array<String>) {
+        dict.forEach {
+            for (i in it.indices) {
+                val key = it.removeRange(i, i + 1)
+                val pair = intArrayOf(i, it[i].toInt())
+                map.computeIfAbsent(key) { mutableListOf() }.add(pair)
+            }
+        }
+    }
+
+    /** Returns if there is any word in the trie that equals to the given word after modifying exactly one character */
+    fun search(word: String): Boolean {
+        for (i in word.indices) {
+            val key = word.removeRange(i, i + 1)
+            map[key]?.forEach {
+                if (it[0] == i && it[1] != word[i].toInt()) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+}
+```
+
+Time complexity: $$O(n^2)$$
+
+(2)
+
+A word `'apple'` has neighbors `'*pple', 'a*ple', 'ap*le', 'app*e', 'appl*'`. When searching for a target word like `'apply'`, we know that a necessary condition is a neighbor of `'apply'` is a neighbor of some source word in our magic dictionary. If there is more than one source word that does this, then at least one of those source words will be different from the target word so the result it true. Otherwise, we need to check that the source doesn't equal the target.
+
+```kotlin
+class MagicDictionary() {
+    private val words = mutableSetOf<String>()
+
+    private val near = mutableMapOf<String, Int>()
+
+    /** Initialize your data structure here. */
+
+    /** Build a dictionary through a list of words */
+    fun buildDict(dict: Array<String>) {
+        words.addAll(dict)
+        dict.forEach {
+            candidate(it).forEach { cand ->
+                near[cand] = near.getOrDefault(cand, 0) + 1
+            }
+        }
+    }
+
+    /** Returns if there is any word in the trie that equals to the given word after modifying exactly one character */
+    fun search(word: String): Boolean {
+        return candidate(word).any {
+            near.containsKey(it) && (near[it]!! > 1 || (near[it] == 1 && !words.contains(word)))
+        }
+    }
+
+    private fun candidate(word: String): List<String> {
+        val cand = mutableListOf<String>()
+        for (i in word.indices) {
+            cand.add(word.replaceRange(i, i + 1, "*"))
+        }
+        return cand
+    }
+}
+```
+
+
+
+
+

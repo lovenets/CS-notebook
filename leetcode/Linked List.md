@@ -952,7 +952,93 @@ class Solution {
 }
 ```
 
-Time complexity: $$O(n)$$ , n is the length of list. 
+Time complexity: $$O(n)​$$ , n is the length of list. 
+
+#### 10. [Remove Nth Node From End of List](https://leetcode.com/problems/remove-nth-node-from-end-of-list/)
+
+Given a linked list, remove the *n*-th node from the end of list and return its head.
+
+**Example:**
+
+```
+Given linked list: 1->2->3->4->5, and n = 2.
+
+After removing the second node from the end, the linked list becomes 1->2->3->5.
+```
+
+**Note:**
+
+Given *n* will always be valid.
+
+**Follow up:**
+
+Could you do this in one pass?
+
+**Solution**
+
+(1) trade off space for time
+
+```go
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+func removeNthFromEnd(head *ListNode, n int) *ListNode {
+	if head == nil {
+		return nil
+	}
+
+	// key: index, value: node
+	idxToNode := make(map[int]*ListNode)
+	count := 0
+	for cur, i := head, 0; cur != nil; cur, i = cur.Next, i+1 {
+		idxToNode[i] = cur
+		count++
+	}
+	if count-n == 0 {
+		// corner case: the removed node is head
+		return head.Next
+	} else {
+		removed, pre := idxToNode[count-n], idxToNode[count-n-1]
+		pre.Next = removed.Next
+		return head
+	}
+}
+```
+
+Time complexity: $$O(n)$$
+
+(2) two pointers 
+
+```kotlin
+class Solution {
+    fun removeNthFromEnd(head: ListNode?, n: Int): ListNode? {
+        val start = ListNode(0)
+        var slow: ListNode? = start
+        var fast: ListNode? = start
+        slow?.next = head
+        // make a n-step gap between slow and fast pointers
+        for (i in 1..n + 1) {
+            fast = fast?.next
+        }
+        // move fast pointer to the end maintaining the gap
+        while (fast != null) {
+            slow = slow?.next
+            fast = fast.next
+        }
+        // remove the specific node
+        slow?.next = slow?.next?.next
+        return start.next
+    }
+}
+```
+
+Time complexity: $$O(n)$$
+
+
 
 
 

@@ -1152,5 +1152,103 @@ func minSwapsCouples(row []int) int {
 
 Time complexity: $$O(n)$$
 
+#### 11. [K-Similar Strings](https://leetcode.com/problems/k-similar-strings/)
+
+Strings `A` and `B` are `K`-similar (for some non-negative integer `K`) if we can swap the positions of two letters in `A` exactly `K` times so that the resulting string equals `B`.
+
+Given two anagrams `A` and `B`, return the smallest `K` for which `A` and `B` are `K`-similar.
+
+**Example 1:**
+
+```
+Input: A = "ab", B = "ba"
+Output: 1
+```
+
+**Example 2:**
+
+```
+Input: A = "abc", B = "bca"
+Output: 2
+```
+
+**Example 3:**
+
+```
+Input: A = "abac", B = "baca"
+Output: 2
+```
+
+**Example 4:**
+
+```
+Input: A = "aabc", B = "abca"
+Output: 2
+```
+
+**Note:**
+
+1. `1 <= A.length == B.length <= 20`
+2. `A` and `B` contain only lowercase letters from the set `{'a', 'b', 'c', 'd', 'e', 'f'}`
+
+**Solution**
+
+**When it comes to shortest step, you should keep BFS in mind**. The trick in this problem is that you should just swap the first incorrect pair in each level, instead of trying each pair, which causes TLE, because the other swap is not important. 
+
+```go
+func kSimilarity(A string, B string) int {
+    if A == B {
+        return 0
+    }
+    
+    visited := make(map[string]bool)
+    queue := make([]string, 0)
+    visited[A] = true
+    queue = append(queue, A)
+    res := 0
+    for len(queue) > 0 {
+        res++
+        for sz := len(queue); sz > 0; sz-- {
+            s := queue[0]
+            queue = queue[1:]
+            i := 0
+            // find the first position where we need to swap characters 
+            for s[i] == B[i] {
+                i++
+            }
+            // BFS
+            for j := i + 1; j < len(s); j++ {
+                // find the character s[j] which should replace s[i]
+                // if s[j] == B[j], which means the j-th character is correct, 
+                //the swapping should not be taken
+                // if s[i] != B[j], which means i-th character is not corresponding to 
+                //j-th character, the swapping should not be taken either
+                if s[j] == B[j] || s[i] != B[j] {
+                    continue
+                }
+                temp := swap(s, i, j)
+                if temp == B {
+                    return res
+                }
+                if !visited[temp] {
+                    visited[temp] = true
+                    queue = append(queue, temp)
+                }
+            }
+        }
+    }
+    return res
+}
+
+func swap(s string, i, j int) string {
+    chars := make([]rune, 0)
+    for _, c := range s { 
+        chars = append(chars, c) 
+    }
+    chars[i], chars[j] = chars[j], chars[i]
+    return string(chars)
+}
+```
+
 
 

@@ -2055,7 +2055,96 @@ func calculate(s string) int {
 
 Time complexity: $$O(n)​$$
 
+#### 20. [Remove Duplicate Letters](https://leetcode.com/problems/remove-duplicate-letters/)
 
+Given a string which contains only lowercase letters, remove duplicate letters so that every letter appear once and only once. You must make sure your result is the smallest in lexicographical order among all possible results.
+
+**Example 1:**
+
+```
+Input: "bcabc"
+Output: "abc"
+```
+
+**Example 2:**
+
+```
+Input: "cbacdcbc"
+Output: "acdb"
+```
+
+**Solution**
+
+(1) recursion 
+
+Given the string `s`, the greedy choice (i.e., the leftmost letter in the answer) is the smallest `s[i]`,  the suffix `s[i .. ]` contains all the unique letters. (Note that, when there are more than one smallest `s[i]`'s, we choose the leftmost one. Why? Simply consider the example: "abcacb".)
+
+```go
+func removeDuplicateLetters(s string) string {
+    // use slice instead of map to save time and space 
+    count := make([]rune, 26)
+    // the position of the smallest character
+    pos := 0
+    for _, c := range s {
+        count[c-'a']++
+    }
+    for i, c := range s {
+        if c < rune(s[pos]) {
+            pos = i
+        }
+        // we find a character to be reduced to one 
+        if count[c-'a']--; count[c-'a'] == 0 {
+            break
+        }
+    }
+    if len(s) == 0 {
+        return ""
+    } else {
+        // recursively process the remaining sbustring 
+        return string(s[pos]) + removeDuplicateLetters(strings.Replace(s[pos+1:], string(s[pos]), "", -1))
+    }
+}
+```
+
+Time complexity: $$O(n)$$, n is the length of `s`.
+
+(2) stack
+
+```go
+func removeDuplicateLetters(s string) string {
+    count := make([]rune, 26)
+    onStack := make([]bool, 26)
+    for _, c := range s {
+        count[c-'a']++
+    }
+    stack := make([]rune, 0)
+    var index int32
+    for _, c := range s {
+        index = c - 'a'
+        count[index]--
+        // if current character is already on stakc, just skip it
+        if onStack[index] {
+            continue
+        }
+        // if current character is smaller than the characters on the top of stack,
+        // then we pop them now and add them later
+        for len(stack) > 0 && c < stack[len(stack)-1] && count[stack[len(stack)-1]-'a'] != 0 {
+            onStack[stack[len(stack)-1]-'a'] = false
+            stack = stack[:len(stack)-1]
+        }
+        stack = append(stack, c)
+        onStack[index] = true
+    }
+    
+    var b strings.Builder
+    for _, c := range stack {
+        b.WriteRune(c)
+    }
+    return b.String()
+}
+```
+
+Time complexity: $$O(n)$$
 
 
 

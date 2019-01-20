@@ -1038,7 +1038,96 @@ class Solution {
 
 Time complexity: $$O(n)$$
 
+#### 11. [Reorder List](https://leetcode.com/problems/reorder-list/)
 
+Given a singly linked list *L*: *L*0→*L*1→…→*L**n*-1→*L*n,
+reorder it to: *L*0→*L**n*→*L*1→*L**n*-1→*L*2→*L**n*-2→…
 
+You may **not** modify the values in the list's nodes, only nodes itself may be changed.
 
+**Example 1:**
+
+```
+Given 1->2->3->4, reorder it to 1->4->2->3.
+```
+
+**Example 2:**
+
+```
+Given 1->2->3->4->5, reorder it to 1->5->2->4->3.
+```
+
+**Solution**
+
+(1)
+
+```go
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+func reorderList(head *ListNode) {
+	if head == nil {
+		return
+	}
+    // trade off space for time
+	idxToNode := make(map[int]*ListNode)
+	for cur, i := head, 0; cur != nil; cur, i = cur.Next, i+1 {
+		idxToNode[i] = cur
+	}
+	count := len(idxToNode)
+	for i, j := count-1, 0; i > count/2; i, j = i-1, j+1 {
+		moved := idxToNode[i]
+		notMoved := idxToNode[j]
+		moved.Next = notMoved.Next
+		notMoved.Next = moved
+		idxToNode[i-1].Next = nil
+	}
+}
+```
+
+Time complexity: $$O(n)$$
+
+(2) 
+
+```go
+func reorderList(head *ListNode) {
+	if head == nil || head.Next == nil {
+		return
+	}
+
+	// Find the middle
+	p2, p1 := head, head
+	for p2.Next != nil && p2.Next.Next != nil {
+		p2 = p2.Next.Next
+		p1 = p1.Next
+	}
+
+	// Reverse the part after middle
+	head2 := p1.Next
+	p1.Next = nil
+	p2 = head2.Next
+	head2.Next = nil
+	for p2 != nil  {
+		p1 = p2.Next
+		p2.Next = head2
+		head2 = p2
+		p2 = p1
+	}
+	
+	// Start reordering one by one i.e.
+	// merging two lists
+	for p1, p2 = head, head2; p1 != nil ;  {
+		tmp := p1.Next
+		p1.Next = p2
+		p1 = p1.Next
+		p2 = tmp
+	}
+}
+```
+
+Time complexity: $$O(n)​$$
 

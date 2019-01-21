@@ -1123,3 +1123,161 @@ class Solution {
 ```
 
 Time complexity: Since we halve the tree in every recursive step, we have $$O(log(n))$$ steps. Finding a height costs $$O(log(n))$$. So overall $$O(log(n)^2)$$.
+
+#### 13. [Delete Node in a BST](https://leetcode.com/problems/delete-node-in-a-bst/)
+
+Given a root node reference of a BST and a key, delete the node with the given key in the BST. Return the root node reference (possibly updated) of the BST.
+
+Basically, the deletion can be divided into two stages:
+
+1. Search for a node to remove.
+2. If the node is found, delete the node.
+
+**Note:** Time complexity should be O(height of tree).
+
+**Example:**
+
+```
+root = [5,3,6,2,4,null,7]
+key = 3
+
+    5
+   / \
+  3   6
+ / \   \
+2   4   7
+
+Given key to delete is 3. So we find the node with value 3 and delete it.
+
+One valid answer is [5,4,6,2,null,null,7], shown in the following BST.
+
+    5
+   / \
+  4   6
+ /     \
+2       7
+
+Another valid answer is [5,2,6,null,4,null,7].
+
+    5
+   / \
+  2   6
+   \   \
+    4   7
+```
+
+**Solution**
+
+(1) recursion 
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+
+// Algorithm, 4nd Edition 
+func deleteNode(root *TreeNode, key int) *TreeNode {
+    return deleteHelper(root, key)
+}
+
+func deleteHelper(node *TreeNode, key int) *TreeNode {
+    if node == nil {
+        return nil
+    }
+    
+    if key < node.Val {
+        node.Left = deleteHelper(node.Left, key)
+    } else if key > node.Val {
+        node.Right = deleteHelper(node.Right, key)
+    } else {
+        if node.Left == nil {
+            return node.Right
+        }
+        if node.Right == nil {
+            return node.Left
+        }
+        // replace the deleted node with the minimum node of its right subtree
+        tmp := node
+        node = min(tmp.Right)
+        node.Right = deleteMin(tmp.Right)
+        node.Left = tmp.Left
+    }
+    return node
+}
+
+func min(node *TreeNode) *TreeNode {
+    if node.Left == nil {
+        return node
+    }
+    return min(node.Left)
+}
+
+func deleteMin(node *TreeNode) *TreeNode {
+    if node.Left == nil {
+        return node.Right
+    }
+    node.Left = deleteMin(node.Left)
+    return node
+}
+```
+
+Time complexity: $$O(h)$$, h is the height of tree.
+
+(2) iteration 
+
+```go
+func deleteNode(root *TreeNode, key int) *TreeNode {
+    // Find the node to be deleted 
+    cur := root
+    var pre *TreeNode
+    for cur != nil && cur.Val != key {
+        pre = cur 
+        if key < cur.Val {
+            cur = cur.Left
+        } else if key > cur.Val {
+            cur = cur.Right
+        }
+    }
+    
+    if pre == nil {
+        return deleteRoot(cur)
+    }
+    if pre.Left == cur {
+        pre.Left = deleteRoot(cur)
+    } else {
+        pre.Right = deleteRoot(cur)
+    }
+    return root
+}
+
+func deleteRoot(root *TreeNode) *TreeNode {
+    if root == nil {
+        return nil
+    }
+    if root.Left == nil {
+        return root.Right
+    }
+    if root.Right == nil {
+        return root.Left
+    }
+    
+    next := root.Right
+    var pre *TreeNode
+    for next.Left != nil {
+        pre = next
+        next = next.Left
+    }
+    next.Left = root.Left
+    if root.Right != next {
+        pre.Left = next.Right
+        next.Right = root.Right
+    }
+    return next
+}
+```
+

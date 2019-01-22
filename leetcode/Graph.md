@@ -1250,5 +1250,144 @@ func swap(s string, i, j int) string {
 }
 ```
 
+#### 12. [Similar String Groups](https://leetcode.com/problems/similar-string-groups/)
 
+Two strings `X` and `Y` are similar if we can swap two letters (in different positions) of `X`, so that it equals `Y`.
+
+For example, `"tars"` and `"rats"` are similar (swapping at positions `0` and `2`), and `"rats"` and `"arts"` are similar, but `"star"` is not similar to `"tars"`, `"rats"`, or `"arts"`.
+
+Together, these form two connected groups by similarity: `{"tars", "rats", "arts"}` and `{"star"}`.  Notice that `"tars"` and `"arts"` are in the same group even though they are not similar.  Formally, each group is such that a word is in the group if and only if it is similar to at least one other word in the group.
+
+We are given a list `A` of strings.  Every string in `A` is an anagram of every other string in `A`.  How many groups are there?
+
+**Example 1:**
+
+```
+Input: ["tars","rats","arts","star"]
+Output: 2
+```
+
+**Note:**
+
+1. `A.length <= 2000`
+2. `A[i].length <= 1000`
+3. `A.length * A[i].length <= 20000`
+4. All words in `A` consist of lowercase letters only.
+5. All words in `A` have the same length and are anagrams of each other.
+6. The judging time limit has been increased for this question.
+
+**Solution**
+
+(1) DFS
+
+```go
+func numSimilarGroups(A []string) int {
+    if len(A) < 2 {
+        return len(A)
+    }
+    
+    res := 0
+    for i := range A {
+        // avoid testing a string more than once 
+        if A[i] == "" {
+            continue
+        }
+        str := A[i]
+        A[i] = ""
+        res++
+        dfs(A, str)
+    }
+    return res
+}
+
+func dfs(A []string, s string) {
+    for i := range A {
+        if A[i] == "" {
+            continue
+        }
+        if isSimilar(A[i], s) {
+            str := A[i]
+            A[i] = ""
+            dfs(A, str)
+        }
+    }
+}
+
+func isSimilar(s, t string) bool {
+    swap := 0
+    for i := range s {
+        if swap > 2 {
+            return false 
+        }
+        if s[i] != t[i] {
+            swap++
+        }
+    }
+    return swap == 2 || swap == 0
+}
+```
+
+Time complexity: $$O(kn^2)$$, n is the length of array and k is the length of string. 
+
+(2) Disjoint Set
+
+```kotlin
+class Solution {
+    fun numSimilarGroups(A: Array<String>): Int {
+        val set = DisjointSet(A.size)
+        for (i in A.indices) {
+            for (j in i + 1 until A.size) {
+                if (isSimilar(A[i], A[j])) {
+                    set.join(i, j)
+                }
+            }
+        }
+        return set.size()
+    }
+
+    private fun isSimilar(s: String, t: String): Boolean {
+        var swap = 0
+        for (i in 0 until s.length) {
+            if (s[i] != t[i]) {
+                swap++
+                if (swap > 2) {
+                    return false
+                }
+            }
+        }
+        return swap == 2
+    }
+}
+
+class DisjointSet(n: Int) {
+    private val elements = mutableListOf<Int>()
+
+    private var size = 0
+
+    init {
+        elements.addAll(0 until n)
+        size = n
+    }
+
+    private fun find(i: Int): Int {
+        if (i != elements[i]) {
+            elements[i] = find(elements[i])
+        }
+        return elements[i]
+    }
+
+    fun join(i: Int, j: Int): Unit {
+        val ri = find(i)
+        val rj = find(j)
+        if (ri != rj) {
+            elements[ri] = rj
+            size--
+        }
+    }
+
+    fun size(): Int {
+        return size
+    }
+}
+```
 

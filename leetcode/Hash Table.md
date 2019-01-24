@@ -860,7 +860,90 @@ func (this *MagicDictionary) candidate(word string) []string {
 }
 ```
 
+#### 11. [Maximum Length of Repeated Subarray](https://leetcode.com/problems/maximum-length-of-repeated-subarray/)
 
+Given two integer arrays `A` and `B`, return the maximum length of an subarray that appears in both arrays.
+
+**Example 1:**
+
+```
+Input:
+A: [1,2,3,2,1]
+B: [3,2,1,4,7]
+Output: 3
+Explanation: 
+The repeated subarray with maximum length is [3, 2, 1].
+```
+
+**Note:**
+
+1. 1 <= len(A), len(B) <= 1000
+2. 0 <= A[i], B[i] < 100
+
+**Solution**
+
+This is a dynamic programming problem. 
+
+```go
+func findLength(A []int, B []int) int {
+    if len(A) == 0 || len(B) == 0 {
+        return 0
+    }
+    m, n, max := len(A), len(B), 0
+    // dp[i][j] is the max length of common subarray ending at A[i] and B[j]
+    // if A[i] == B[j], dp[i+1][j+1] = dp[i][j]+1
+    dp := make([][]int, m+1)
+    for i := range dp {
+        dp[i] = make([]int, n+1)
+    }
+    for i := 0; i <= m; i++ {
+        for j := 0; j <= n; j++ {
+            if i == 0 || j == 0 {
+                dp[i][j] = 0
+            } else {
+                if A[i-1] == B[j-1] {
+                    dp[i][j] = 1 + dp[i-1][j-1]
+                    if max < dp[i][j] {
+                        max = dp[i][j]
+                    }
+                }
+            }
+        }
+    }
+    return max
+}
+```
+
+```kotlin
+class Solution {
+    fun findLength(A: IntArray, B: IntArray): Int {
+        if (A.isEmpty() || B.isEmpty()) {
+            return 0
+        }
+        val m = A.size
+        val n = B.size
+        var max = 0
+        val dp = Array(m + 1) { IntArray(n + 1) }
+        for (i in 0..m) {
+            for (j in 0..n) {
+                if (i == 0 || j == 0) {
+                    dp[i][j] = 0
+                } else {
+                    if (A[i - 1] == B[j - 1]) {
+                        dp[i][j] = 1 + dp[i - 1][j - 1]
+                        max = kotlin.math.max(dp[i][j], max)
+                    }
+                }
+            }
+        }
+        return max
+    }
+}
+```
+
+Time complexity: $$O(mn)$$
+
+Space complexity: $$O(mn)​$$
 
 
 

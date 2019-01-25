@@ -1131,3 +1131,57 @@ func reorderList(head *ListNode) {
 
 Time complexity: $$O(n)​$$
 
+#### 12. [Reverse Linked List II](https://leetcode.com/problems/reverse-linked-list-ii/)
+
+Reverse a linked list from position *m* to *n*. Do it in one-pass.
+
+**Note:** 1 ≤ *m* ≤ *n* ≤ length of list.
+
+**Example:**
+
+```
+Input: 1->2->3->4->5->NULL, m = 2, n = 4
+Output: 1->4->3->2->5->NULL
+```
+
+**Solution**
+
+```kotlin
+/**
+ * Definition for singly-linked list.
+ * class ListNode(var `val`: Int = 0) {
+ *     var next: ListNode? = null
+ * }
+ */
+class Solution {
+    fun reverseBetween(head: ListNode?, m: Int, n: Int): ListNode? {
+        if (head == null) {
+            return head
+        }
+        val dummy = ListNode(0)
+        dummy.next = head
+        // pre will point to the node previous to the first node to be reversed
+        var pre = dummy
+        for (i in 0 until m - 1) {
+            pre = pre.next!!
+        }
+        // reverse the specific part
+        // for example:
+        // first reversing : dummy->1 - 3 - 2 - 4 - 5; pre = 1, start = 2, then = 4
+       // second reversing: dummy->1 - 4 - 3 - 2 - 5; pre = 1, start = 2, then = 5 (finish)
+        val start = pre.next
+        var then = start?.next
+        for (i in 0 until n - m) {
+            start?.next = then?.next
+            then?.next = pre.next
+            pre.next = then
+            then = start?.next
+        }
+        return dummy.next
+    }
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(1) $$

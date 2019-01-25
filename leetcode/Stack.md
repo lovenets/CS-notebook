@@ -2146,5 +2146,66 @@ func removeDuplicateLetters(s string) string {
 
 Time complexity: $$O(n)$$
 
+#### 21. [Largest Rectangle in Histogram](https://leetcode.com/problems/largest-rectangle-in-histogram)
 
+Given *n* non-negative integers representing the histogram's bar height where the width of each bar is 1, find the area of largest rectangle in the histogram.
+
+![img](https://assets.leetcode.com/uploads/2018/10/12/histogram.png)
+Above is a histogram where width of each bar is 1, given height = `[2,1,5,6,2,3]`.
+
+![img](https://assets.leetcode.com/uploads/2018/10/12/histogram_area.png)
+The largest rectangle is shown in the shaded area, which has area = `10` unit.
+
+**Example:**
+
+```
+Input: [2,1,5,6,2,3]
+Output: 10
+```
+
+**Solution**
+
+For every bar ‘x’, we calculate the area with ‘x’ as the smallest bar in the rectangle. If we calculate such area for every bar ‘x’ and find the maximum of all areas, our task is done. How to calculate area with ‘x’ as smallest bar? We need to know index of the first smaller (smaller than ‘x’) bar on left of ‘x’ and index of first smaller bar on right of ‘x’. Let us call these indexes as ‘left index’ and ‘right index’ respectively.
+We traverse all bars from left to right, maintain a stack of bars. Every bar is pushed to stack once. A bar is popped from stack when a bar of smaller height is seen. When a bar is popped, we calculate the area with the popped bar as smallest bar. How do we get left and right indexes of the popped bar – the current index tells us the ‘right index’ and index of previous item in stack is the ‘left index’.
+
+```go
+func largestRectangleArea(heights []int) int {
+	l, max := len(heights), 0
+	stack := make([]int, 0)
+	// assure the stack is empty after all calculations
+	// so let heights[len(heights)] = 0
+	for i := 0; i <= l; i++ {
+		var h int
+		if i == l {
+			h = 0
+		} else {
+			h = heights[i]
+		}
+		if len(stack) == 0 || h >= heights[stack[len(stack)-1]] {
+			stack = append(stack, i)
+		} else {
+			top := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			var tmp int
+			if len(stack) == 0 {
+				// there is no shorter bar on tht left of the "top" bar
+				tmp = heights[top] * i
+			} else {
+                // the "top" bar is the shortes in the range of (stack[len(stack)-1], i)
+				tmp = heights[top] * (i - 1 - stack[len(stack)-1])
+			}
+			if tmp > max {
+				max = tmp
+			}
+			// assure every height will be pushed once
+			i--
+		}
+	}
+	return max
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(n)$$
 

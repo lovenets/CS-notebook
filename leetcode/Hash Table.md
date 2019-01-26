@@ -945,5 +945,108 @@ Time complexity: $$O(mn)$$
 
 Space complexity: $$O(mn)​$$
 
+#### 12. [Most Frequent Subtree Sum](https://leetcode.com/problems/most-frequent-subtree-sum/)
 
+Given the root of a tree, you are asked to find the most frequent subtree sum. The subtree sum of a node is defined as the sum of all the node values formed by the subtree rooted at that node (including the node itself). So what is the most frequent subtree sum value? If there is a tie, return all the values with the highest frequency in any order.
+
+**Examples 1**
+Input:
+
+```
+  5
+ /  \
+2   -3
+```
+
+return [2, -3, 4], since all the values happen only once, return all of them in any order.
+
+**Examples 2**
+Input:
+
+```
+  5
+ /  \
+2   -5
+```
+
+return [2], since 2 happens twice, however -5 only occur once.
+
+**Note:** You may assume the sum of values in any subtree is in the range of 32-bit signed integer.
+
+**Solution**
+
+Calculate the sum of every subtree while postorder traversing. 
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func findFrequentTreeSum(root *TreeNode) []int {
+    maxCount := 0
+    sumToCount := make(map[int]int)
+    
+    postorder(root, &maxCount, sumToCount)
+    
+    res := make([]int, 0)
+    for k := range sumToCount {
+        if sumToCount[k] == maxCount {
+            res = append(res, k)
+        }
+    }
+    return res
+}
+
+func postorder(root *TreeNode, maxCount *int, sumToCount map[int]int) int {
+    if root == nil {
+        return 0
+    }
+    
+    sum := root.Val + postorder(root.Left, maxCount, sumToCount) + postorder(root.Right, maxCount, sumToCount)
+    sumToCount[sum]++
+    if sumToCount[sum] > *maxCount {
+        *maxCount = sumToCount[sum]
+    }
+    return sum
+}
+```
+
+```kotlin
+/**
+ * Definition for a binary tree node.
+ * class TreeNode(var `val`: Int = 0) {
+ *     var left: TreeNode? = null
+ *     var right: TreeNode? = null
+ * }
+ */
+class Solution {
+    private val count = mutableMapOf<Int, Int>()
+
+    fun findFrequentTreeSum(root: TreeNode?): IntArray {
+        if (root == null) {
+            return IntArray(0)
+        }
+        getSum(root)
+        val maxCount = count.values.max()
+        return count.filter { it.value == maxCount }.keys.toIntArray()
+    }
+
+    private fun getSum(node: TreeNode?): Int {
+        if (node == null) {
+            return 0
+        }
+        val sum = getSum(node.left) + getSum(node.right) + node.`val`
+        count[sum] = count.getOrDefault(sum, 0) + 1
+        return sum
+    }
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(n)$$, n is the number of nodes.
 

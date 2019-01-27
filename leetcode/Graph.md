@@ -1391,3 +1391,99 @@ class DisjointSet(n: Int) {
 }
 ```
 
+#### 13. [Minimize Malware Spread II](https://leetcode.com/problems/minimize-malware-spread-ii/)
+
+In a network of nodes, each node `i` is directly connected to another node `j` if and only if `graph[i][j] = 1`.
+
+Some nodes `initial` are initially infected by malware.  Whenever two nodes are directly connected and at least one of those two nodes is infected by malware, both nodes will be infected by malware.  This spread of malware will continue until no more nodes can be infected in this manner.
+
+Suppose `M(initial)` is the final number of nodes infected with malware in the entire network, after the spread of malware stops.
+
+We will remove one node from the initial list, **completely removing it and any connections from this node to any other node**.  Return the node that if removed, would minimize `M(initial)`.  If multiple nodes could be removed to minimize `M(initial)`, return such a node with the smallest index.
+
+**Example 1:**
+
+```
+Input: graph = [[1,1,0],[1,1,0],[0,0,1]], initial = [0,1]
+Output: 0
+```
+
+**Example 2:**
+
+```
+Input: graph = [[1,1,0],[1,1,1],[0,1,1]], initial = [0,1]
+Output: 1
+```
+
+**Example 3:**
+
+```
+Input: graph = [[1,1,0,0],[1,1,1,0],[0,1,1,1],[0,0,1,1]], initial = [0,1]
+Output: 1
+```
+
+**Note:**
+
+1. `1 < graph.length = graph[0].length <= 300`
+2. `0 <= graph[i][j] == graph[j][i] <= 1`
+3. `graph[i][i] = 1`
+4. `1 <= initial.length < graph.length`
+5. `0 <= initial[i] < graph.length`
+
+**Solution**
+
+The main idea is if we want to keep a node safe, we need to remove all nodes that can infect it.
+
+![image](https://assets.leetcode.com/users/2017111303/image_1540136419.png)
+As picture shows, the yellow node is the initial infected node. For the safe node [1,2,3,5,6], we analyze one by one.
+
+We define `node a` are directly infected by `node b` if `node a` will be infected by `node b` `without through any other infected node`.
+
+For `node 1`, it will be directly infected by `node 0` and `node 4`,(0->1, 4->3->2->1)
+For `node 2`, it is same as `node 1`(0->1->2, 4->3->2)
+For `node 3`, it is same as `node 1`
+For `node 5`, it is same as `node 1`
+For `node 6`, it will be directly infected by `node 4`. (4 - > 6)
+
+For node [1,2,3,5], even if we delete one node from the initial infected node, it will be infected by another node in the end. So a node is safe if and only if it's directly infected by another one. We can use BFS to find all safe nodes and store the nodes that can infect them. Finally, we just remove the node that can infect most safe nodes. 
+
+```kotlin
+class Solution {
+    fun minMalwareSpread(graph: Array<IntArray>, initial: IntArray): Int {
+        // key: nodes that can be infected, value: initial nodes
+        val map = mutableMapOf<Int, MutableList<Int>>()
+        for (i in initial) {
+            // BFS
+            val set = mutableSetOf(*initial.toTypedArray())
+            val queue = java.util.ArrayDeque<Int>()
+            queue.add(i)
+            while (queue.isNotEmpty()) {
+                val infected = queue.poll()
+                for (j in 0 until graph[infected].size) {
+                    if (graph[infected][j] == 0) {
+                        continue
+                    }
+                    if (set.contains(j)) {
+                        continue
+                    }
+                    set.add(j)
+                    map.computeIfAbsent(j) { mutableListOf() }.add(i)
+                    queue.add(j)
+                }
+            }
+        }
+        val res = IntArray(graph.size)
+        for (k in map.keys) {
+            // Find nodes that can infect any safe nodes
+            if (map[k]!!.size == 1) {
+                res[map[k]!![0]]++
+            }
+        }
+        // Remove the node that can infect most safe nodes
+        return if (res.max() == 0) initial.min()!! else res.indexOf(res.max()!!)
+    }
+}
+```
+
+Time complexity: $$O(n^3)$$
+

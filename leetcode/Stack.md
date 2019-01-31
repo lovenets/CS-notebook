@@ -2209,3 +2209,106 @@ Time complexity: $$O(n)$$
 
 Space complexity: $$O(n)$$
 
+#### 22. [Binary Tree Postorder Traversal](https://leetcode.com/problems/binary-tree-postorder-traversal/)
+
+Given a binary tree, return the *postorder*traversal of its nodes' values.
+
+**Example:**
+
+```
+Input: [1,null,2,3]
+   1
+    \
+     2
+    /
+   3
+
+Output: [3,2,1]
+```
+
+**Follow up:** Recursive solution is trivial, could you do it iteratively?
+
+**Solution**
+
+(1) recursion
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+// Recursion
+func postorderTraversal(root *TreeNode) []int {
+    if root == nil {
+        return nil
+    }
+    
+    res := make([]int, 0)
+    postorder(root, &res)
+    return res
+}
+
+func postorder(node *TreeNode, res *[]int) {
+    if node == nil {
+        return 
+    }
+    postorder(node.Left, res)
+    postorder(node.Right, res)
+    *res = append(*res, node.Val)
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(n)$$
+
+(2) iteration 
+
+```go
+func postorderTraversal(root *TreeNode) []int {
+    if root == nil {
+        return nil
+    }
+    
+    res := make([]int, 0)
+    stack := make([]*TreeNode, 0)
+    p := root
+    for len(stack) > 0 || p != nil {
+        if p != nil {
+            stack = append(stack, p)
+            res = append([]int{ p.Val }, res...)
+            p = p.Right
+        } else {
+            node := stack[len(stack)-1]
+            stack = stack[:len(stack)-1]
+            p = node.Left
+        }
+    }
+    return res
+}
+```
+
+Time complexity: $$O(n)​$$
+
+Space complexity: $$O(n)$$
+
+#### 23. [Maximal Rectangle](https://leetcode.com/problems/maximal-rectangle/)
+
+Given a 2D binary matrix filled with 0's and 1's, find the largest rectangle containing only 1's and return its area.
+
+**Example:**
+
+```
+Input:
+[
+  ["1","0","1","0","0"],
+  ["1","0","1","1","1"],
+  ["1","1","1","1","1"],
+  ["1","0","0","1","0"]
+]
+Output: 6
+```

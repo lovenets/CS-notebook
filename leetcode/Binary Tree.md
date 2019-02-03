@@ -1364,5 +1364,177 @@ class Solution {
 }
 ```
 
-Time complexity: $$O(n)$$
+Time complexity: $$O(n)​$$
+
+#### 15. [Find Bottom Left Tree Value](https://leetcode.com/problems/find-bottom-left-tree-value/)
+
+Given a binary tree, find the leftmost value in the last row of the tree.
+
+**Example 1:**
+
+```
+Input:
+
+    2
+   / \
+  1   3
+
+Output:
+1
+```
+
+**Example 2:** 
+
+```
+Input:
+
+        1
+       / \
+      2   3
+     /   / \
+    4   5   6
+       /
+      7
+
+Output:
+7
+```
+
+**Note:** You may assume the tree (i.e., the given root node) is not **NULL**.
+
+(1) level order traversal 
+
+Get nodes at the last level and return the first one.
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func findBottomLeftValue(root *TreeNode) int {
+	h := height(root)
+	res := make([]int, 0)
+	nodesAtLevel(root, h, &res)
+	return res[0]
+}
+
+// Get all nodes at the specific level
+func nodesAtLevel(root *TreeNode, i int, nodes *[]int) {
+    if root == nil {
+        return
+    }
+	if i == 1 {
+		*nodes = append(*nodes, root.Val)
+	} else {
+		nodesAtLevel(root.Left, i-1, nodes)
+		nodesAtLevel(root.Right, i-1, nodes)
+	}
+}
+
+// Calculate the height of tree
+func height(root *TreeNode) int {
+	if root == nil {
+		return 0
+	}
+	l := height(root.Left)
+	r := height(root.Right)
+	if l > r {
+		return 1 + l
+	} else {
+		return 1 + r
+	}
+}
+```
+
+Time complexity: $$O(h)$$, h is the height of tree.
+
+Space complexity: $$O(n)​$$, n is the number of nodes at the last level. 
+
+There is a solution similar to this but it's more concise.
+
+```go
+func findBottomLeftValue(root *TreeNode) int {
+	return level(root, 1, &([]int{0, 0}))
+}
+
+func level(root *TreeNode, depth int, res *[]int) int {
+	if (*res)[1] < depth {
+		(*res)[0] = root.Val
+		(*res)[1] = depth
+	}
+	if root.Left != nil {
+		levelOrder(root.Left, depth+1, res)
+	}
+	if root.Right != nil {
+		levelOrder(root.Right, depth+1, res)
+	}
+	return (*res)[0]
+}
+```
+
+Time complexity: $$O(h)$$, h is the height of tree.
+
+Space complexity: $$O(1)$$.
+
+(2) Right-to-Left BFS
+
+```go
+func findBottomLeftValue(root *TreeNode) int {
+	queue := []*TreeNode{root}
+	var r *TreeNode
+	for len(queue) > 0 {
+		r = queue[0]
+		queue = queue[1:]
+		if r.Right != nil {
+			queue = append(queue, r.Right)
+		}
+		if r.Left != nil {
+			queue = append(queue, r.Left)
+		}
+	}
+	return r.Val
+}
+```
+
+Time complexity: $$O(n)​$$, n is the number of nodes.
+
+Space complexity: $$O(n)$$, n is the number of nodes. 
+
+#### 16. [Find Duplicate Subtrees](https://leetcode.com/problems/find-duplicate-subtrees/)
+
+Given a binary tree, return all duplicate subtrees. For each kind of duplicate subtrees, you only need to return the root node of any **one** of them.
+
+Two trees are duplicate if they have the same structure with same node values.
+
+**Example 1:**
+
+```
+        1
+       / \
+      2   3
+     /   / \
+    4   2   4
+       /
+      4
+```
+
+The following are two duplicate subtrees:
+
+```
+      2
+     /
+    4
+```
+
+and
+
+```
+    4
+```
+
+Therefore, you need to return above trees' root in the form of a list.
 

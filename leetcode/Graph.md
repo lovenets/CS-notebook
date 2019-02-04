@@ -1634,3 +1634,158 @@ Time complexity: $$O(nlog_2n)$$
 
 Space complexity: $$O(2n)$$
 
+#### 15. [Regions Cut By Slashes](https://leetcode.com/problems/regions-cut-by-slashes/)
+
+In a N x N `grid` composed of 1 x 1 squares, each 1 x 1 square consists of a `/`, `\`, or blank space.  These characters divide the square into contiguous regions.
+
+(Note that backslash characters are escaped, so a `\` is represented as `"\\"`.)
+
+Return the number of regions.
+
+**Example 1:**
+
+```
+Input:
+[
+  " /",
+  "/ "
+]
+Output: 2
+Explanation: The 2x2 grid is as follows:
+```
+
+**Example 2:**
+
+```
+Input:
+[
+  " /",
+  "  "
+]
+Output: 1
+Explanation: The 2x2 grid is as follows:
+```
+
+**Example 3:**
+
+```
+Input:
+[
+  "\\/",
+  "/\\"
+]
+Output: 4
+Explanation: (Recall that because \ characters are escaped, "\\/" refers to \/, and "/\\" refers to /\.)
+The 2x2 grid is as follows:
+```
+
+**Example 4:**
+
+```
+Input:
+[
+  "/\\",
+  "\\/"
+]
+Output: 5
+Explanation: (Recall that because \ characters are escaped, "/\\" refers to /\, and "\\/" refers to \/.)
+The 2x2 grid is as follows:
+```
+
+**Example 5:**
+
+```
+Input:
+[
+  "//",
+  "/ "
+]
+Output: 3
+Explanation: The 2x2 grid is as follows:
+```
+
+**Note:**
+
+1. `1 <= grid.length == grid[0].length <= 30`
+2. `grid[i][j]` is either `'/'`, `'\'`, or `' '`.
+
+**Solution**
+
+Split a cell in to 4 parts like this.
+We give it a number top is 1, right is 2, bottom is 3 left is 4.
+
+![img](https://assets.leetcode.com/uploads/2018/12/15/3.png)
+
+Two adjacent parts in different cells are contiguous regions.
+In case `'/'`, top and left are contiguous, botton and right are contiguous.
+In case `'\\'`, top and right are contiguous, bottom and left are contiguous.
+In case `' '`, all 4 parts are contiguous.
+Now we have another problem of counting the number of islands. We ca solve it with union find.
+
+```go
+func regionsBySlashes(grid []string) int {
+    n := len(grid)
+    count := n * n * 4
+    f := make([]int, count)
+    for i := 0; i < n*n*4; i++ {
+        f[i] = i
+    }
+    for i := 0; i < n; i++ {
+        for j := 0; j < n; j++ {
+            if i > 0 {
+                union(g(i-1, j, 2, n), g(i, j, 0, n), &count, &f)
+            }
+            if j > 0 {
+                union(g(i, j-1, 1, n), g(i, j, 3, n), &count, &f)
+            }
+            if grid[i][j] != '/' {
+                union(g(i, j, 0, n), g(i, j, 1, n), &count, &f)
+                union(g(i, j, 2, n), g(i, j, 3, n), &count, &f)
+            }
+            if grid[i][j] != '\\' {
+                union(g(i, j, 0, n), g(i, j, 3, n), &count, &f)
+                union(g(i, j, 2, n), g(i, j, 1, n), &count, &f)
+            }
+        }
+    }
+    return count
+}
+
+func find(x int, f *[]int) int {
+    if x != (*f)[x] {
+        (*f)[x] = find((*f)[x], f)
+    }
+    return (*f)[x]
+}
+
+func union(x, y int, count *int, f *[]int) {
+    x, y = find(x, f), find(y, f)
+    if x != y {
+        (*f)[x] = y
+        (*count)--
+    }
+}
+
+func g(i, j, k, n int) int {
+    return (i * n + j) * 4 + k
+}
+```
+
+Time complexity: $$O(n^2)$$
+
+Space complexity: $$O(n^2)$$
+
+#### 16. [Network Delay Time](https://leetcode.com/problems/network-delay-time/)
+
+There are `N` network nodes, labelled `1` to `N`.
+
+Given `times`, a list of travel times as **directed**edges `times[i] = (u, v, w)`, where `u` is the source node, `v` is the target node, and `w`is the time it takes for a signal to travel from source to target.
+
+Now, we send a signal from a certain node `K`. How long will it take for all nodes to receive the signal? If it is impossible, return `-1`.
+
+**Note:**
+
+1. `N` will be in the range `[1, 100]`.
+2. `K` will be in the range `[1, N]`.
+3. The length of `times` will be in the range `[1, 6000]`.
+4. All edges `times[i] = (u, v, w)` will have `1 <= u, v <= N` and `1 <= w <= 100`.

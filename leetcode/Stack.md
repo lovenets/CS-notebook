@@ -2312,3 +2312,89 @@ Input:
 ]
 Output: 6
 ```
+
+**Solution**
+
+```
+0 0 0 1 0 0 0 
+0 0 1 1 1 0 0 
+0 1 1 1 1 1 0
+```
+
+The vector "left" and "right" from row 0 to row 2 are as follows
+
+row 0:
+
+```
+l: 0 0 0 3 0 0 0
+r: 7 7 7 4 7 7 7
+```
+
+row 1:
+
+```
+l: 0 0 2 3 2 0 0
+r: 7 7 5 4 5 7 7 
+```
+
+row 2:
+
+```
+l: 0 1 2 3 2 1 0
+r: 7 6 5 4 5 6 7
+```
+
+The vector "left" is computing the left boundary. Take (i,j)=(1,3) for example. On current row 1, the left boundary is at j=2. However, because matrix[1][3] is 1, you need to consider the left boundary on previous row as well, which is 3. So the real left boundary at (1,3) is 3.
+
+Let the maximal rectangle area at row i and column j be computed by `[right(i,j) - left(i,j)]*height(i,j)`.
+
+```kotlin
+class Solution {
+    fun maximalRectangle(matrix: Array<CharArray>): Int {
+        if (matrix.isEmpty()) {
+            return 0
+        }
+        val m = matrix.size
+        val n = matrix[0].size
+        val left = IntArray(n)
+        val right = IntArray(n) { n }
+        val height = IntArray(n)
+        var maxArea = 0
+        for (i in 0 until m) {
+            var curLeft = 0
+            var curRight = n
+            // compute height 
+            for (j in 0 until n) {
+                height[j] = if (matrix[i][j] == '1') height[j] + 1 else 0
+            }
+            // compute left boundary
+            for (j in 0 until n) {
+                if (matrix[i][j] == '1') {
+                    left[j] = kotlin.math.max(left[j], curLeft)
+                } else {
+                    left[j] = 0
+                    curLeft = j + 1
+                }
+            }
+            // compute right boundary
+            for (j in n - 1 downTo 0) {
+                if (matrix[i][j] == '1') {
+                    right[j] = kotlin.math.min(right[j], curRight)
+                } else {
+                    right[j] = n
+                    curRight = j
+                }
+            }
+            // compute area
+            for (j in 0 until n) {
+                maxArea = kotlin.math.max(maxArea, (right[j] - left[j]) * height[j])
+            }
+        }
+        return maxArea
+    }
+}
+```
+
+Time complexity: $$O(n^2)$$
+
+Space complexity: $$O(n)$$

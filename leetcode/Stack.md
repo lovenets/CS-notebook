@@ -2315,6 +2315,8 @@ Output: 6
 
 **Solution**
 
+(1)
+
 ```
 0 0 0 1 0 0 0 
 0 0 1 1 1 0 0 
@@ -2398,3 +2400,50 @@ class Solution {
 Time complexity: $$O(n^2)$$
 
 Space complexity: $$O(n)$$
+
+(2) 
+
+This solution is based on  [Largest Rectangle in Histogram](http://oj.leetcode.com/problems/largest-rectangle-in-histogram/).
+
+```kotlin
+class Solution {
+    fun maximalRectangle(matrix: Array<CharArray>): Int {
+        if (matrix.isEmpty()) {
+            return 0
+        }
+        val cols = matrix[0].size
+        val rows = matrix.size
+        val h = IntArray(cols + 1)
+        h[cols] = 0
+        var maxArea = 0
+        for (r in 0 until rows) {
+            val stack = java.util.Stack<Int>()
+            for (i in 0..cols) {
+                if (i < cols) {
+                    h[i] = if (matrix[r][i] == '1') h[i] + 1 else 0
+                }
+                if (stack.isEmpty() || h[stack.peek()] <= h[i]) {
+                    stack.push(i)
+                } else {
+                    while (stack.isNotEmpty() && h[i] < h[stack.peek()]) {
+                        val top = stack.pop()
+                        val area = h[top] * (if (stack.isEmpty()) i else i - stack.peek() - 1)
+                        maxArea = kotlin.math.max(area, maxArea)
+                    }
+                    stack.push(i)
+                }
+            }
+        }
+        return maxArea
+    }
+}
+```
+
+Time complexity: $$O(n^2)$$
+
+Space complexity: $$O(n)$$
+
+
+
+
+

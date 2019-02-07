@@ -1260,7 +1260,7 @@ func merge(l1, l2 *ListNode) *ListNode {
 
 Time complexity: $$O(nlog_2n)$$
 
-Space complexity: $$O(1) ​$$
+Space complexity: $$O(1) $$
 
 #### 14. [Split Linked List in Parts](https://leetcode.com/problems/split-linked-list-in-parts/)
 
@@ -1304,4 +1304,46 @@ The length of `root` will be in the range `[0, 1000]`.
 Each value of a node in the input will be an integer in the range `[0, 999]`.
 
 `k` will be an integer in the range `[1, 50]`.
+
+**Solution**
+
+```go
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+func splitListToParts(root *ListNode, k int) []*ListNode {
+    res := make([]*ListNode, k)
+    // count the number of nodes
+    total := 0
+    for cur := root; cur != nil; cur = cur.Next {
+        total++
+    }
+    m, n := total / k, total % k
+    cur, pre := root, new(ListNode)
+    for i := 0; cur != nil && i < k; i, n = i + 1, n - 1 {
+        res[i] = cur
+        // extra nodes added to the first n part
+        var extra int
+        if n > 0 {
+            extra = 1
+        } else {
+            extra = 0
+        }
+        for j := 0; j < m + extra; j++ {
+            pre = cur
+            cur = cur.Next
+        }
+        pre.Next = nil
+    }
+    return res
+}
+```
+
+Time complexity: $$O(n^2)$$
+
+Space complexity: $$O(1) $$
 

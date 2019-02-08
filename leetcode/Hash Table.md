@@ -1109,3 +1109,52 @@ Output: "the cat was rat by the bat"
 3. 1 <= sentence words number <= 1000
 4. 1 <= root length <= 100
 5. 1 <= sentence words length <= 1000
+
+**Solution**
+
+straightforward
+
+```go
+func replaceWords(dict []string, sentence string) string {
+    words := strings.Split(sentence, " ")
+    for i := range words {
+        rootLength := len(words[i])
+        for _, root := range dict {
+            if strings.HasPrefix(words[i], root) {
+                if l := len(root); l < rootLength {
+                    words[i] = root
+                    rootLength = l
+                }
+            }
+        }
+    }
+    return strings.Join(words, " ")
+}
+```
+
+Time complexity: $$O(nm)$$, n is the number of words in the sentence and m is the length of `dict`.
+
+Space complexity: $$O(n)$$ n is the number of words in the sentence.
+
+More concise code using FP:
+
+```kotlin
+class Solution {
+    fun replaceWords(dict: List<String>, sentence: String): String {
+        val roots = dict.toSet()
+        return sentence
+            .split(" ").joinToString(" ") {
+                for (i in 1 until it.length) {
+                    val prefix = it.substring(0, i)
+                    if (roots.contains(prefix)) {
+                        return@joinToString prefix
+                    }
+                }
+                return@joinToString it
+            }
+    }
+}
+```
+
+
+

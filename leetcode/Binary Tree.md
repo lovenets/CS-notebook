@@ -1538,3 +1538,40 @@ and
 
 Therefore, you need to return above trees' root in the form of a list.
 
+**Solution**
+
+Use postorder traversal to construct a tree.
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func findDuplicateSubtrees(root *TreeNode) []*TreeNode {
+    res := make([]*TreeNode, 0)
+    postOrder(root, make(map[string]int), &res)
+    return res
+}
+
+func postOrder(root *TreeNode, subtree map[string]int, duplicates *[]*TreeNode) string {
+    if root == nil {
+        return "/"
+    }
+    // construct a subtree
+    left, right := postOrder(root.Left, subtree, duplicates), postOrder(root.Right, subtree, duplicates)
+    t := strconv.Itoa(root.Val) + "-" + left + "-" + right
+    if subtree[t] == 1 {
+        *duplicates = append(*duplicates, root)
+    }
+    subtree[t]++
+    return t
+}
+```
+
+Time complexity: $$O(n)$$, n is the number of nodes.
+
+Space complexity: $$O(n)$$

@@ -1722,6 +1722,115 @@ val nullableList: List<Int?> = listOf(1, 2, null, 4)
 val intList: List<Int> = nullableList.filterNotNull()
 ```
 
+### 7. Some Practical Tips to Avoid NPE
+
+(1) Performing Null Checks
+
+```kotlin
+if (sthNullable == null) {
+    //...
+}
+```
+
+(2) Using the Safe Call Operator 
+
+Just as variable declarations use `?` to mark variables as nullable, adding `?` to a method will only allow the method to execute if the variable is non-null.
+
+>  *Note*: While the safe call operator is usually great for chaining calls together, it can sometimes hinder self-documenting code:
+> `object?.first?.second?.third?.active()`.
+>
+> If your code is starting to look like this, assign the complicated line to a variable for readability:
+> `var isUserVerified = object?.first?.second?.third?.active()`
+
+(3) Making Use of Let
+
+You can use the safe call operator together with `let`. That allows you to group multiple calls together that execute if the variable isn’t null.
+
+```kotlin
+val filePath = arguments?.getString(ARGUMENTS_PATH)
+filePath?.let {
+  storedPath = it
+  fileUpdateBroadcastReceiver = FileUpdateBroadcastReceiver(it) {
+    refreshView()
+  }
+}
+```
+
+(4) Analyzing Equality 
+
+In fact, Kotlin takes null into account when you’re testing for equality in general. The `==` operator will call the `equals` function as long as the item on the left isn’t null. If it is, it does a [referential check](https://kotlinlang.org/docs/reference/equality.html) of the right item for null. That means you can leave out null checks when doing comparisons using `==`.
+
+(5) Designing by Contrast 
+
+Design by contract is a method to improve software correctness, where you assert the inputs and outputs of each method. If you’ve defined a method to return a *list*, the user of the method should not expect it to return anything else, including null.
+
+```kotlin
+return list ?: listOf()
+```
+
+(6) Thinking About Return Values
+
+If you’ll be returning null, don’t scatter the return statements around in the middle of the code; these are hard to notice. If your code has a structure like this one:
+
+```kotlin
+if x
+  if y
+    return object
+  else
+    return null
+...
+return null
+
+```
+
+You can declare the nullable variable at the beginning of the method, update it along the way, and then return it at the end of the method instead, like this:
+
+```kotlin
+var object: Object? = null
+if x
+  if y
+    object = ...
+...
+return object
+```
+
+(7) Asserting Not-Null
+
+If you do use `!!`, here are some tips:
+
+- Cover all your code: Test each flow control case at least once. Perform stress and fuzz testing to see if there’s a state that causes it to be null that you’ve missed.
+- Don’t blindly trust data from external inputs. Sanitize and validate data from user input, serialized/unarchived object graphs and from network sources.
+- Declare and initialize the *!!* variable right before you use it, in order to reduce its scope.
+- Use each variable for exactly one purpose. That way, there’s less chance that other parts of the code will set that variable to something else, such as null!
+
+(8) Testing With Assertions 
+
+The *Kotlin.test* framework has two valuable functions, `assertNull` and `assertNotNull`. If you’ve enabled JVM assertions, assert functions will throw an `AssertionError` when they evaluate to false. These functions are good for early bug catching while testing your code.
+
+Besides asserts, there are a few other functions that you should know about:
+
+- *require(Boolean)* throws an *IllegalArgumentException* if you pass it an argument that evaluates to false. This is great to test the parameters of your methods.
+- *requireNotNull* returns the value if it’s not null; otherwise, it throws an *IllegalArgumentException*.
+- *check(Boolean)* throws an *IllegalStateException* error when it evaluates to false. This is great for testing app or object state.
+
+(9) Delaying Initialization 
+
+It’s messy to declare the variable as nullable and then scatter safe call checks everywhere.
+
+The solution is `lateinit`, which works on non-primitive objects to reduce the number of null checks you need to use. If you use it before you initialize it, you’ll get a `kotlin.UninitializedPropertyAccessException`. 
+
+```kotlin
+private lateinit var a: A
+```
+
+There are a few more alternatives to `lateinit` that you should know:
+
+- *lateinit* has a backing field with the same visibility as the property, so the backing field can still be set to null from Java. *Delegates.notNull* is a better choice in that case — *var age: Int by Delegates.notNull()*.
+- If you use it before initializing it, *Delegates.notNull* throws an *IllegalStateException*.
+- *lazy* is a handy way to defer initializing a variable until you need it.
+- You define a block that’s not called until the first time you read the property.
+- The runtime saves the return value of that block for future access. The block will only run once.
+
 ## Exceptions 
 
 ### 1. Exception Classes

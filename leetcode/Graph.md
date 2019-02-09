@@ -1789,3 +1789,44 @@ Now, we send a signal from a certain node `K`. How long will it take for all nod
 2. `K` will be in the range `[1, N]`.
 3. The length of `times` will be in the range `[1, 6000]`.
 4. All edges `times[i] = (u, v, w)` will have `1 <= u, v <= N` and `1 <= w <= 100`.
+
+**Solution**
+
+The problem equals to visiting all nodes starting from a specific node and finding the longest path if all nodes are accessible. So we can use shortest path algorithm.
+
+```go
+// Bellman Ford 
+func networkDelayTime(times [][]int, N int, K int) int {
+    // Find the shortest paths from K to other vertices 
+    dist := make([]int, N + 1)
+    for i := range dist {
+        dist[i] = math.MaxInt8  
+    }
+    dist[K] = 0
+    for i := 0; i < N; i++ {
+        for j := range times {
+            u, v, w := times[j][0], times[j][1], times[j][2]
+            if dist[u] != math.MaxInt8 && dist[v] > dist[u] + w {
+                dist[v] = dist[u] + w
+            }
+        }
+    }
+    // Find the longest one of all paths
+    maxTime := 0
+    for i := 1; i <= N; i++ {
+        if dist[i] > maxTime {
+            maxTime = dist[i]
+        }
+    }
+    if maxTime == math.MaxInt8 {
+        // There exists inaccessible vertex
+         return -1
+    } else {
+        return maxTime
+    }
+}
+```
+
+Time complexity: $$O(n^2)$$
+
+Space complexity: $$O(n)$$

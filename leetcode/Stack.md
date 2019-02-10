@@ -2443,7 +2443,142 @@ Time complexity: $$O(n^2)$$
 
 Space complexity: $$O(n)$$
 
+#### 24. [Maximum Frequency Stack](https://leetcode.com/problems/maximum-frequency-stack/)
+
+Implement `FreqStack`, a class which simulates the operation of a stack-like data structure.
+
+`FreqStack` has two functions:
+
+- `push(int x)`, which pushes an integer `x` onto the stack.
+- `pop()`, which removes and returns the most frequent element in the stack.
+  - If there is a tie for most frequent element, the element closest to the top of the stack is removed and returned.
+
+**Example 1:**
+
+```
+Input: 
+["FreqStack","push","push","push","push","push","push","pop","pop","pop","pop"],
+[[],[5],[7],[5],[7],[4],[5],[],[],[],[]]
+Output: [null,null,null,null,null,null,null,5,7,5,4]
+Explanation:
+After making six .push operations, the stack is [5,7,5,7,4,5] from bottom to top.  Then:
+
+pop() -> returns 5, as 5 is the most frequent.
+The stack becomes [5,7,5,7,4].
+
+pop() -> returns 7, as 5 and 7 is the most frequent, but 7 is closest to the top.
+The stack becomes [5,7,5,4].
+
+pop() -> returns 5.
+The stack becomes [5,7,4].
+
+pop() -> returns 4.
+The stack becomes [5,7].
+```
+
+**Note:**
+
+- Calls to `FreqStack.push(int x)` will be such that `0 <= x <= 10^9`.
+- It is guaranteed that `FreqStack.pop()` won't be called if the stack has zero elements.
+- The total number of `FreqStack.push`calls will not exceed `10000` in a single test case.
+- The total number of `FreqStack.pop` calls will not exceed `10000` in a single test case.
+- The total number of `FreqStack.push`and `FreqStack.pop` calls will not exceed `150000` across all test cases.
+
+**Solution**
+
+(1)
+
+```go
+type FreqStack struct {
+    data []int
+    freq map[int]int
+}
 
 
+func Constructor() FreqStack {
+    return FreqStack{ make([]int, 0), make(map[int]int) }
+}
 
+
+func (this *FreqStack) Push(x int)  {
+    this.data = append(this.data, x)
+    this.freq[x]++
+}
+
+
+func (this *FreqStack) Pop() int {
+    // Find the max frequency
+    maxFreq := 0
+    for i := range this.freq {
+        if this.freq[i] > maxFreq {
+            maxFreq = this.freq[i]
+        }
+    }
+    // Remove the most frequent element closet to the top
+    // Traverse the stack from top to bottom
+    var res int
+    for i := len(this.data) - 1; i > -1; i-- {
+        if this.freq[this.data[i]] == maxFreq {
+            res = this.data[i]
+            this.data = append(this.data[:i], this.data[i+1:]...)
+            this.freq[res]--
+            break
+        }
+    }
+    return res
+}
+
+
+/**
+ * Your FreqStack object will be instantiated and called as such:
+ * obj := Constructor();
+ * obj.Push(x);
+ * param_2 := obj.Pop();
+ */
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(n)​$$
+
+(2)
+
+Hash map `freq` will count the frequence of elements.
+Hash map `m` is a map of stack.
+If element `x` has n frequence, we will push `x` n times in `m[1], m[2] .. m[n]`
+`maxfreq` records the maximum frequency.
+
+`push(x)` will push `x` to`m[++freq[x]]`
+
+`pop()`will pop from the `m[maxfreq]`
+
+```kotlin
+class FreqStack() {
+    private val freq = mutableMapOf<Int, Int>()
+
+    private val m = mutableMapOf<Int, java.util.Stack<Int>>()
+
+    private var maxFreq = 0
+
+    fun push(x: Int) {
+        val f = freq.getOrDefault(x, 0) + 1
+        freq[x] = f
+        maxFreq = kotlin.math.max(maxFreq, f)
+        m.computeIfAbsent(f) { java.util.Stack() }.push(x)
+    }
+
+    fun pop(): Int {
+        val x = m[maxFreq]?.pop()
+        x!!.let {
+            freq[x] = maxFreq - 1
+            if (m[maxFreq]?.size == 0) {
+                maxFreq--
+            }
+        }
+        return x
+    }
+}
+```
+
+Time complexity: $$O(1) $$
 

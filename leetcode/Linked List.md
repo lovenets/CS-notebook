@@ -1347,3 +1347,61 @@ Time complexity: $$O(n^2)$$
 
 Space complexity: $$O(1) $$
 
+#### 15. [Swap Nodes in Pairs](https://leetcode.com/problems/swap-nodes-in-pairs/)
+
+Given a linked list, swap every two adjacent nodes and return its head.
+
+You may **not** modify the values in the list's nodes, only nodes itself may be changed.
+
+**Example:**
+
+```
+Given 1->2->3->4, you should return the list as 2->1->4->3.
+```
+
+**Solution**
+
+(1) iteration 
+
+```go
+func swapPairs(head *ListNode) *ListNode {
+    if head == nil {
+        return nil
+    }
+    pseudo := &ListNode{ Next: head }
+    for pre, first, second := pseudo, head, new(ListNode); first != nil; pre, first = first, first.Next {
+        second = first.Next
+        if second == nil {
+            break
+        }
+        // Swap nodes 
+        first.Next = second.Next
+        second.Next = first
+        pre.Next = second
+    }
+    return pseudo.Next
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(1) $$
+
+(2) recursion 
+
+```go
+func swapPairs(head *ListNode) *ListNode {
+    if head == nil || head.Next == nil {
+        return head
+    }
+    n := head.Next
+    head.Next = swapPairs(head.Next.Next)
+    n.Next = head
+    return n
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(logn)$$
+

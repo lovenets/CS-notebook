@@ -1575,3 +1575,101 @@ func postOrder(root *TreeNode, subtree map[string]int, duplicates *[]*TreeNode) 
 Time complexity: $$O(n)$$, n is the number of nodes.
 
 Space complexity: $$O(n)$$
+
+#### 17. [Find Largest Value in Each Tree Row](https://leetcode.com/problems/find-largest-value-in-each-tree-row/)
+
+You need to find the largest value in each row of a binary tree.
+
+**Example:**
+
+```
+Input: 
+
+          1
+         / \
+        3   2
+       / \   \  
+      5   3   9 
+
+Output: [1, 3, 9]
+```
+
+**Solution**
+
+(1) level order traversal
+
+```kotlin
+/**
+ * Example:
+ * var ti = TreeNode(5)
+ * var v = ti.`val`
+ * Definition for a binary tree node.
+ * class TreeNode(var `val`: Int) {
+ *     var left: TreeNode? = null
+ *     var right: TreeNode? = null
+ * }
+ */
+class Solution {
+    // Key: level, Value: nodes at this level
+    private val nodesAtLevel = mutableMapOf<Int, MutableList<Int>>()
+
+    fun largestValues(root: TreeNode?): List<Int> {
+        for (i in 1..height(root)) {
+            visitLevel(root, i, i)
+        }
+        val res = mutableListOf<Int>()
+        nodesAtLevel.forEach { _, u -> res.add(u.max()!!) }
+        return res
+    }
+
+    private fun height(root: TreeNode?): Int {
+        return if (root == null) {
+            0
+        } else {
+            1 + kotlin.math.max(height(root.left), height(root.right))
+        }
+    }
+
+    // Get all nodes at the specific level
+    private fun visitLevel(node: TreeNode?, curLevel: Int, targetLevel: Int): Unit {
+        if (node == null) {
+            return
+        }
+        if (curLevel == 1) {
+            nodesAtLevel.computeIfAbsent(targetLevel) { mutableListOf() }.add(node.`val`)
+        } else if (curLevel > 1) {
+            visitLevel(node.left, curLevel - 1, targetLevel)
+            visitLevel(node.right, curLevel - 1, targetLevel)
+        }
+    }
+}
+```
+
+(2) preorder traversal 
+
+````kotlin
+class Solution {
+    private val res = mutableListOf<Int>()
+
+    fun largestValues(root: TreeNode?): List<Int> {
+        helper(root, 0)
+        return res
+    }
+
+    private fun helper(root: TreeNode?, d: Int) {
+        if (root == null) {
+            return
+        }
+        if (d == res.size) {
+            // We come to a new level
+            res.add(root.`val`)
+        } else {
+            // Update the maximum value at this level
+            res[d] = kotlin.math.max(res[d], root.`val`)
+        }
+        helper(root.left, d + 1)
+        helper(root.right, d + 1)
+    }
+}
+````
+

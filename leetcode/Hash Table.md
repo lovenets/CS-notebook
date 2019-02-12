@@ -1156,5 +1156,114 @@ class Solution {
 }
 ```
 
+#### 15. [Sort Characters By Frequency](https://leetcode.com/problems/sort-characters-by-frequency)
 
+Given a string, sort it in decreasing order based on the frequency of characters.
+
+**Example 1:**
+
+```
+Input:
+"tree"
+
+Output:
+"eert"
+
+Explanation:
+'e' appears twice while 'r' and 't' both appear once.
+So 'e' must appear before both 'r' and 't'. Therefore "eetr" is also a valid answer.
+```
+
+**Example 2:**
+
+```
+Input:
+"cccaaa"
+
+Output:
+"cccaaa"
+
+Explanation:
+Both 'c' and 'a' appear three times, so "aaaccc" is also a valid answer.
+Note that "cacaca" is incorrect, as the same characters must be together.
+```
+
+**Example 3:**
+
+```
+Input:
+"Aabb"
+
+Output:
+"bbAa"
+
+Explanation:
+"bbaA" is also a valid answer, but "Aabb" is incorrect.
+Note that 'A' and 'a' are treated as two different characters.
+```
+
+**Solution**
+
+(1) Bucket Sort
+
+```go
+func frequencySort(s string) string {
+    // Count frequency of every character
+    chToFreq := make(map[rune]int)
+    for _, c := range s {
+        chToFreq[c]++
+    }
+    // Get characters of every possible frequnecy 
+    freqToCh := make(map[int][]rune)
+    maxFreq := 0
+    for c, f := range chToFreq {
+        if _, ok := freqToCh[f]; !ok {
+            freqToCh[f] = make([]rune, 0)
+        }
+        freqToCh[f] = append(freqToCh[f], c)
+        if f > maxFreq {
+            maxFreq = f
+        }
+    }
+    // Construct output string
+    var res string
+    for i := maxFreq; i > 0; i-- {
+        if _, ok := freqToCh[i]; ok {
+            for j := range freqToCh[i] {
+                res += strings.Repeat(string(freqToCh[i][j]), i)
+            } 
+        }
+    }
+    return res
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(n)​$$
+
+(2) use PriorityQueue 
+
+```kotlin
+class Solution {
+    fun frequencySort(s: String): String {
+        val map = mutableMapOf<Char, Int>()
+        s.forEach { map[it] = map.getOrDefault(it, 0) + 1 }
+        // Sorted by character frequency
+        val pq = java.util.PriorityQueue<Map.Entry<Char, Int>> { a, b -> b.value - a.value }
+        pq.addAll(map.entries)
+        // Build output string
+        val sb = StringBuilder()
+        while (pq.isNotEmpty()) {
+            val e = pq.poll()
+            sb.append(e.key.toString().repeat(e.value))
+        }
+        return sb.toString()
+    }
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(n)$$
 

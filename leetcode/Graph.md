@@ -1830,3 +1830,139 @@ func networkDelayTime(times [][]int, N int, K int) int {
 Time complexity: $$O(n^2)$$
 
 Space complexity: $$O(n)$$
+
+#### 17. [Satisfiability of Equality Equations](https://leetcode.com/problems/satisfiability-of-equality-equations/)
+
+Given an array equations of strings that represent relationships between variables, each string `equations[i]` has length `4` and takes one of two different forms: `"a==b"` or `"a!=b"`.  Here, `a` and `b` are lowercase letters (not necessarily different) that represent one-letter variable names.
+
+Return `true` if and only if it is possible to assign integers to variable names so as to satisfy all the given equations.
+
+**Example 1:**
+
+```
+Input: ["a==b","b!=a"]
+Output: false
+Explanation: If we assign say, a = 1 and b = 1, then the first equation is satisfied, but not the second.  There is no way to assign the variables to satisfy both equations.
+```
+
+**Example 2:**
+
+```
+Input: ["b==a","a==b"]
+Output: true
+Explanation: We could assign a = 1 and b = 1 to satisfy both equations.
+```
+
+**Example 3:**
+
+```
+Input: ["a==b","b==c","a==c"]
+Output: true
+```
+
+**Example 4:**
+
+```
+Input: ["a==b","b!=c","c==a"]
+Output: false
+```
+
+**Example 5:**
+
+```
+Input: ["c==c","b==d","x!=z"]
+Output: true
+```
+
+**Note:**
+
+1. `1 <= equations.length <= 500`
+2. `equations[i].length == 4`
+3. `equations[i][0]` and `equations[i][3]` are lowercase letters
+4. `equations[i][1]` is either `'='` or `'!'`
+5. `equations[i][2]` is `'='`
+
+**Solution**
+
+(1) DFS
+
+We construct a directed graph. If `a==b`, there is an edge from a to b and an edge from b to a. If `a!=b`, we can't access b  from a.
+
+```go
+func equationsPossible(equations []string) bool {
+	graph := make(map[uint8][]uint8)
+	notEquals := make([][]uint8, 0)
+	for i := range equations {
+		if equations[i][1] == '!' {
+			notEquals = append(notEquals, []uint8{equations[i][0], equations[i][3]})
+		} else {
+			graph[equations[i][0]] = append(graph[equations[i][0]], equations[i][3])
+			graph[equations[i][3]] = append(graph[equations[i][3]], equations[i][0])
+		}
+	}
+	for i := range notEquals {
+		if isAccessible(notEquals[i][0], notEquals[i][1], graph, make(map[uint8]bool)) {
+			return false
+		}
+	}
+	return true
+}
+
+// DFS
+func isAccessible(u uint8, v uint8, graph map[uint8][]uint8, visited map[uint8]bool) bool {
+	if u == v {
+		return true
+	}
+	visited[u] = true
+	for i := range graph[u] {
+		if !visited[graph[u][i]] {
+			if isAccessible(graph[u][i], v, graph, visited) {
+				return true
+			}
+		}
+	}
+	return false
+}
+```
+
+Time complexity: $$O(V+E)$$
+
+(2) union find 
+
+All "==" equations actually represent the connection in the graph.
+The connected nodes should be in the same color/union/set.
+
+Then we check all inequations.
+Two inequal nodes should be in the different color/union/set.
+
+```go
+func equationsPossible(equations []string) bool {
+	uf := make([]int, 26)
+	for i := 0; i < 26; i++ {
+		uf[i] = i
+	}
+	for _, e := range equations {
+		if e[1] == '=' {
+			uf[find(int(e[0]-uint8('a')), uf)] = find(int(e[3]-uint8('a')), uf)
+		}
+	}
+	for _, e := range equations {
+		if e[1] == '!' && find(int(e[0]-uint8('a')), uf) == find(int(e[3]-uint8('a')), uf) {
+			return false
+		}
+	}
+	return true
+}
+
+func find(x int, uf []int) int {
+	if x != uf[x] {
+		uf[x] = find(uf[x], uf)
+	}
+	return uf[x]
+}
+```
+
+Time complexity: $$O(logn)$$
+
+Space complexity: $$O(1)$$
+

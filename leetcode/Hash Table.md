@@ -1267,3 +1267,43 @@ Time complexity: $$O(n)$$
 
 Space complexity: $$O(n)$$
 
+#### 16. [Subarray Sum Equals K](https://leetcode.com/problems/subarray-sum-equals-k/)
+
+Given an array of integers and an integer **k**, you need to find the total number of continuous subarrays whose sum equals to **k**.
+
+**Example 1:**
+
+```
+Input:nums = [1,1,1], k = 2
+Output: 2
+```
+
+**Note:**
+
+1. The length of the array is in range [1, 20,000].
+2. The range of numbers in the array is [-1000, 1000] and the range of the integer **k** is [-1e7, 1e7].
+
+**Solution**
+
+It's a typical problem which can solved by calculating prefix sums.  The key to solve this problem is `SUM[i, j]`. So if we know `SUM[0, i - 1]` and `SUM[0, j]`, then we can easily get `SUM[i, j]`. To achieve this, we just need to go through the array, calculate the current sum and save number of all seen `PreSum` to a HashMap.
+
+```go
+func subarraySum(nums []int, k int) int {
+    res, sum := 0, 0
+    presum := make(map[int]int)
+    presum[0] = 1
+    for i := range nums {
+        sum += nums[i]
+        if _, ok := presum[sum-k]; ok {
+            res += presum[sum-k]
+        }
+        presum[sum]++
+    }
+    return res
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(n)$$
+

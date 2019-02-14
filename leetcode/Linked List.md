@@ -1405,3 +1405,119 @@ Time complexity: $$O(n)$$
 
 Space complexity: $$O(logn)$$
 
+#### 16. [Merge k Sorted Lists](https://leetcode.com/problems/merge-k-sorted-lists/)
+
+Merge *k* sorted linked lists and return it as one sorted list. Analyze and describe its complexity.
+
+**Example:**
+
+```
+Input:
+[
+  1->4->5,
+  1->3->4,
+  2->6
+]
+Output: 1->1->2->3->4->4->5->6
+```
+
+**Solution**
+
+(1) straightforward 
+
+```go
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+func mergeKLists(lists []*ListNode) *ListNode {
+    if len(lists) == 1 {
+        return lists[0]
+    }
+    var res *ListNode
+    for i := range lists {
+        switch i {
+            case 0:
+                res = merge(lists[0], lists[1])
+            case 1:
+                continue
+            default:
+                res = merge(res, lists[i])
+        }
+    }
+    return res
+}
+
+func merge(l1, l2 *ListNode) *ListNode {
+    l := new(ListNode)
+    p := l
+    for l1 != nil && l2 != nil {
+        if l1.Val < l2.Val {
+            p.Next = l1
+            l1 = l1.Next
+        } else {
+            p.Next = l2
+            l2 = l2.Next
+        }
+        p = p.Next
+    }
+    if l1 != nil {
+        p.Next = l1
+    }
+    if l2 != nil {
+        p.Next = l2
+    }
+    return l.Next
+}
+```
+
+Time complexity: $$O(n^2)$$
+
+Space complexity: $$O(1) ​$$
+
+(2) use priority queue
+
+```kotlin
+/**
+ * Example:
+ * var li = ListNode(5)
+ * var v = li.`val`
+ * Definition for singly-linked list.
+ * class ListNode(var `val`: Int) {
+ *     var next: ListNode? = null
+ * }
+ */
+class Solution {
+    fun mergeKLists(lists: Array<ListNode?>): ListNode? {
+        if (lists.isEmpty()) {
+            return null
+        }
+        val queue = java.util.PriorityQueue<ListNode>(
+            lists.size,
+            java.util.Comparator { o1, o2 ->
+                return@Comparator if (o1.`val` < o2.`val`) -1 else if (o1.`val` == o2.`val`) 0 else 1
+            })
+        
+        val dummy = ListNode(0)
+        var tail = dummy
+        for (node in lists) {
+            node?.let { queue.add(it) }
+        }
+        while (queue.isNotEmpty()) {
+            queue.poll()?.let {
+                tail.next = it
+                tail = tail.next!!
+            }
+            tail.next?.let { queue.add(it) }
+        }
+        return dummy.next
+    }
+}
+```
+
+Time complexity: $$O(n*t)$$, n is the number of all nodes, t is the time of inserting operation of priority queue. 
+
+Space complexity: $$O(n)$$, n is the number of all nodes.

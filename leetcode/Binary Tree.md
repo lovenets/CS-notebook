@@ -1673,3 +1673,100 @@ class Solution {
 }
 ````
 
+#### 18. [Flatten Binary Tree to Linked List](https://leetcode.com/problems/flatten-binary-tree-to-linked-list/)
+
+Given a binary tree, flatten it to a linked list in-place.
+
+For example, given the following tree:
+
+```
+    1
+   / \
+  2   5
+ / \   \
+3   4   6
+```
+
+The flattened tree should look like:
+
+```
+1
+ \
+  2
+   \
+    3
+     \
+      4
+       \
+        5
+         \
+          6
+```
+
+**Solution**
+
+(1) iteration 
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func flatten(root *TreeNode)  {
+    for cur := root; cur != nil; cur = cur.Right {
+        // Find the previous node of current node's right child 
+        if pre := cur.Left; pre != nil {
+            for pre.Right != nil {
+                pre = pre.Right
+            }
+            pre.Right = cur.Right
+            // current node's original left child will be its next node
+            cur.Right = cur.Left
+            cur.Left = nil
+        }
+    }
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(1)$$
+
+(2) recursion 
+
+In the flatten tree, each node's right child points to the next node of a pre-order traversal. So we can flatten the tree by reverse pre-order traversal. 
+
+```kotlin
+/**
+ * Example:
+ * var ti = TreeNode(5)
+ * var v = ti.`val`
+ * Definition for a binary tree node.
+ * class TreeNode(var `val`: Int) {
+ *     var left: TreeNode? = null
+ *     var right: TreeNode? = null
+ * }
+ */
+class Solution {
+    private var next: TreeNode? = null
+    
+    fun flatten(root: TreeNode?): Unit  
+        root?.let {
+            flatten(root.right)
+            flatten(root.left)
+            root.right = next
+            root.left = null
+            next = root
+        }
+    }
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(1)$$
+

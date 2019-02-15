@@ -397,5 +397,62 @@ func lengthOfLongestSubstringTwoDistinct(s string) int {
 }
 ```
 
+## Prefix Sum 
+
+### Template 
+
+ If we know `SUM[0, i - 1]` and `SUM[0, j]`, then we can easily get `SUM[i, j].` We can use prefix sum to solve problems associated with sum of subarray.
+
+Keep in mind that we can use a hash map to accelerate the process by mapping sum to its corresponding index.
+
+### Problems
+
+(1) [Contiguous Array](https://leetcode.com/problems/contiguous-array)
+
+```go
+func findMaxLength(nums []int) int {
+    sum2index := make(map[int]int)
+    sum2index[0] = -1
+    prefixsum, res := 0, 0 
+    for i, v := range nums {
+        if v == 0 {
+            prefixsum--
+        } else {
+            prefixsum++
+        }
+        if j, ok := sum2index[prefixsum]; ok {
+            if i - j > res {
+                res = i - j
+            }
+        } else {
+            sum2index[prefixsum] = i
+        }
+    }
+    return res
+}
+```
+
+(2) [Subarray Sum Equals K](https://leetcode.com/problems/subarray-sum-equals-k/)
+
+```go
+func subarraySum(nums []int, k int) int {
+    res, sum := 0, 0
+    presum := make(map[int]int)
+    presum[0] = 1
+    for i := range nums {
+        sum += nums[i]
+        if _, ok := presum[sum-k]; ok {
+            res += presum[sum-k]
+        }
+        presum[sum]++
+    }
+    return res
+}
+```
+
+
+
+
+
 
 

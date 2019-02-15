@@ -1770,3 +1770,112 @@ Time complexity: $$O(n)$$
 
 Space complexity: $$O(1)$$
 
+#### 19. [Kth Smallest Element in a BST](https://leetcode.com/problems/kth-smallest-element-in-a-bst)
+
+Given a binary search tree, write a function `kthSmallest` to find the **k**th smallest element in it.
+
+**Note:** 
+You may assume k is always valid, 1 ≤ k ≤ BST's total elements.
+
+**Example 1:**
+
+```
+Input: root = [3,1,4,null,2], k = 1
+   3
+  / \
+ 1   4
+  \
+   2
+Output: 1
+```
+
+**Example 2:**
+
+```
+Input: root = [5,3,6,2,4,null,null,1], k = 3
+       5
+      / \
+     3   6
+    / \
+   2   4
+  /
+ 1
+Output: 3
+```
+
+**Follow up:**
+What if the BST is modified (insert/delete operations) often and you need to find the kth smallest frequently? How would you optimize the kthSmallest routine?
+
+**Solution**
+
+We can solve this problem easily since the in-order traversal of a BST must be ascending.
+
+(1) recursion 
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func kthSmallest(root *TreeNode, k int) int {
+    count, res := k, 0
+    inorder(root, &count, &res)
+    return res
+}
+
+func inorder(root *TreeNode, count, res *int) {
+    if root.Left != nil {
+        inorder(root.Left, count, res)
+    }
+    if *count = *count - 1; *count == 0 {
+        *res = root.Val
+        return
+    }
+    if root.Right != nil {
+        inorder(root.Right, count ,res)
+    }
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(1)​$$
+
+(2) iteration 
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func kthSmallest(root *TreeNode, k int) int {
+    stack := make([]*TreeNode, 0)
+    cur := root 
+    for cur != nil || len(stack) > 0 {
+        for cur != nil {
+            stack = append(stack, cur)
+            cur = cur.Left
+        }
+        node := stack[len(stack)-1]
+        stack = stack[:len(stack)-1]
+        if k = k - 1; k == 0 {
+            return node.Val
+        }
+        cur = node.Right
+    }
+    return -1
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(n)$$
+

@@ -1,3 +1,43 @@
+```
+func minWindow(s string, t string) string {
+   // In the hash table, only the counts of characters 
+   // which can make the substring a valid answer are positive
+   table := make(map[uint8]int)
+   for i := range t {
+      table[t[i]]++
+   }
+   count := len(t)
+   beg, end, head := 0, 0, 0
+   l := math.MaxInt64
+   for end < len(s) {
+      if table[s[end]] > 0 {
+         count--
+      }
+      table[s[end]]--
+      end++
+      // We find a valid substring
+      for count == 0 {
+         if end-beg < l {
+            l = end - beg
+            head = beg
+         }
+         if table[s[beg]] == 0 {
+            // If we move forward beg pointer,
+            // then we make the substring invalid
+            count++
+         }
+         table[s[beg]]++
+         beg++
+      }
+   }
+   if l == math.MaxInt64 {
+      return ""
+   } else {
+      return s[head : head+l]
+   }
+}
+```
+
 #### 1.[Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters)
 
 Given a string, find the length of the **longest substring** without repeating characters.
@@ -1306,4 +1346,112 @@ func subarraySum(nums []int, k int) int {
 Time complexity: $$O(n)$$
 
 Space complexity: $$O(n)$$
+
+#### 17. [Minimum Window Substring](https://leetcode.com/problems/minimum-window-substring)
+
+Given a string S and a string T, find the minimum window in S which will contain all the characters in T in complexity O(n).
+
+**Example:**
+
+```
+Input: S = "ADOBECODEBANC", T = "ABC"
+Output: "BANC"
+```
+
+**Note:**
+
+- If there is no such window in S that covers all characters in T, return the empty string `""`.
+- If there is such window, you are guaranteed that there will always be only one unique minimum window in S.
+
+**Solution**
+
+We solve it by sliding window.
+
+```go
+func minWindow(s string, t string) string {
+	// In the hash table, only the counts of characters 
+	// which can make the substring a valid answer are positive
+	table := make(map[uint8]int)
+	for i := range t {
+		table[t[i]]++
+	}
+	count := len(t)
+	beg, end, head := 0, 0, 0
+	l := math.MaxInt64
+	for end < len(s) {
+		if table[s[end]] > 0 {
+			count--
+		}
+		table[s[end]]--
+		end++
+		// We find a valid substring
+		for count == 0 {
+			if end-beg < l {
+				l = end - beg
+				head = beg
+			}
+			if table[s[beg]] == 0 {
+				// If we move forward beg pointer,
+				// then we make the substring invalid
+				count++
+			}
+			table[s[beg]]++
+			beg++
+		}
+	}
+	if l == math.MaxInt64 {
+		return ""
+	} else {
+		return s[head : head+l]
+	}
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(m)$$, m is the number of distinct characters. 
+
+**Template**
+
+For most substring problem, we are given a string and need to find a substring of it which satisfy some restrictions. A general way is to use a hash table assisted with two pointers. 
+
+```go
+func findSubstring(s string) int {
+    m := make(map[uint8]int)
+    // Check if the substring is valid
+    var count int
+    // Two pointers indicating the sliding window
+    beg, end := 0, 0
+    // The length of substring
+    var d int
+    
+    // Initialize the hash table here
+    
+    for end < len(s) {
+        if condition(m[s[end]]) {
+            // Modify count here
+        }
+        m[s[end]]--
+        end++
+        
+        for condition(count) {
+            // Update d if found a shorter substring
+            
+            // Move forward beg pointer to make substring invalid /valid again
+            
+            if condition(m[s[beg]]) {
+                // Modify count here
+            }
+            m[s[beg]]++
+            beg++
+        }
+        
+        // Update d if found a longer substring
+    }
+    
+    return d
+}
+```
+
+One thing needs to be mentioned is that when asked to find maximum substring, we should update maximum after the inner while loop to guarantee that the substring is valid. On the other hand, when asked to find minimum substring, we should update minimum inside the inner while loop.
 

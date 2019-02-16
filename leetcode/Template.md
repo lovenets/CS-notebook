@@ -226,7 +226,7 @@ func updateMatrix(matrix [][]int) [][]int {
         for j := 0; j < n; j++ {
             if matrix[i][j] == 0 {
                 // Keep track of all 0s
-                queue = append(queue, []int{ i, j })
+                queue = append(queue, []int{i, j})
             } else {
                 // Or initialize distance to infinity 
                 matrix[i][j] = math.MaxInt8   
@@ -234,15 +234,15 @@ func updateMatrix(matrix [][]int) [][]int {
         }
     }
     // BFS
-    directions := [][]int { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }
+    directions := [][]int {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}
     for len(queue) > 0 {
         cur := queue[0]
         queue = queue[1:]
         // Retrieve near cells
         for _, d := range directions {
             i, j := cur[0] + d[0], cur[1] + d[1]
-            if dist := matrix[cur[0]][cur[1]] + 1; i >= 0 && i < m && j >= 0 && j < n && matrix[i][j] > dist {
-                queue = append(queue, []int{ i, j })
+            if dist := matrix[cur[0]][cur[1]]+1; i >= 0 && i < m && j >= 0 && j < n && matrix[i][j] > dist {
+                queue = append(queue, []int{i, j})
                 // Update smaller distance 
                 matrix[i][j] = dist
             }
@@ -388,7 +388,7 @@ func lengthOfLongestSubstringTwoDistinct(s string) int {
             }
             m[s[beg]]--
             beg++
-            if l := end - beg; l > res {
+            if l := end-beg; l > res {
                 res = l
             } 
         }
@@ -421,7 +421,7 @@ func findMaxLength(nums []int) int {
             prefixsum++
         }
         if j, ok := sum2index[prefixsum]; ok {
-            if i - j > res {
+            if i-j > res {
                 res = i - j
             }
         } else {

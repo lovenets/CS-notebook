@@ -1,43 +1,3 @@
-```
-func minWindow(s string, t string) string {
-   // In the hash table, only the counts of characters 
-   // which can make the substring a valid answer are positive
-   table := make(map[uint8]int)
-   for i := range t {
-      table[t[i]]++
-   }
-   count := len(t)
-   beg, end, head := 0, 0, 0
-   l := math.MaxInt64
-   for end < len(s) {
-      if table[s[end]] > 0 {
-         count--
-      }
-      table[s[end]]--
-      end++
-      // We find a valid substring
-      for count == 0 {
-         if end-beg < l {
-            l = end - beg
-            head = beg
-         }
-         if table[s[beg]] == 0 {
-            // If we move forward beg pointer,
-            // then we make the substring invalid
-            count++
-         }
-         table[s[beg]]++
-         beg++
-      }
-   }
-   if l == math.MaxInt64 {
-      return ""
-   } else {
-      return s[head : head+l]
-   }
-}
-```
-
 #### 1.[Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters)
 
 Given a string, find the length of the **longest substring** without repeating characters.
@@ -558,7 +518,7 @@ Explanation: [0, 1] (or [1, 0]) is a longest contiguous subarray with equal numb
 
 **Solution**
 
-Use this problem directly using hash map and prefix sum. Change 0 in the original array to 1 then calculate the prefix sum. If `sum[0, i] == sum[0, j]`, we can know that there are equal 0 and 1 in the subarray `[i + 1, j]`. We can use a hash map to accelerate the process by mapping sum to its corresponding index.
+Solve this problem directly using hash map and prefix sum. Change 0 in the original array to -1 then calculate the prefix sum. If `sum[0, i] == sum[0, j]`, we can know that there are equal 0 and 1 in the subarray `[i + 1, j]`. We can use a hash map to accelerate the process by mapping sum to its corresponding index.
 
 ```go
 func findMaxLength(nums []int) int {
@@ -1413,7 +1373,7 @@ Space complexity: $$O(m)$$, m is the number of distinct characters.
 
 **Template**
 
-For most substring problem, we are given a string and need to find a substring of it which satisfy some restrictions. A general way is to use a hash table assisted with two pointers. 
+For most substring problem, we are given a string and need to find a substring of it which satisfy some restrictions. A general way is to use a hash table assisted with two pointers which indicate a sliding window. 
 
 ```go
 func findSubstring(s string) int {
@@ -1455,3 +1415,64 @@ func findSubstring(s string) int {
 
 One thing needs to be mentioned is that when asked to find maximum substring, we should update maximum after the inner while loop to guarantee that the substring is valid. On the other hand, when asked to find minimum substring, we should update minimum inside the inner while loop.
 
+#### 18. [Top K Frequent Elements](https://leetcode.com/problems/top-k-frequent-elements/)
+
+Given a non-empty array of integers, return the **k** most frequent elements.
+
+**Example 1:**
+
+```
+Input: nums = [1,1,1,2,2,3], k = 2
+Output: [1,2]
+```
+
+**Example 2:**
+
+```
+Input: nums = [1], k = 1
+Output: [1]
+```
+
+**Note:**
+
+- You may assume *k* is always valid, 1 ≤ *k*≤ number of unique elements.
+- Your algorithm's time complexity **must be** better than O(*n* log *n*), where *n* is the array's size.
+
+**Solution**
+
+Use bucket sort to achieve the time complexity which is better than $$O(nlogn)$$.
+
+```go
+func topKFrequent(nums []int, k int) []int {
+    // Count the frequency of every element
+    numToFreq := make(map[int]int)
+    for i := range nums {
+        numToFreq[nums[i]]++
+    }
+    // Group elements by their frequencies
+    maxFreq := 0
+    freqToNum := make(map[int][]int)
+    for n, f := range numToFreq {
+        if _, ok := freqToNum[f]; !ok {
+            freqToNum[f] = make([]int, 0)
+        } 
+        freqToNum[f] = append(freqToNum[f], n)
+        if f > maxFreq {
+            maxFreq = f
+        }
+    }
+    // Get k most frequent elements
+    res := make([]int, 0)
+    for i := maxFreq; i > 0; i-- {
+        if _, ok := freqToNum[i]; ok {
+            res = append(res, freqToNum[i]...)
+            if len(res) == k {
+                break
+            }
+        }
+    }
+    return res
+}
+```
+
+Time complexity: $$O(n)$$

@@ -450,9 +450,167 @@ func subarraySum(nums []int, k int) int {
 }
 ```
 
+## Backtracking 
 
+### Template 
 
+Backtracking can be seen as an optimized way to brute force. Brute force approaches evaluate every possibility. In backtracking *you stop evaluating a possibility as soon it breaks some constraint provided in the problem, take a step back and keep trying other possible cases*, see if those lead to a valid solution.
 
+The problems that can be solved using this tool generally satisfy the following criteria :
 
+1. You are explicitly asked to return *a collection of all answers*.
+2. You are concerned with what the actual solutions are rather than say the most optimum value of some parameter. (if it were the latter it’s most likely DP or greedy).
 
+We usually use recursive backtracking to solve problems. 
+
+### Problems 
+
+(1) [Subsets](https://leetcode.com/problems/subsets/)
+
+![img](https://cdn-images-1.medium.com/max/1100/1*ddhF2JWfmEl8yLwjx5vt7Q.jpeg)
+
+```go
+func subsets(nums []int) [][]int {
+	powerset, subset := make([][]int, 0), make([]int, 0)
+	backtrack(&powerset, &subset, nums, 0)
+	return powerset
+}
+
+func backtrack(powerset *[][]int, subset *[]int, nums []int, start int) {
+	// WARN: subset is a pointer so the program will go wrong 
+	// if we use it directly because we will modify it later
+	s := make([]int, len(*subset))
+	copy(s, *subset)
+	*powerset = append(*powerset, s)
+	for i := start; i < len(nums); i++ {
+		*subset = append(*subset, nums[i])
+        // We let i increments before we step forward
+        // therefore we won't find duplicate subsets
+		backtrack(powerset, subset, nums, i+1)
+		*subset = (*subset)[:len(*subset)-1]
+	}
+}
+```
+
+In this problem, we step back when `i`is out of range. 
+
+ (2) [Subsets II](https://leetcode.com/problems/subsets-ii/)
+
+Same problem with the added constraint that the set may contain duplicates but the output power set should not contain duplicate subsets.
+
+```go
+func subsetsWithDup(nums []int) [][]int {
+    sort.Ints(nums)
+	powerset, subset := make([][]int, 0), make([]int, 0)
+	backtrack(&powerset, &subset, nums, 0)
+	return powerset
+}
+
+func backtrack(powerset *[][]int, subset *[]int, nums []int, start int) {
+	// WARN: subset is a pointer so the program will go wrong
+	// if we use it directly because we will modify it later
+	s := make([]int, len(*subset))
+	copy(s, *subset)
+	*powerset = append(*powerset, s)
+	for i := start; i < len(nums); i++ {
+        // Skip duplicates ONLY WHEN i > start
+		if i > start && nums[i] == nums[i-1] {
+			continue
+		}
+		*subset = append(*subset, nums[i])
+		backtrack(powerset, subset, nums, i+1)
+		*subset = (*subset)[:len(*subset)-1]
+	}
+}
+```
+
+(3) [Combination Sum](https://leetcode.com/problems/combination-sum/description/)
+
+The slight difference is we use every candidate at least once. 
+
+```go
+func combinationSum(candidates []int, target int) [][]int {
+    res, comb := make([][]int, 0), make([]int, 0)
+    backtrack(&res, &comb, candidates, target, 0)
+    return res
+}
+
+func backtrack(res *[][]int, comb *[]int, candidates []int, target, start int) {
+    if target == 0 {
+        // Found a valid combination 
+        c := make([]int, len(*comb))
+        copy(c, *comb)
+        *res = append(*res, c)
+        return
+    } else if target < 0 {
+        // Found a invalid combination 
+        return
+    } else {
+        for i := start; i < len(candidates); i++ {
+            *comb = append(*comb, candidates[i])
+            // i doesn't increment before we step forward 
+            // so candidates[i] will be used at least once 
+            backtrack(res, comb, candidates, target-candidates[i], i)
+            *comb = (*comb)[:len(*comb)-1]
+        }
+    }
+}
+```
+
+(4) [N-Queens](https://leetcode.com/problems/n-queens/description/)
+
+We try placing queens column by column. Place a queen, go to next column and try placing another queen such that it doesn’t face a queen in the same row or diagonals, and keep going. If we encounter an invalid spot we backtrack and keep trying other spots in that column vertically.
+
+```go
+func solveNQueens(n int) [][]string {
+	ans := make([][]string, 0)
+	board := make([]string, n)
+    // Initialize the board
+	for i := range board {
+        board[i] = strings.Repeat(".", n)
+	}
+	solve(&ans, &board, 0, n)
+	return ans
+}
+
+func solve(ans *[][]string, board *[]string, col int, n int) {
+	if col == n {
+        // Found a solution
+		b := make([]string, len(*board))
+		copy(b, *board)
+		*ans = append(*ans, b)
+		return
+	}
+	for row := 0; row < n; row++ {
+		if validate(*board, row, col) {
+			(*board)[row] = (*board)[row][:col] + "Q" + (*board)[row][1+col:]
+			solve(ans, board, col+1, n)
+			(*board)[row] = (*board)[row][:col] + "." + (*board)[row][1+col:]
+		}
+	}
+}
+
+func validate(board []string, row, col int) bool {
+	n := len(board)
+	// Check the same row
+	for i := 1; i <= col; i++ {
+		if board[row][col-i] == 'Q' {
+			return false
+		}
+	}
+	// Check 45° diagonal
+	for i := 1; row-i >= 0 && col-i >= 0; i++ {
+		if board[row-i][col-i] == 'Q' {
+			return false
+		}
+	}
+    // Check 135° diagonal
+	for i := 1; row+i < n && col-i >= 0; i++ {
+		if board[row+i][col-i] == 'Q' {
+			return false
+		}
+	}
+	return true
+}
+```
 

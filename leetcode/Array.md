@@ -625,5 +625,78 @@ func dfs(x, y int, board [][]byte, word []byte) bool {
 
 In every round, in order to avoid repeat work, we need to mark searched cell. The native solution is to create a bool matrix but it will cost extra space. Since the content in every cell should be an English letter, we can change the contents of searched cells into '-', which is not an English letter. But when we finish a round, we should recover the contents of searched cells preparing for next round.
 
+### 9. [First Missing Positive](https://leetcode.com/problems/first-missing-positive)
+
+Given an unsorted integer array, find the smallest missing positive integer.
+
+**Example 1:**
+
+```
+Input: [1,2,0]
+Output: 3
+```
+
+**Example 2:**
+
+```
+Input: [3,4,-1,1]
+Output: 2
+```
+
+**Example 3:**
+
+```
+Input: [7,8,9,11,12]
+Output: 1
+```
+
+**Note:**
+
+Your algorithm should run in *O*(*n*) time and uses constant extra space.
+
+**Solution**
+
+(1) $$O(n)$$ time but not $$O(1)$$ space
+
+```go
+func firstMissingPositive(nums []int) int {
+    m := make(map[int]bool)
+    for i := range nums {
+        if nums[i] > 0 {
+            m[nums[i]] = true
+        }
+    }
+    min := 1
+    for ; m[min]; min++ {}
+    return min
+}
+```
+
+(2) $$O(n)$$ time and $$O(1)$$ space
+
+If we can put each number in order, we can find the first missing positive easily by traversing the array. For example, if we encounter 5, we put it in `nums[4]`. And if we find out that `5 != nums[4]`, 5 is the answer.
+
+```c++
+class Solution {
+public:
+    int firstMissingPositive(vector<int>& nums) {
+        int size = nums.size();
+        for (int i = 0; i < size; i++) {
+            // while-loop is executed n times at most because 
+            // because there are n numbers in total
+            while (nums[i] > 0 && nums[i] <= size && nums[i] != nums[nums[i] - 1]) {
+                swap(nums[i], nums[nums[i] - 1]);
+            }
+        }
+        for (int i = 0; i < size; i++) {
+            if (nums[i] != i + 1) {
+                return i + 1;
+            }
+        }
+        return size + 1;
+    }
+};
+```
+
 
 

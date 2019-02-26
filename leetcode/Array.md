@@ -698,5 +698,69 @@ public:
 };
 ```
 
+### 10. [Single Number](https://leetcode.com/problems/single-number/)
 
+Given a **non-empty** array of integers, every element appears *twice* except for one. Find that single one.
+
+**Note:**
+
+Your algorithm should have a linear runtime complexity. Could you implement it without using extra memory?
+
+**Example 1:**
+
+```
+Input: [2,2,1]
+Output: 1
+```
+
+**Example 2:**
+
+```
+Input: [4,1,2,1,2]
+Output: 4
+```
+
+**Solution**
+
+(1) hashmap
+
+```go
+func singleNumber(nums []int) int {
+    m := make(map[int]int)
+    for i := range nums {
+        m[nums[i]]++
+    }
+    var res int
+    for i := range m {
+        if m[i] == 1 {
+            res = i
+            break
+        }
+    }
+    return res
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(n)$$
+
+(2) bit operation
+
+1) XOR is commutative, `a ^ b = b ^ a`. 2) a number XOR by another number twice makes no change on original number, `a ^ b ^ b = a`
+Therefore, if a number appears twice in the array, it makes no change to result. And if a number is unique, since 0 ^ unique = unique, so result = unique.
+
+```go
+func singleNumber(nums []int) int {
+    res := 0
+    for i := range nums {
+        res ^= nums[i]
+    }
+    return res
+}
+```
+
+Time complexity: $$O(n)$$
+
+Space complexity: $$O(1)$$
 

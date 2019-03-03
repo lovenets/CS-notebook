@@ -1521,3 +1521,77 @@ class Solution {
 Time complexity: $$O(n*t)$$, n is the number of all nodes, t is the time of inserting operation of priority queue. 
 
 Space complexity: $$O(n)$$, n is the number of all nodes.
+
+#### 17. [Linked List Cycle](https://leetcode.com/problems/linked-list-cycle)
+
+Given a linked list, determine if it has a cycle in it.
+
+To represent a cycle in the given linked list, we use an integer `pos` which represents the position (0-indexed) in the linked list where tail connects to. If `pos` is `-1`, then there is no cycle in the linked list.
+
+**Example 1:**
+
+```
+Input: head = [3,2,0,-4], pos = 1
+Output: true
+Explanation: There is a cycle in the linked list, where tail connects to the second node.
+```
+
+![img](https://assets.leetcode.com/uploads/2018/12/07/circularlinkedlist.png)
+
+**Example 2:**
+
+```
+Input: head = [1,2], pos = 0
+Output: true
+Explanation: There is a cycle in the linked list, where tail connects to the first node.
+```
+
+![img](https://assets.leetcode.com/uploads/2018/12/07/circularlinkedlist_test2.png)
+
+**Example 3:**
+
+```
+Input: head = [1], pos = -1
+Output: false
+Explanation: There is no cycle in the linked list.
+```
+
+![img](https://assets.leetcode.com/uploads/2018/12/07/circularlinkedlist_test3.png)
+
+**Follow up:**
+
+Can you solve it using *O(1)* (i.e. constant) memory?
+
+**Solution**
+
+Use two pointers. One moves two steps every time and the other moves one step. If there is a cycle, they will encounter each other in some point. 
+
+```go
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+func hasCycle(head *ListNode) bool {
+    if head == nil {
+        return false
+    }
+    slow, fast := head, head
+    for fast.Next != nil && fast.Next.Next != nil {
+        slow = slow.Next
+        fast = fast.Next.Next
+        if slow == fast {
+            return true
+        }
+    }
+    return false
+}
+```
+
+Time complexity: $$O(n)​$$
+
+Space complexity: $$O(1)$$
+
+ 

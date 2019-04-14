@@ -34,7 +34,7 @@ Go has no line length limit. Don't worry about overflowing a punched card. If a 
 
 Go needs fewer parentheses than C and Java: control structures do not have parentheses in their syntax. Also, the operator precedence hierarchy is shorter and clearer, so
 
-```
+```go
 x<<8 + y<<16
 ```
 
@@ -266,7 +266,7 @@ func nextInt(b []byte, pos int) (value, nextPos int) {
 
 (1) The arguments to the deferred function (which include the receiver if the function is a method) are evaluated when the **defer** executes, not when the *call* executes. (It means that the arguments will be evaluated the instant the program runs to the defer statements.) Besides avoiding worries about variables changing values as the function executes, this means that a single deferred call site can defer multiple function executions.
 
-(2) Deferred functions are executed in LIFO order.
+(2) Deferred functions are executed in ==LIFO== order.
 
 ```go
 func trace(s string) string {
@@ -298,6 +298,48 @@ func main() {
 // entering: b
 // in b
 // entering: a
+// in a
+// leaving: a
+// leaving: b
+```
+
+The reason why "entering" is printed before "in" is that `defer` actually only postpones the ==most outer function== when we try to defer nested function executions. In this case, the most outer function is `un`which needs a string parameter so `trace`will be executed to evaluate this parameter before `un`is deferred. Therefore,  "entering" is printed before "in". Let's try a more complex case:
+
+```go
+func main() {
+	b()
+}
+
+func entering(s string) string{
+	fmt.Println("entering:", s)
+	return s
+}
+
+func entered(s string) string {
+	fmt.Println("entered:", s)
+	return s
+}
+
+func leaving(s string) {
+	fmt.Println("leaving:", s)
+}
+
+func a() {
+	defer leaving(entered(entering("a")))
+	fmt.Println("in a")
+}
+
+func b() {
+	defer leaving(entered(entering("b")))
+	fmt.Println("in b")
+	a()
+}
+
+// entering: b
+// entered: b
+// in b
+// entering: a
+// entered: a
 // in a
 // leaving: a
 // leaving: b

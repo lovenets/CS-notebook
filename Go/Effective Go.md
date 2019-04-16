@@ -411,7 +411,7 @@ for i := range picture {
 
 7.maps
 
-(1) The key can be of any type for which the equality operator is defined, such as integers, floating point and complex numbers, strings, pointers, interfaces (as long as the dynamic type supports equality), structs and arrays.
+(1) The key can be of any type for which the equality operator is defined, such as integers, floating point and complex numbers, strings, pointers, ==interfaces (as long as the dynamic type supports equality), structs and arrays==.
 
 (2) If you pass a map to a function that changes the contents of the map, the changes will be visible in the caller.
 

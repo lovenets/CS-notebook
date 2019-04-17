@@ -664,6 +664,14 @@ When the number of items in a map is greater than `6.5*2^B`(6.5 is load factor a
 
 ## delete 
 
+### function signature 
+
+```go
+func mapdelete(t *maptype, h *hmap, key unsafe.Pointer)
+```
+
+### workflow
+
 (1) Determine whether there exists concurrent map writes.
 
 ```go
@@ -770,7 +778,521 @@ Note that the bucket will not be clear even if it is empty.
 	h.flags &^= hashWriting
 ```
 
+# builtin
 
+file location: src/builtin/builtin.go
+
+`builtin`package predeclares some types, constants and functions. 
+
+```go
+// Copyright 2011 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+/*
+	Package builtin provides documentation for Go's predeclared identifiers.
+	The items documented here are not actually in package builtin
+	but their descriptions here allow godoc to present documentation
+	for the language's special identifiers.
+*/
+package builtin
+
+// bool is the set of boolean values, true and false.
+type bool bool
+
+// true and false are the two untyped boolean values.
+const (
+	true  = 0 == 0 // Untyped bool.
+	false = 0 != 0 // Untyped bool.
+)
+
+// uint8 is the set of all unsigned 8-bit integers.
+// Range: 0 through 255.
+type uint8 uint8
+
+// uint16 is the set of all unsigned 16-bit integers.
+// Range: 0 through 65535.
+type uint16 uint16
+
+// uint32 is the set of all unsigned 32-bit integers.
+// Range: 0 through 4294967295.
+type uint32 uint32
+
+// uint64 is the set of all unsigned 64-bit integers.
+// Range: 0 through 18446744073709551615.
+type uint64 uint64
+
+// int8 is the set of all signed 8-bit integers.
+// Range: -128 through 127.
+type int8 int8
+
+// int16 is the set of all signed 16-bit integers.
+// Range: -32768 through 32767.
+type int16 int16
+
+// int32 is the set of all signed 32-bit integers.
+// Range: -2147483648 through 2147483647.
+type int32 int32
+
+// int64 is the set of all signed 64-bit integers.
+// Range: -9223372036854775808 through 9223372036854775807.
+type int64 int64
+
+// float32 is the set of all IEEE-754 32-bit floating-point numbers.
+type float32 float32
+
+// float64 is the set of all IEEE-754 64-bit floating-point numbers.
+type float64 float64
+
+// complex64 is the set of all complex numbers with float32 real and
+// imaginary parts.
+type complex64 complex64
+
+// complex128 is the set of all complex numbers with float64 real and
+// imaginary parts.
+type complex128 complex128
+
+// string is the set of all strings of 8-bit bytes, conventionally but not
+// necessarily representing UTF-8-encoded text. A string may be empty, but
+// not nil. Values of string type are immutable.
+type string string
+
+// int is a signed integer type that is at least 32 bits in size. It is a
+// distinct type, however, and not an alias for, say, int32.
+type int int
+
+// uint is an unsigned integer type that is at least 32 bits in size. It is a
+// distinct type, however, and not an alias for, say, uint32.
+type uint uint
+
+// uintptr is an integer type that is large enough to hold the bit pattern of
+// any pointer.
+type uintptr uintptr
+
+// byte is an alias for uint8 and is equivalent to uint8 in all ways. It is
+// used, by convention, to distinguish byte values from 8-bit unsigned
+// integer values.
+type byte = uint8
+
+// rune is an alias for int32 and is equivalent to int32 in all ways. It is
+// used, by convention, to distinguish character values from integer values.
+type rune = int32
+
+// iota is a predeclared identifier representing the untyped integer ordinal
+// number of the current const specification in a (usually parenthesized)
+// const declaration. It is zero-indexed.
+const iota = 0 // Untyped int.
+
+// nil is a predeclared identifier representing the zero value for a
+// pointer, channel, func, interface, map, or slice type.
+var nil Type // Type must be a pointer, channel, func, interface, map, or slice type
+
+// Type is here for the purposes of documentation only. It is a stand-in
+// for any Go type, but represents the same type for any given function
+// invocation.
+type Type int
+
+// Type1 is here for the purposes of documentation only. It is a stand-in
+// for any Go type, but represents the same type for any given function
+// invocation.
+type Type1 int
+
+// IntegerType is here for the purposes of documentation only. It is a stand-in
+// for any integer type: int, uint, int8 etc.
+type IntegerType int
+
+// FloatType is here for the purposes of documentation only. It is a stand-in
+// for either float type: float32 or float64.
+type FloatType float32
+
+// ComplexType is here for the purposes of documentation only. It is a
+// stand-in for either complex type: complex64 or complex128.
+type ComplexType complex64
+
+// The append built-in function appends elements to the end of a slice. If
+// it has sufficient capacity, the destination is resliced to accommodate the
+// new elements. If it does not, a new underlying array will be allocated.
+// Append returns the updated slice. It is therefore necessary to store the
+// result of append, often in the variable holding the slice itself:
+//	slice = append(slice, elem1, elem2)
+//	slice = append(slice, anotherSlice...)
+// As a special case, it is legal to append a string to a byte slice, like this:
+//	slice = append([]byte("hello "), "world"...)
+func append(slice []Type, elems ...Type) []Type
+
+// The copy built-in function copies elements from a source slice into a
+// destination slice. (As a special case, it also will copy bytes from a
+// string to a slice of bytes.) The source and destination may overlap. Copy
+// returns the number of elements copied, which will be the minimum of
+// len(src) and len(dst).
+func copy(dst, src []Type) int
+
+// The delete built-in function deletes the element with the specified key
+// (m[key]) from the map. If m is nil or there is no such element, delete
+// is a no-op.
+func delete(m map[Type]Type1, key Type)
+
+// The len built-in function returns the length of v, according to its type:
+//	Array: the number of elements in v.
+//	Pointer to array: the number of elements in *v (even if v is nil).
+//	Slice, or map: the number of elements in v; if v is nil, len(v) is zero.
+//	String: the number of bytes in v.
+//	Channel: the number of elements queued (unread) in the channel buffer;
+//	if v is nil, len(v) is zero.
+// For some arguments, such as a string literal or a simple array expression, the
+// result can be a constant. See the Go language specification's "Length and
+// capacity" section for details.
+func len(v Type) int
+
+// The cap built-in function returns the capacity of v, according to its type:
+//	Array: the number of elements in v (same as len(v)).
+//	Pointer to array: the number of elements in *v (same as len(v)).
+//	Slice: the maximum length the slice can reach when resliced;
+//	if v is nil, cap(v) is zero.
+//	Channel: the channel buffer capacity, in units of elements;
+//	if v is nil, cap(v) is zero.
+// For some arguments, such as a simple array expression, the result can be a
+// constant. See the Go language specification's "Length and capacity" section for
+// details.
+func cap(v Type) int
+
+// The make built-in function allocates and initializes an object of type
+// slice, map, or chan (only). Like new, the first argument is a type, not a
+// value. Unlike new, make's return type is the same as the type of its
+// argument, not a pointer to it. The specification of the result depends on
+// the type:
+//	Slice: The size specifies the length. The capacity of the slice is
+//	equal to its length. A second integer argument may be provided to
+//	specify a different capacity; it must be no smaller than the
+//	length. For example, make([]int, 0, 10) allocates an underlying array
+//	of size 10 and returns a slice of length 0 and capacity 10 that is
+//	backed by this underlying array.
+//	Map: An empty map is allocated with enough space to hold the
+//	specified number of elements. The size may be omitted, in which case
+//	a small starting size is allocated.
+//	Channel: The channel's buffer is initialized with the specified
+//	buffer capacity. If zero, or the size is omitted, the channel is
+//	unbuffered.
+func make(t Type, size ...IntegerType) Type
+
+// The new built-in function allocates memory. The first argument is a type,
+// not a value, and the value returned is a pointer to a newly
+// allocated zero value of that type.
+func new(Type) *Type
+
+// The complex built-in function constructs a complex value from two
+// floating-point values. The real and imaginary parts must be of the same
+// size, either float32 or float64 (or assignable to them), and the return
+// value will be the corresponding complex type (complex64 for float32,
+// complex128 for float64).
+func complex(r, i FloatType) ComplexType
+
+// The real built-in function returns the real part of the complex number c.
+// The return value will be floating point type corresponding to the type of c.
+func real(c ComplexType) FloatType
+
+// The imag built-in function returns the imaginary part of the complex
+// number c. The return value will be floating point type corresponding to
+// the type of c.
+func imag(c ComplexType) FloatType
+
+// The close built-in function closes a channel, which must be either
+// bidirectional or send-only. It should be executed only by the sender,
+// never the receiver, and has the effect of shutting down the channel after
+// the last sent value is received. After the last value has been received
+// from a closed channel c, any receive from c will succeed without
+// blocking, returning the zero value for the channel element. The form
+//	x, ok := <-c
+// will also set ok to false for a closed channel.
+func close(c chan<- Type)
+
+// The panic built-in function stops normal execution of the current
+// goroutine. When a function F calls panic, normal execution of F stops
+// immediately. Any functions whose execution was deferred by F are run in
+// the usual way, and then F returns to its caller. To the caller G, the
+// invocation of F then behaves like a call to panic, terminating G's
+// execution and running any deferred functions. This continues until all
+// functions in the executing goroutine have stopped, in reverse order. At
+// that point, the program is terminated and the error condition is reported,
+// including the value of the argument to panic. This termination sequence
+// is called panicking and can be controlled by the built-in function
+// recover.
+func panic(v interface{})
+
+// The recover built-in function allows a program to manage behavior of a
+// panicking goroutine. Executing a call to recover inside a deferred
+// function (but not any function called by it) stops the panicking sequence
+// by restoring normal execution and retrieves the error value passed to the
+// call of panic. If recover is called outside the deferred function it will
+// not stop a panicking sequence. In this case, or when the goroutine is not
+// panicking, or if the argument supplied to panic was nil, recover returns
+// nil. Thus the return value from recover reports whether the goroutine is
+// panicking.
+func recover() interface{}
+
+// The print built-in function formats its arguments in an
+// implementation-specific way and writes the result to standard error.
+// Print is useful for bootstrapping and debugging; it is not guaranteed
+// to stay in the language.
+func print(args ...Type)
+
+// The println built-in function formats its arguments in an
+// implementation-specific way and writes the result to standard error.
+// Spaces are always added between arguments and a newline is appended.
+// Println is useful for bootstrapping and debugging; it is not guaranteed
+// to stay in the language.
+func println(args ...Type)
+
+// The error built-in interface type is the conventional interface for
+// representing an error condition, with the nil value representing no error.
+type error interface {
+	Error() string
+}
+```
+
+## something fun about types
+
+1.How Go team define constants `true` and `false`
+
+```go
+// true and false are the two untyped boolean values.
+const (
+	true  = 0 == 0 // Untyped bool.
+	false = 0 != 0 // Untyped bool.
+)
+```
+
+2.Just like many other languages, `string`is immutable. A string may be empty ("") but not `nil`.
+
+3.Max and min values of signed integers:
+
+````go
+// Range: -128 through 127.
+// The lowest bit is used for sign.
+type int8 int8
+````
+
+4.`nil`can be assigned to a pointer, channel, func, interface, map, or slice type.
+
+5.`byte`is`uint8`and`rune`is`int32`.
+
+## something fun about builtin functions
+
+1.`slice`can be used to append string to a slice of bytes since as string is actually a slice of bytes. So can `copy.`
+
+2.`copy`return the minimum of `len(src)`and`len(dst)`.
+
+3.Unlike `new`, `make`'s return type is the same as the type of its argument, not a pointer.
+
+4.`close`should only be used for send-only or bidirectional channels and should be executed by a sender.
+
+# io
+
+## errors
+
+```go
+// ErrShortWrite means that a write accepted fewer bytes than requested
+// but failed to return an explicit error.
+var ErrShortWrite = errors.New("short write")
+
+// ErrShortBuffer means that a read required a longer buffer than was provided.
+var ErrShortBuffer = errors.New("short buffer")
+
+// EOF is the error returned by Read when no more input is available.
+// Functions should return EOF only to signal a graceful end of input.
+// If the EOF occurs unexpectedly in a structured data stream,
+// the appropriate error is either ErrUnexpectedEOF or some other error
+// giving more detail.
+var EOF = errors.New("EOF")
+
+// ErrUnexpectedEOF means that EOF was encountered in the
+// middle of reading a fixed-size block or data structure.
+var ErrUnexpectedEOF = errors.New("unexpected EOF")
+
+// ErrNoProgress is returned by some clients of an io.Reader when
+// many calls to Read have failed to return any data or error,
+// usually the sign of a broken io.Reader implementation.
+var ErrNoProgress = errors.New("multiple Read calls return no data or error")
+```
+
+## interfaces 
+
+Package io doesn't aim at implementation but defining interfaces. Some widely implemented interfaces like:
+
+```go
+// Reader is the interface that wraps the basic Read method.
+//
+// Read reads up to len(p) bytes into p. It returns the number of bytes
+// read (0 <= n <= len(p)) and any error encountered. Even if Read
+// returns n < len(p), it may use all of p as scratch space during the call.
+// If some data is available but not len(p) bytes, Read conventionally
+// returns what is available instead of waiting for more.
+//
+// When Read encounters an error or end-of-file condition after
+// successfully reading n > 0 bytes, it returns the number of
+// bytes read. It may return the (non-nil) error from the same call
+// or return the error (and n == 0) from a subsequent call.
+// An instance of this general case is that a Reader returning
+// a non-zero number of bytes at the end of the input stream may
+// return either err == EOF or err == nil. The next Read should
+// return 0, EOF.
+//
+// Callers should always process the n > 0 bytes returned before
+// considering the error err. Doing so correctly handles I/O errors
+// that happen after reading some bytes and also both of the
+// allowed EOF behaviors.
+//
+// Implementations of Read are discouraged from returning a
+// zero byte count with a nil error, except when len(p) == 0.
+// Callers should treat a return of 0 and nil as indicating that
+// nothing happened; in particular it does not indicate EOF.
+//
+// Implementations must not retain p.
+type Reader interface {
+	Read(p []byte) (n int, err error)
+}
+
+// Writer is the interface that wraps the basic Write method.
+//
+// Write writes len(p) bytes from p to the underlying data stream.
+// It returns the number of bytes written from p (0 <= n <= len(p))
+// and any error encountered that caused the write to stop early.
+// Write must return a non-nil error if it returns n < len(p).
+// Write must not modify the slice data, even temporarily.
+//
+// Implementations must not retain p.
+type Writer interface {
+	Write(p []byte) (n int, err error)
+}
+
+// Closer is the interface that wraps the basic Close method.
+//
+// The behavior of Close after the first call is undefined.
+// Specific implementations may document their own behavior.
+type Closer interface {
+	Close() error
+}
+```
+
+There are also composite interfaces like:
+
+```go
+// ReadWriter is the interface that groups the basic Read and Write methods.
+type ReadWriter interface {
+	Reader
+	Writer
+}
+```
+
+[benifits and drawbakcs of "Composition over Inheritance"](<https://en.m.wikipedia.org/wiki/Composition_over_inheritance>)
+
+## file
+
+- file location: src/os/file.go
+
+File operations are related to io and they are implemented in package os that provides a platform-independent interface to operate system functionality.
+
+1.open/create a file
+
+```go
+// Open opens the named file for reading. If successful, methods on
+// the returned file can be used for reading; the associated file
+// descriptor has mode O_RDONLY.
+// If there is an error, it will be of type *PathError.
+func Open(name string) (*File, error) {
+	return OpenFile(name, O_RDONLY, 0)
+}
+
+// Create creates the named file with mode 0666 (before umask), truncating
+// it if it already exists. If successful, methods on the returned
+// File can be used for I/O; the associated file descriptor has mode
+// O_RDWR.
+// If there is an error, it will be of type *PathError.
+func Create(name string) (*File, error) {
+	return OpenFile(name, O_RDWR|O_CREATE|O_TRUNC, 0666)
+}
+
+// OpenFile is the generalized open call; most users will use Open
+// or Create instead. It opens the named file with specified flag
+// (O_RDONLY etc.) and perm (before umask), if applicable. If successful,
+// methods on the returned File can be used for I/O.
+// If there is an error, it will be of type *PathError.
+func OpenFile(name string, flag int, perm FileMode) (*File, error) {
+	testlog.Open(name)
+	return openFileNolog(name, flag, perm)
+}
+
+// openFileNolog is the Windows implementation of OpenFile.
+// file location: src/os/file_windows.go
+func openFileNolog(name string, flag int, perm FileMode) (*File, error) {
+	if name == "" {
+		return nil, &PathError{"open", name, syscall.ENOENT}
+	}
+	r, errf := openFile(name, flag, perm)
+	if errf == nil {
+		return r, nil
+	}
+    // Maybe user intends to open a directory. 
+	r, errd := openDir(name)
+	if errd == nil {
+        // A directory can not be written.
+		if flag&O_WRONLY != 0 || flag&O_RDWR != 0 {
+			r.Close()
+			return nil, &PathError{"open", name, syscall.EISDIR}
+		}
+		return r, nil
+	}
+    // Can't find the file or directory specified by name.
+	return nil, &PathError{"open", name, errf}
+}
+```
+
+2.read 
+
+```go
+// Read reads up to len(b) bytes from the File.
+// It returns the number of bytes read and any error encountered.
+// At end of file, Read returns 0, io.EOF.
+func (f *File) Read(b []byte) (n int, err error) {
+    // Check if the file is available for reading.
+	if err := f.checkValid("read"); err != nil {
+		return 0, err
+	}
+	n, e := f.read(b)
+    // wrapErr wraps an error that occurred during an operation on an open file. 
+    // It passes io.EOF through unchanged, otherwise converts poll.ErrFileClosing to ErrClosed 
+    // and wraps the error in a PathError.
+	return n, f.wrapErr("read", e)
+}
+```
+
+3.write
+
+```go
+// Write writes len(b) bytes to the File.
+// It returns the number of bytes written and an error, if any.
+// Write returns a non-nil error when n != len(b).
+func (f *File) Write(b []byte) (n int, err error) {
+   if err := f.checkValid("write"); err != nil {
+      return 0, err
+   }
+   n, e := f.write(b)
+   if n < 0 {
+      n = 0
+   }
+   if n != len(b) {
+      err = io.ErrShortWrite
+   }
+
+   epipecheck(f, e)
+
+   if e != nil {
+      err = f.wrapErr("write", e)
+   }
+
+   return n, err
+}
+```
 
 
 

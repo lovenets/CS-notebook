@@ -1,4 +1,4 @@
-数组中重复的数字
+## 数组中重复的数字
 
 ### 1. 找出数组中重复的数字
 
@@ -220,6 +220,207 @@ func indexOfBlank(s string) int {
 ```
 
 空间复杂度和源字符串以及替换的内容有关，时间复杂度是$$O(n)$$。
+
+### 相关题目
+
+有两个排序的数组 A1 和 A2，内存在 A1 的末尾有足够的空间容纳 A2.请实现一个函数，把 A2 中的所有数字插入 A1 中，并且所有数字是有序的。
+
+#### 分析
+
+这个题目要求将两个数组归并到其中一个数组中（不同于常规的可以利用额外空间的二分归并），如果从前到后归并，那么显然会移动较多的元素，不妨从后往前归并。
+
+```go
+// n 是当前 a1 含有的元素个数
+func mergeTwoArrays(a1 []int, n int, a2 []int) []int {
+	k := n + len(a2) - 1 // 归并之后最后一个位置下标为 k
+	i, j := n-1, len(a2)-1
+	// 下面就是二路归并
+	for i >= 0 && j >= 0 {
+		if a1[i] > a2[j] {
+			a1[k] = a1[i]
+			i--
+		} else {
+			a1[k] = a2[j]
+			j--
+		}
+		k--
+	}
+	for i >= 0 {
+		a1[k] = a1[i]
+		i--
+		k--
+	}
+	for j >= 0 {
+		a1[k] = a2[j]
+		j--
+		k--
+	}
+	return a1
+}
+```
+
+时间复杂度是显然是$$O(两个数组长度之和)$$，空间复杂度是$$O(1)$$。
+
+## 从尾到头打印链表
+
+输入一个链表的头节点，从尾到头反过来打印每个节点的值。
+
+### 分析
+
+最容易想到的做法就是顺序遍历链表，遍历的过程中节点入栈，最后再出栈。空间复杂度和时间复杂度都是$$O(n)​$$。
+
+```go
+type ListNode struct {
+	Key  int
+	Next *ListNode
+}
+
+func reversePrint(head *ListNode) {
+	if head == nil {
+		return
+	}
+	stack := make([]*ListNode, 0)
+	for cur := head; cur != nil; cur = cur.Next {
+		stack = append(stack, cur)
+	}
+	for len(stack) > 0 {
+		node := stack[len(stack)-1]
+		fmt.Println(node.Key)
+		stack = stack[:len(stack)-1]
+	}
+}
+```
+
+也可以采用递归的方法，但是如果链表太长，递归的方法很可能导致调用栈溢出。
+
+```go
+func reversePrintRecur(head *ListNode) {
+    if head != nil {
+        if head.Next != nil {
+            reversePrintRecur(head.Next)
+        }
+        fmt.Println(head.Key)
+    }
+}
+```
+
+还有一种思路，可以先把链表中每个节点的 Next 指针反转，这样就得到一个反向的链表。但是这种操作会修改原来的链表，**在面试中，如果打算修改输入的数据，最好先问面试官是不是允许修改**。
+
+## 重建二叉树
+
+输入某二叉树的前序遍历和中序遍历的结果，请重建该二叉树。假设输入的前序遍历和中序遍历的结果中都不含有重复的数字。二叉树的节点定义为：
+
+```pseudocode
+struct BinaryTreeNode {
+    int              value
+    BinaryTreeNode*  left
+    BinaryTreeNode*  right
+}
+```
+
+### 分析
+
+题目不难，关键是要考虑到程序的健壮性，要对无效的输入做出判断。
+
+```go
+type BinaryTreeNode struct {
+   Value int
+   Left  *BinaryTreeNode
+   Right *BinaryTreeNode
+}
+
+func rebuildBT(preorder, inorder []int) (*BinaryTreeNode, error) {
+   if len(preorder) <= 0 || len(inorder) <= 0 {
+      return nil, nil
+   }
+   if len(preorder) == 1 && len(inorder) == 1 {
+        // 同一个节点的值不一样
+      if preorder[0] != inorder[0] {
+         return nil, errors.New("invalid input")
+      }
+   }
+    // 在中序序列中找根节点
+   root := preorder[0]
+   indexOfRoot := -1
+   for i, v := range inorder {
+      if v == root {
+         indexOfRoot = i
+         break
+      }
+   }
+    // 在中序序列中找不到根节点
+   if indexOfRoot == -1 {
+      return nil, errors.New("invalid input")
+   }
+   left, err := rebuildBT(preorder[1:indexOfRoot+1], inorder[:indexOfRoot])
+   if err != nil {
+      return nil, err
+   }
+   right, err := rebuildBT(preorder[1+indexOfRoot:], inorder[indexOfRoot+1:])
+   if err != nil {
+      return nil, err
+   }
+   return &BinaryTreeNode{root, left, right}, nil
+}
+```
+
+这个算法相当于每个节点都访问一次，时间复杂度为$$O(n)$$，空间复杂度为$$O(树的深度)$$。
+
+## 二叉树的下一个节点
+
+给定一棵二叉树和其中的一个节点，如何找出中序遍历序列的下一个节点？树中的节点除了有两个分别指向左、右子节点的指针，还有一个指向父节点的指针。
+
+### 分析
+
+![剑指 offer_8_1](img/剑指 offer_8_1.jpg)
+
+以上图为例，中序遍历的结果为`{d, b, h, e, i, a, f, c, g}`，经过分析可知：
+
+- 如果节点有右子树，那么中序遍历的下一个节点就是右子树的最左下节点
+- 如果节点没有右子树，而且这个节点是其父节点的左孩子，那么中序遍历的下一个节点就是其父节点
+- 如果节点没有右子树，而且这个节点是其父节点的右孩子，那么中序遍历的下一个节点应该是它的某一个祖先节点，而且这个祖先节点本身是左孩子；如果这样的祖先节点不存在，那么中序遍历的下一个节点不存在
+
+```go
+type BinaryTreeNode struct {
+   Value  int
+   Left   *BinaryTreeNode
+   Right  *BinaryTreeNode
+   Parent *BinaryTreeNode
+}
+
+func nextInorder(node *BinaryTreeNode) *BinaryTreeNode {
+   if node == nil {
+      return nil
+   }
+   if node.Right != nil {
+      // 找右子树的最左下节点
+      cur := node.Right
+      for cur.Left != nil {
+         cur = cur.Left
+      }
+      return cur
+   }
+   // 没有右子树，有父节点
+   if node.Parent != nil {
+      if node.Parent.Left == node {
+         // 本身是左孩子
+         return node.Parent
+      } else {
+         // 本身是右孩子
+         for cur := node.Parent; cur != nil; cur = cur.Parent {
+            if cur.Parent != nil && cur == cur.Parent.Left {
+               return cur
+            }
+         }
+      }
+   }
+   return nil
+}
+```
+
+时间复杂度为$$O(树的深度)$$，空间复杂度为$$O(1)$$。
+
+
 
 
 

@@ -1086,7 +1086,11 @@ type int8 int8
 
 4.`close`should only be used for send-only or bidirectional channels and should be executed by a sender.
 
+5.`cap`can not be used for map.
+
 # io
+
+file location: sr/io/
 
 ## errors
 
@@ -1284,6 +1288,7 @@ func (f *File) Write(b []byte) (n int, err error) {
       err = io.ErrShortWrite
    }
 
+   // Do nothing?
    epipecheck(f, e)
 
    if e != nil {
@@ -1294,5 +1299,588 @@ func (f *File) Write(b []byte) (n int, err error) {
 }
 ```
 
+# bufio
 
+file location: src/bufio/
+
+Package bufio implements buffered I/O. It wraps an `io.Reader` or `io.Writer` object, creating another object (Reader or Writer) that also implements the interface but provides buffering and some help for textual I/O.
+
+## structs
+
+(1) Reader & Writer
+
+file location: bufio.go
+
+```go
+// Reader implements buffering for an io.Reader object.
+type Reader struct {
+   buf          []byte
+   rd           io.Reader // reader provided by the client
+   r, w         int       // buf read and write positions
+   err          error
+   lastByte     int // last byte read for UnreadByte; -1 means invalid
+   lastRuneSize int // size of last rune read for UnreadRune; -1 means invalid
+}
+
+// Writer implements buffering for an io.Writer object.
+// If an error occurs writing to a Writer, no more data will be
+// accepted and all subsequent writes, and Flush, will return the error.
+// After all data has been written, the client should call the
+// Flush method to guarantee all data has been forwarded to
+// the underlying io.Writer.
+type Writer struct {
+	err error
+	buf []byte
+	n   int
+	wr  io.Writer
+}
+```
+
+(2) Scanner
+
+file location: scan.go
+
+```go
+// Scanner provides a convenient interface for reading data such as
+// a file of newline-delimited lines of text. Successive calls to
+// the Scan method will step through the 'tokens' of a file, skipping
+// the bytes between the tokens. The specification of a token is
+// defined by a split function of type SplitFunc; the default split
+// function breaks the input into lines with line termination stripped. Split
+// functions are defined in this package for scanning a file into
+// lines, bytes, UTF-8-encoded runes, and space-delimited words. The
+// client may instead provide a custom split function.
+//
+// Scanning stops unrecoverably at EOF, the first I/O error, or a token too
+// large to fit in the buffer. When a scan stops, the reader may have
+// advanced arbitrarily far past the last token. Programs that need more
+// control over error handling or large tokens, or must run sequential scans
+// on a reader, should use bufio.Reader instead.
+//
+type Scanner struct {
+	r            io.Reader // The reader provided by the client.
+	split        SplitFunc // The function to split the tokens.
+	maxTokenSize int       // Maximum size of a token; modified by tests.
+	token        []byte    // Last token returned by split.
+	buf          []byte    // Buffer used as argument to split.
+	start        int       // First non-processed byte in buf.
+	end          int       // End of data in buf.
+	err          error     // Sticky error.
+	empties      int       // Count of successive empty tokens.
+	scanCalled   bool      // Scan has been called; buffer is in use.
+	done         bool      // Scan has finished.
+}
+```
+
+## errors
+
+```go
+// buffered input errors
+var (
+	ErrInvalidUnreadByte = errors.New("bufio: invalid use of UnreadByte")
+	ErrInvalidUnreadRune = errors.New("bufio: invalid use of UnreadRune")
+	ErrBufferFull        = errors.New("bufio: buffer full")
+	ErrNegativeCount     = errors.New("bufio: negative count")
+)
+
+var errNegativeRead = errors.New("bufio: reader returned negative count from Read")
+
+// buffered output 
+var errNegativeWrite = errors.New("bufio: writer returned negative count from Write")
+```
+
+## functions/methods
+
+(1) input
+
+- Reader
+
+```go
+// NewReaderSize returns a new Reader whose buffer has at least the specified
+// size. If the argument io.Reader is already a Reader with large enough
+// size, it returns the underlying Reader.
+func NewReaderSize(rd io.Reader, size int) *Reader
+
+// NewReader returns a new Reader whose buffer has the default size.
+func NewReader(rd io.Reader) *Reader {
+	return NewReaderSize(rd, defaultBufSize)
+}
+
+// Read reads data into p.
+// It returns the number of bytes read into p.
+// The bytes are taken from at most one Read on the underlying Reader,
+// hence n may be less than len(p).
+// To read exactly len(p) bytes, use io.ReadFull(b, p).
+// At EOF, the count will be zero and err will be io.EOF.
+func (b *Reader) Read(p []byte) (n int, err error)
+
+// Peek returns the next n bytes without advancing the reader. The bytes stop
+// being valid at the next read call. If Peek returns fewer than n bytes, it
+// also returns an error explaining why the read is short. The error is
+// ErrBufferFull if n is larger than b's buffer size.
+//
+// Calling Peek prevents a UnreadByte or UnreadRune call from succeeding
+// until the next read operation.
+func (b *Reader) Peek(n int) ([]byte, error)
+
+// Discard skips the next n bytes, returning the number of bytes discarded.
+//
+// If Discard skips fewer than n bytes, it also returns an error.
+// If 0 <= n <= b.Buffered(), Discard is guaranteed to succeed without
+// reading from the underlying io.Reader.
+func (b *Reader) Discard(n int) (discarded int, err error)
+
+// UnreadByte unreads the last byte. Only the most recently read byte can be unread.
+//
+// UnreadByte returns an error if the most recent method called on the
+// Reader was not a read operation. Notably, Peek is not considered a
+// read operation.
+// Similar method: UnreadRune()
+func (b *Reader) UnreadByte() error
+
+// Buffered returns the number of bytes that can be read from the current buffer.
+func (b *Reader) Buffered()
+
+// ReadSlice reads until the first occurrence of delim in the input,
+// returning a slice pointing at the bytes in the buffer.
+// The bytes stop being valid at the next read.
+// If ReadSlice encounters an error before finding a delimiter,
+// it returns all the data in the buffer and the error itself (often io.EOF).
+// ReadSlice fails with error ErrBufferFull if the buffer fills without a delim.
+// Because the data returned from ReadSlice will be overwritten
+// by the next I/O operation, most clients should use
+// ReadBytes or ReadString instead.
+// ReadSlice returns err != nil if and only if line does not end in delim.
+func (b *Reader) ReadSlice(delim byte) (line []byte, err error)
+
+// ReadLine is a low-level line-reading primitive. Most callers should use
+// ReadBytes('\n') or ReadString('\n') instead or use a Scanner.
+//
+// ReadLine tries to return a single line, not including the end-of-line bytes.
+// If the line was too long for the buffer then isPrefix is set and the
+// beginning of the line is returned. The rest of the line will be returned
+// from future calls. isPrefix will be false when returning the last fragment
+// of the line. The returned buffer is only valid until the next call to
+// ReadLine. ReadLine either returns a non-nil line or it returns an error,
+// never both.
+//
+// The text returned from ReadLine does not include the line end ("\r\n" or "\n").
+// No indication or error is given if the input ends without a final line end.
+// Calling UnreadByte after ReadLine will always unread the last byte read
+// (possibly a character belonging to the line end) even if that byte is not
+// part of the line returned by ReadLine.
+func (b *Reader) ReadLine() (line []byte, isPrefix bool, err error)
+
+// ReadBytes reads until the first occurrence of delim in the input,
+// returning a slice containing the data up to and including the delimiter.
+// If ReadBytes encounters an error before finding a delimiter,
+// it returns the data read before the error and the error itself (often io.EOF).
+// ReadBytes returns err != nil if and only if the returned data does not end in
+// delim.
+// For simple uses, a Scanner may be more convenient.
+func (b *Reader) ReadBytes(delim byte) ([]byte, error)
+
+// ReadString reads until the first occurrence of delim in the input,
+// returning a string containing the data up to and including the delimiter.
+// If ReadString encounters an error before finding a delimiter,
+// it returns the data read before the error and the error itself (often io.EOF).
+// ReadString returns err != nil if and only if the returned data does not end in
+// delim.
+// For simple uses, a Scanner may be more convenient.
+func (b *Reader) ReadString(delim byte) (string, error) 
+```
+
+- Scanner
+
+```go
+// NewScanner returns a new Scanner to read from r.
+// The split function defaults to ScanLines.
+func NewScanner(r io.Reader) *Scanner
+
+// ScanLines is a split function for a Scanner that returns each line of
+// text, stripped of any trailing end-of-line marker. The returned line may
+// be empty. The end-of-line marker is one optional carriage return followed
+// by one mandatory newline. In regular expression notation, it is `\r?\n`.
+// The last non-empty line of input will be returned even if it has no
+// newline.
+func ScanLines(data []byte, atEOF bool) (advance int, token []byte, err error)
+
+// ScanWords is a split function for a Scanner that returns each
+// space-separated word of text, with surrounding spaces deleted. It will
+// never return an empty string. The definition of space is set by
+// unicode.IsSpace.
+func ScanWords(data []byte, atEOF bool) (advance int, token []byte, err error)
+```
+
+Example1: The simplest use of a Scanner, to read standard input as a set of lines.
+
+```go
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		fmt.Println(scanner.Text()) // Println will add back the final '\n'
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	}
+```
+
+Example 2: Use a Scanner to implement a simple word-count utility by scanning the input as a sequence of space-delimited tokens.
+
+```go
+	// An artificial input source.
+	const input = "Now is the winter of our discontent,\nMade glorious summer by this sun of York.\n"
+	scanner := bufio.NewScanner(strings.NewReader(input))
+	// Set the split function for the scanning operation.
+	scanner.Split(bufio.ScanWords)
+	// Count the words.
+	count := 0
+	for scanner.Scan() {
+		count++
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "reading input:", err)
+	}
+	fmt.Printf("%d\n", count)
+```
+
+(2) output
+
+```go
+// NewWriterSize returns a new Writer whose buffer has at least the specified
+// size. If the argument io.Writer is already a Writer with large enough
+// size, it returns the underlying Writer.
+func NewWriterSize(w io.Writer, size int) *Writer
+
+// NewWriter returns a new Writer whose buffer has the default size.
+func NewWriter(w io.Writer) *Writer
+
+// Flush writes any buffered data to the underlying io.Writer.
+func (b *Writer) Flush() error 
+
+// Write writes the contents of p into the buffer.
+// It returns the number of bytes written.
+// If nn < len(p), it also returns an error explaining
+// why the write is short.
+func (b *Writer) Write(p []byte) (nn int, err error)
+
+// WriteString writes a string.
+// It returns the number of bytes written.
+// If the count is less than len(s), it also returns an error explaining
+// why the write is short.
+func (b *Writer) WriteString(s string)
+```
+
+*Note*: Don't forget to flush at last if you use a buffered writer!
+
+# strings
+
+file location: src/strings
+
+## Builder
+
+There is no constructor for `strings.Builder`.
+
+```go
+// A Builder is used to efficiently build a string using Write methods.
+// It minimizes memory copying. The zero value is ready to use.
+// Do not copy a non-zero Builder.
+type Builder struct {
+	addr *Builder // of receiver, to detect copies by value
+	buf  []byte
+}
+
+// WriteString appends the contents of s to b's buffer.
+// It returns the length of s and a nil error.
+func (b *Builder) WriteString(s string) (int, error) {
+	b.copyCheck()
+    // Always keep in mind that a string is a bytes slice.
+	b.buf = append(b.buf, s...)
+	return len(s), nil
+}
+
+// String returns the accumulated string.
+func (b *Builder) String() string {
+	return *(*string)(unsafe.Pointer(&b.buf))
+}
+```
+
+## Reader
+
+```go
+// A Reader implements the io.Reader, io.ReaderAt, io.Seeker, io.WriterTo,
+// io.ByteScanner, and io.RuneScanner interfaces by reading
+// from a string.
+// The zero value for Reader operates like a Reader of an empty string.
+type Reader struct {
+   s        string
+   i        int64 // current reading index
+   prevRune int   // index of previous rune; or < 0
+}
+
+// NewReader returns a new Reader reading from s.
+// It is similar to bytes.NewBufferString but more efficient and read-only.
+func NewReader(s string) *Reader { return &Reader{s, 0, -1} }
+```
+
+## functions 
+
+1.`Index`
+
+(1) signature
+
+```go
+// Index returns the index of the first instance of substr in s, or -1 if substr is not present in s.
+func Index(s, substr string) int
+```
+
+(2) workflow
+
+```go
+	n := len(substr)
+	switch {
+	case n == 0:
+		return 0
+	case n == 1:
+		return IndexByte(s, substr[0])
+	case n == len(s):
+		if substr == s {
+			return 0
+		}
+		return -1
+	case n > len(s):
+		return -1
+	case n <= bytealg.MaxLen:
+        // ...
+	}
+```
+
+Different search strategies will be used based on length of substring. There is still another strategy other than those shown above. 
+
+```go
+	c0 := substr[0]
+	c1 := substr[1]
+	i := 0
+	t := len(s) - n + 1
+	fails := 0
+	for i < t {
+        // Search the first character of substring
+		if s[i] != c0 {
+			o := IndexByte(s[i:t], c0)
+			if o < 0 {
+				return -1
+			}
+			i += o
+		}
+        // Search the second character and the rest.
+		if s[i+1] == c1 && s[i:i+n] == substr {
+			return i
+		}
+		i++
+		fails++
+        // If failed too many times, use Rabin-Karp algorithm
+		if fails >= 4+i>>4 && i < t {
+			// Rabin-Karp search
+			j := indexRabinKarp(s[i:], substr)
+			if j < 0 {
+				return -1
+			}
+			return i + j
+		}
+	}
+```
+
+Rabin-Karp algorithm:
+
+```pseudocode
+function RabinKarp(string s[1..n], string pattern[1..m])
+  hpattern := hash(pattern[1..m]);
+  for i from 1 to n-m+1
+    hs := hash(s[i..i+m-1])
+    if hs = hpattern
+      if s[i..i+m-1] = pattern[1..m]
+        return i
+  return not found
+```
+
+The key to the Rabin–Karp algorithm's performance is the efficient computation of [hash values](https://en.wikipedia.org/wiki/Hash_value) of the successive substrings of the text. The [Rabin fingerprint](https://en.wikipedia.org/wiki/Rabin_fingerprint) is a popular and effective rolling hash function. The hash function described here is not a Rabin fingerprint, but it works equally well. It treats every substring as a number in some base, the base being usually a large [prime](https://en.wikipedia.org/wiki/Prime_number).
+
+For example, if the substring is "hi", the base is 256, and prime modulus is 101, then the hash value would be
+
+```pseudocode
+ [(104 % 101 ) × 256 + 105] % 101  =  65
+ (ASCII of 'h' is 104 and of 'i' is 105)
+```
+
+2.`genSplit`
+
+This private function is used by some splitting functions such as `strings.Split`.
+
+(1) signature
+
+```go
+// Generic split: splits after each instance of sep,
+// including sepSave bytes of sep in the subarrays.
+func genSplit(s, sep string, sepSave, n int) []string
+```
+
+(2) workflow
+
+```go
+	if n == 0 {
+		return nil
+	}
+	if sep == "" {
+		return explode(s, n)
+	}
+	if n < 0 {
+		n = Count(s, sep) + 1
+	}
+	// Set the initial len in advance 
+	// so we can avoid some unnecessary growing.
+	a := make([]string, n)
+	n--
+	i := 0
+	for i < n {
+		m := Index(s, sep)
+		if m < 0 {
+			break
+		}
+		a[i] = s[:m+sepSave]
+		s = s[m+len(sep):]
+		i++
+	}
+	a[i] = s
+	return a[:i+1]
+```
+
+3.`Join`
+
+(1) signature 
+
+```go
+// Join concatenates the elements of a to create a single string. The separator string
+// sep is placed between elements in the resulting string.
+func Join(a []string, sep string) string
+```
+
+(2) workflow
+
+```go
+	switch len(a) {
+	case 0:
+		return ""
+	case 1:
+		return a[0]
+	}
+	n := len(sep) * (len(a) - 1)
+	for i := 0; i < len(a); i++ {
+		n += len(a[i])
+	}
+
+	// Builder can offer more efficient concatenation.
+	var b Builder
+	// Grow in advance.
+	b.Grow(n)
+	b.WriteString(a[0])
+	for _, s := range a[1:] {
+		b.WriteString(sep)
+		b.WriteString(s)
+	}
+	return b.String()
+```
+
+4.`Replace`
+
+(1) signature
+
+```go
+// Replace returns a copy of the string s with the first n
+// non-overlapping instances of old replaced by new.
+// If old is empty, it matches at the beginning of the string
+// and after each UTF-8 sequence, yielding up to k+1 replacements
+// for a k-rune string.
+// If n < 0, there is no limit on the number of replacements.
+func Replace(s, old, new string, n int) string
+```
+
+(2) workflow
+
+```go
+if old == new || n == 0 {
+   return s // avoid allocation
+}
+
+// Compute number of replacements.
+if m := Count(s, old); m == 0 {
+   return s // avoid allocation
+} else if n < 0 || m < n {
+   n = m
+}
+
+// Apply replacements to buffer.
+t := make([]byte, len(s)+n*(len(new)-len(old)))
+w := 0
+start := 0
+for i := 0; i < n; i++ {
+   j := start
+   if len(old) == 0 {
+      if i > 0 {
+         _, wid := utf8.DecodeRuneInString(s[start:])
+         j += wid
+      }
+   } else {
+       // let j point to the substring which we want to replace 
+       // in left string
+      j += Index(s[start:], old)
+   }
+   // copy 
+   w += copy(t[w:], s[start:j])
+   // replace
+   w += copy(t[w:], new)
+   start = j + len(old)
+}
+w += copy(t[w:], s[start:])
+return string(t[0:w])
+```
+
+5.`ToUpper`
+
+(1) signature
+
+```go
+// ToUpper returns a copy of the string s with all Unicode letters mapped to their upper case.
+func ToUpper(s string) string
+```
+
+(2) workflow
+
+```go
+	isASCII, hasLower := true, false
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c >= utf8.RuneSelf {
+			isASCII = false
+			break
+		}
+		hasLower = hasLower || (c >= 'a' && c <= 'z')
+	}
+
+	if isASCII { // optimize for ASCII-only strings.
+		if !hasLower {
+			return s
+		}
+		var b Builder
+		b.Grow(len(s))
+		for i := 0; i < len(s); i++ {
+			c := s[i]
+			if c >= 'a' && c <= 'z' {
+				c -= 'a' - 'A'
+			}
+			b.WriteByte(c)
+		}
+		return b.String()
+	}
+	// unicode.ToUpper maps the rune to upper case.
+	return Map(unicode.ToUpper, s)
+```
 

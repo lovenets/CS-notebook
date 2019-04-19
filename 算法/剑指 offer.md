@@ -277,7 +277,7 @@ type ListNode struct {
 
 func reversePrint(head *ListNode) {
 	if head == nil {
-		return
+		return 
 	}
 	stack := make([]*ListNode, 0)
 	for cur := head; cur != nil; cur = cur.Next {
@@ -420,9 +420,222 @@ func nextInorder(node *BinaryTreeNode) *BinaryTreeNode {
 
 时间复杂度为$$O(树的深度)$$，空间复杂度为$$O(1)$$。
 
+## 用两个栈实现队列
 
+用两个栈实现一个队列，请实现它的两个函数`appendTail`和`deleteHead`，分别完成在队列尾部插入节点和在队列头部删除节点的功能。队列的声明为：
 
+```go
+type CQueue struct {
+    Stack1 []interface{}
+    Stack2 []interface{}
+}
 
+func NewCQueue() *CQueue {
+    return &CQueue{make([]interface{}, 0), make([]interface{}, 0)}
+}
+```
 
+### 分析
 
+入队的时候，总是压入 stack1。出队的时候则分情况：
+
+- 如果两个栈都为空，那么说明队列为空；
+- 如果 stack2 为空，那么将 stack1 的元素依次出栈并压入 stack2，然后 stack2 的栈顶元素就是队头元素；
+- 如果 stack2 不为空，那么栈顶元素就是队头元素。
+
+```go
+func (q *CQueue) AppendTail(e interface{}) {
+   q.stack1 = append(q.stack1, e)
+}
+
+func (q *CQueue) DeleteHead() interface{} {
+   if len(q.stack1) == 0 && len(q.stack2) == 0 {
+      return nil
+   }
+   var top interface{}
+   if len(q.stack2) == 0 {
+      // stack2 为空，则 stack1 依次出栈
+      for len(q.stack1) > 1 {
+         q.stack2 = append(q.stack2, q.stack1[len(q.stack1)-1])
+         q.stack1 = q.stack1[:len(q.stack1)-1]
+      }
+      top = q.stack1[0]
+      q.stack1 = q.stack1[:0]
+   } else {
+      // stack2 不为空
+      top = q.stack2[len(q.stack2)-1]
+      q.stack2 = q.stack2[:len(q.stack2)-1]
+   }
+   return top
+}
+```
+
+入队的时间复杂度是$$O(1)​$$，出队的时间复杂度最坏情况下是$$O(n)​$$，最好情况下是$$O(1)​$$。空间复杂度是$$O(1)​$$。
+
+### 相关题目
+
+用两个队列实现一个栈。
+
+#### 分析
+
+入栈的时候总是加入 queue1，出栈则需要分情况考虑：
+
+- 如果两个队列都为空，说明栈为空
+- 将不空的队列中的元素依次出队并加入另一个队列，直到原来不为空的队列中只剩一个元素，这个元素就是队头
+
+```go
+type CStack struct {
+    queue1 []interface{}
+    queue2 []interface{}
+}
+
+func NewCStack() *CStack {
+    return &CStack{make([]interface{}, 0), make([]interface{}, 0)}
+}
+
+func (s *CStack) Push(e interface{}) {
+    s.queue1 = append(s.queue1, e)
+}
+
+func (s *CStack) Pop() interface{} {
+    if len(s.queue1) == 0 && len(s.queue2) == 0 {
+        return nil
+    }
+    var top
+    if len(s.queue1) > 0 {
+        for len(s.queue1) > 1 {
+            s.queue2 = append(s.queue2, s.queue1[0])
+            s.queue1 = s.queue1[1:]
+        }
+        top = s.queue1[0]
+        s.queue1 = s.queue1[1:]
+    } else {
+        for len(s.queue2) > 1 {
+            s.queue1 = append(s.queue1, s.queue2[0])
+            s.queue2 = s.queue2[1:]
+        }
+        top = s.queue2[0]
+        s.queue2 = s.queue2[1:]
+    }
+    return top
+}
+```
+
+时间复杂度为$$O(n)$$。
+
+## 斐波那契数列
+
+斐波那契数列及其相关的变形，解题的关键在于分析问题时找到递推关系（比如用数学归纳法），然后确定这是一个斐波那契数列问题。
+
+### 1. 求斐波那契数列的第 n 项
+
+#### 分析
+
+递归是非常直观的解法，但是递归时间效率和空间效率都很差，因为在计算的过程有很多项的计算是重复的：
+
+![剑指 offer_10_1](img/剑指 offer_10_1.jpg)
+
+为了避免重复计算，就可以使用记忆化的方式：
+
+```go
+func MemomizedFibonacci(n int) int {
+	// computed 用来记忆话计算结果
+	computed := make(map[int]int)
+	computed[0], computed[1] = 0, 1
+	return helper(n, computed)
+}
+
+func helper(n int, computed map[int]int) int {
+	if _, ok := computed[n]; ok {
+		return computed[n]
+	} else {
+		res := helper(n-1, computed) + helper(n-2, computed)
+		computed[n] = res
+		return res
+	}
+}
+```
+
+实际上，用循环来计算，时间和空间的效率都是很高的。
+
+```go
+func IterativeFibonacci(n int) int {
+    if n == 0 {
+        return 0
+    }
+    if n == 1 {
+        return 1
+    }
+    i, j := 0, 1
+    res := 0
+    for i := 2; i <= n; i++ {
+        res = i + j
+        i, j = j, res
+    }
+    return res
+}
+```
+
+时间复杂度为$$O(n)$$，空间复杂度为$$O(1)$$。
+
+### 2. 青蛙跳台阶问题
+
+一只青蛙可以跳上 1 级台阶，也可以跳上 2 级台阶。求该青蛙跳上一个 n 级的台阶总共有多少种解法。
+
+#### 分析
+
+把跳 n 级台阶所需的跳数看成 n 的函数，记为$$f(n)$$。当$$n>2$$时，如果第一跳为 1 级，那么跳法总数等于剩下的 n - 1 级台阶的跳法数目；如果第一跳为 2 级，那么跳法总数等于剩下的 n - 2 级台阶的跳法数目。也就是说，$$f(n)=f(n-1)+f(n-2)$$。这就转换为了斐波那契数列问题。但是要注意边界条件不同。
+
+```go
+func FrogJump(n int) int {
+    if n == 0 {
+        return 0
+    }
+    if n == 1 {
+        return 1
+    }
+    if n == 2 {
+        return 2
+    }
+    i, j := 1, 2
+    res := 0
+    for i := 3; i <= n; i++ {
+        res = i + j
+        i, j = j, res
+    }
+    return res
+}
+```
+
+## 旋转数组的最小数字
+
+把一个数组最开始的若干个元素搬到数组的末尾，我们称之为数组的旋转。输入一个递增排序的数组的一个旋转，输出旋转数组的最小元素。例如，数组`{3, 4, 5, 1, 2}`为`{1, 2, 3, 4, 5}`的一个旋转，该数组的最小值为 1。
+
+### 分析
+
+原数组是递增的，那么原数组的第一个元素就是最小元素。旋转之后形成的数组实际上是分部有序的，前一个有序的子数组的最后一个元素是最大元素，后一个有序子数组的第一个元素就是最小元素，两个元素显然是相邻的。可以从后往前遍历旋转后的数组，当发现前一个元素比当前元素大时，当前元素就是最小元素。
+
+```go
+func MinOfRotatedArray(arr []int) (int, error) {
+	if len(arr) == 0 {
+		return 0, errors.New("invalid input")
+	}
+	// 考虑了只有一个元素、所有元素均相同的特殊情况
+	i := len(arr) - 1
+	for ; i > 0; i-- {
+		if arr[i] < arr[i-1] {
+			break
+		}
+	}
+	return arr[i], nil
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(1)$$。
+
+## 矩阵中的路径
+
+请设计一个函数，用来判断在一个矩阵中是否存在一条包含某字符串所有字符的路径。路径可以从矩阵的任意一格开始，每一步可以在矩阵中向左、右、上、下移动一格。如果一条路径经过了矩阵的某一格，那么该路径不能再次进入该格子。
+
+### 分析
 

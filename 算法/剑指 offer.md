@@ -637,5 +637,305 @@ func MinOfRotatedArray(arr []int) (int, error) {
 
 请设计一个函数，用来判断在一个矩阵中是否存在一条包含某字符串所有字符的路径。路径可以从矩阵的任意一格开始，每一步可以在矩阵中向左、右、上、下移动一格。如果一条路径经过了矩阵的某一格，那么该路径不能再次进入该格子。
 
+比如下面的矩阵中包含路径“bfcc”，但是不包含路径“abfb”。
+
+```
+a b t g
+c f c s
+j d c h
+```
+
 ### 分析
+
+在矩阵中查找路径，可以考虑使用 BFS。
+
+```go
+func FindPathInMatrix(matrix [][]byte, path string) bool {
+	if len(matrix) == 0 {
+		return false
+	}
+	if len(path) == 0 {
+		return true
+	}
+	for i := 0; i < len(matrix); i++ {
+		for j := 0; j < len(matrix[0]); j++ {
+			// 从不同的起点开始进行 bfs
+			if bfs(matrix, path, i, j) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func bfs(matrix [][]byte, path string, i int, j int) bool {
+	dir := [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}}
+	xMax, yMax := len(matrix), len(matrix[0])
+	q := make([][]int, 0)
+	visited := make([][]bool, xMax)
+	for i := range visited {
+		visited[i] = make([]bool, yMax)
+	}
+	
+	count := 0 // 记录当前已经搜索到的字符数
+	q = append(q, []int{i, j})
+	visited[i][j] = true
+	for len(q) != 0 {
+		head := q[0]
+		q = q[1:]
+		if matrix[head[0]][head[1]] == path[count] {
+			count++
+			if count == len(path) {
+				return true
+			}
+			for k := range dir {
+				nextX, nextY := head[0]+dir[k][0], head[1]+dir[k][1]
+				if nextX >= 0 && nextX < xMax && nextY >= 0 && nextY < yMax && !visited[nextX][nextY] {
+					q = append(q, []int{nextX, nextY})
+					visited[nextX][nextY] = true
+				}
+			}
+		}
+	}
+	return false
+}
+```
+
+总的时间复杂度是$$O(n^2)$$，空间复杂度是$$O(n)$$。
+
+也可以使用回溯法，也就是用 DFS 的方法。
+
+```go
+func FindPathInMatrix(matrix [][]byte, path string) bool {
+	if len(matrix) == 0 {
+		return false
+	}
+	if len(path) == 0 {
+		return true
+	}
+	for i := 0; i < len(matrix); i++ {
+		for j := 0; j < len(matrix[0]); j++ {
+			// 从不同的起点开始 dfs
+			if dfs(matrix, path, i, j) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func dfs(matrix [][]byte, path string, i int, j int) bool {
+   rows, cols := len(matrix), len(matrix[0])
+   visited := make([][]bool, rows)
+   for i := range visited {
+      visited[i] = make([]bool, cols)
+   }
+   count := 0
+   return dfsHelper(matrix, path, i, j, rows, cols, visited, &count)
+}
+
+func dfsHelper(matrix [][]byte, path string, i int, j int, rows int, cols int, visited [][]bool, count *int) bool {
+   if i >= 0 && i < rows && j >= 0 && j < cols && !visited[i][j] {
+      visited[i][j] = true
+      if path[*count] == matrix[i][j] {
+         *count++
+         if *count == len(path) {
+            return true
+         }
+         if dfsHelper(matrix, path, i+1, j, rows, cols, visited, count) ||
+            dfsHelper(matrix, path, i-1, j, rows, cols, visited, count) ||
+            dfsHelper(matrix, path, i, j+1, rows, cols, visited, count) ||
+            dfsHelper(matrix, path, i, j-1, rows, cols, visited, count) {
+            return true
+         }
+      }
+   }
+   return false
+}
+```
+
+时间复杂度是$$O(n^2)$$。
+
+## 机器人的运动范围
+
+地上有一个 m 行 n 列的方格。一个机器人从坐标(0, 0)的格子开始移动，它每次可以向左、右、上、下移动一格，但不能进入行坐标和列坐标的数位之和大于大于 k 的格子。例如，当 k 为 18 时，机器人能够进入方格(35, 37)，因为 3+5+3+7=18。但它不能进入方格(35, 38)，因为 3+5+3+8=19。请问机器人能够到达多少个格子？
+
+### 分析
+
+类似的题目，依旧是搜索问题，只不过多了一些判断条件。
+
+```go
+func CountCells(m, n, k int) int {
+   if k < 0 || m <= 0 || n <= 0 {
+      return 0
+   }
+   visited := make([][]bool, m)
+   for i := range visited {
+      visited[i] = make([]bool, n)
+   }
+   dir := [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}}
+   q := make([][]int, 0)
+   q = append(q, []int{0, 0})
+   visited[0][0] = true
+   count := 0
+   for len(q) > 0 {
+      head := q[0]
+      q = q[1:]
+      count++
+      for j := range dir  {
+         x, y := head[0]+dir[j][0], head[1]+dir[j][1]
+         if x >= 0 && x < m && y >= 0 && y < n && check(x, y, k) && !visited[x][y] {
+            q = append(q, []int{x, y})
+            visited[x][y] = true
+         }
+      }
+   }
+   return count
+}
+
+func check(x int, y int, k int) bool {
+   // 已经考虑了 x，y 为 0 的情况
+   count := 0
+   for d := x; d > 0; d /= 10 {
+      count += d % 10
+      if count > k {
+         return false
+      }
+   }
+   for d := y % 10; d > 0; d /= 10 {
+      count += d
+      if count > k {
+         return false
+      }
+   }
+   return true
+}
+```
+
+## 剪绳子
+
+给你一根长度为 n 的绳子，请把绳子剪成 m 段（m、n 都是整数，n > 1 并且 m > 1），每段绳子的长度记为 k[0]，k[1]，……。请问所有绳子长度的最大乘积是多少？
+
+### 分析
+
+1.动态规划
+
+假如定义函数 f(n) 为把长度为 n 的绳子剪成若干段之后各段长度乘积的最大值。在剪第一段的时候，我们有 n - 1 种可能的选择没也就是剪出来的第一段绳子的可能长度分别为1，2，……，n-1。因此， f(n)=max(f(i)*f(n-i))。于是这个问题就被分解成了若干个小的子问题，而每个子问题又可以继续分解，并且把它们各自的最优解组合起来之和就达到了整个问题的最优解。于是可以用动态规划的方法。
+
+为了提高效率，采用记忆化的方法将一些中间结果保存下来，避免重复计算。当绳子的长度为 2 时，只可能剪成长度都为 1 的两段，因此 f(2) 等于 1。当绳子的长度为 3 时，可能把绳子剪成长度为 1 和长度为 2 的两段或者是长度为 1 的三段，此时最大长度乘积为 2。
+
+```go
+// 该解法存疑
+func DPMaxProduct(n int) int {
+    // 边界情况
+   if n < 2 {
+      return 0
+   }
+   if n == 2 {
+      return 1
+   }
+   if n == 3 {
+      return 2
+   }
+    // products 数组用来存储 f(n)
+   products := make([]int, n+1)
+   products[1], products[2] = 1, 2
+   for i := 3; i <= n; i++ {
+      max := 0
+      for j := 1; j <= n/2; j++ {
+         tmp := products[j] * products[n-j]
+         if tmp > max {
+            max = tmp
+         }
+      }
+      products[i] = max
+   }
+   return products[n]
+}
+```
+
+时间复杂度是$$O(n^2)$$，空间复杂度是$$O(n)$$。
+
+2.贪婪算法
+
+当绳子长度$$n≥5$$时，显然$$2(n-2)>n$$并且$$3(n-3)>n$$。也就是说，当剩下的绳子长度大于或者等于 5 时，应该剪成长度为 3 或 2 的段。$$n=5$$时，$$3(n-3)≥2(n-2)$$，所以应该尽可能多地剪成长度为 3 的段。
+
+当$$n=4$$时，显然$$2×2$$是最优解。实际上这个时候绳子没必要剪，但是题目要求至少剪一刀。
+
+这种方法并没有尝试每一种可能，而是在每一步都要找到最优解，因此这是一种贪婪算法。
+
+```go
+func GreedyProduct(n uint) uint {
+	if n < 2 {
+		return 0
+	}
+	if n == 2 {
+		return 1
+	}
+	if n == 3 {
+		return 2
+	}
+	// 先尽可能剪成长度为 3 的段
+	numOf3 := n / 2 // 长度为 3 的段的数量
+	// 如果原来长度为 4 的段，此时不是剪成长度为 3 的段
+	// 而是要剪成长度为 2 的段
+	if 3*numOf3+1 == n {
+		numOf3--
+	}
+	// 剪成长度为 2 的段
+	numOf2 := uint((n - 3*numOf3) / 2) // 长度为 2 的段的数量
+	return 1 << numOf2 * uint(math.Pow(3.0, float64(numOf3)))
+}
+```
+
+## 二进制中 1 的个数
+
+请实现一个函数，输入一个整数，输出该数二进制中 1 的个数。
+
+### 分析
+
+（1）常规解法
+
+最直接的想法就是把输入的数用除 k 取余法转换成二进制，这种方法的时间复杂度显然是线性的。注意如果输入的数是负数，那么最高位多一个 1.
+
+```GO
+func CountOnesInBinary(n int) int {
+   count := 0
+   // 如果为负数，那么就是高位多一个 1
+   if n < 0 {
+      count++
+      n = -n
+   }
+   for n != 0 {
+      if n%2 == 1 {
+         count++
+      }
+      n /= 2
+   }
+   return count
+}
+```
+
+还有一种做法，首先把输入的数和 1 做位与运算，判断最低位是不是 1；然后将 1 左移 1 位，做位与运算，判断次低位是否为 1 ……这种做法的时间复杂度也是线性的，与整数的位数有关（64 位整数就要循环 64  次）。
+
+（2）技巧解法
+
+**把一个数和它减去 1 的结果做位与运算，相当于把这个数最右边的 1 变为 0**。基于这个事实，可以不断进行这样的操作，总共能进行多少次，就说明有多少个 1.
+
+```go
+func CountOnesInBinary(n int) int {
+	count := 0
+	if n < 0 {
+		count++
+		n = -n
+	}
+	for n != 0 {
+		count++
+		n = (n-1) & n
+	}
+	return count
+}
+```
+
+
 

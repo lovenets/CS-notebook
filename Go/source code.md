@@ -1884,3 +1884,466 @@ func ToUpper(s string) string
 	return Map(unicode.ToUpper, s)
 ```
 
+# regexp
+
+location: src/regexp/
+
+The regexp implementation provided by this package is guaranteed to run in time linear in the size of the input. All characters are UTF-8-encoded code points.
+
+## syntax
+
+Running `go doc regexp/syntax`will list following syntax documentations.
+
+Single characters:
+
+    .              any character, possibly including newline (flag s=true)
+    [xyz]          character class
+    [^xyz]         negated character class
+    \d             Perl character class
+    \D             negated Perl character class
+    [[:alpha:]]    ASCII character class
+    [[:^alpha:]]   negated ASCII character class
+    \pN            Unicode character class (one-letter name)
+    \p{Greek}      Unicode character class
+    \PN            negated Unicode character class (one-letter name)
+    \P{Greek}      negated Unicode character class
+
+Composites:
+
+    xy             x followed by y
+    x|y            x or y (prefer x)
+
+Repetitions:
+
+    x*             zero or more x, prefer more
+    x+             one or more x, prefer more
+    x?             zero or one x, prefer one
+    x{n,m}         n or n+1 or ... or m x, prefer more
+    x{n,}          n or more x, prefer more
+    x{n}           exactly n x
+    x*?            zero or more x, prefer fewer
+    x+?            one or more x, prefer fewer
+    x??            zero or one x, prefer zero
+    x{n,m}?        n or n+1 or ... or m x, prefer fewer
+    x{n,}?         n or more x, prefer fewer
+    x{n}?          exactly n x
+
+Implementation restriction: The counting forms `x{n,m}`, `x{n,}`, and `x{n}` reject forms that create a minimum or maximum repetition count above 1000. Unlimited repetitions are not subject to this restriction.
+
+Grouping:
+
+    (re)           numbered capturing group (submatch)
+    (?P<name>re)   named & numbered capturing group (submatch)
+    (?:re)         non-capturing group
+    (?flags)       set flags within current group; non-capturing
+    (?flags:re)    set flags during re; non-capturing
+    
+    Flag syntax is xyz (set) or -xyz (clear) or xy-z (set xy, clear z). The flags are:
+    
+    i              case-insensitive (default false)
+    m              multi-line mode: ^ and $ match begin/end line in addition to begin/end text (default false)
+    s              let . match \n (default false)
+    U              ungreedy: swap meaning of x* and x*?, x+ and x+?, etc (default false)
+
+Empty strings:
+
+    ^              at beginning of text or line (flag m=true)
+    $              at end of text (like \z not Perl's \Z) or line (flag m=true)
+    \A             at beginning of text
+    \b             at ASCII word boundary (\w on one side and \W, \A, or \z on the other)
+    \B             not at ASCII word boundary
+    \z             at end of text
+
+Escape sequences:
+
+    \a             bell (== \007)
+    \f             form feed (== \014)
+    \t             horizontal tab (== \011)
+    \n             newline (== \012)
+    \r             carriage return (== \015)
+    \v             vertical tab character (== \013)
+    \*             literal *, for any punctuation character *
+    \123           octal character code (up to three digits)
+    \x7F           hex character code (exactly two digits)
+    \x{10FFFF}     hex character code
+    \Q...\E        literal text ... even if ... has punctuation
+
+Character class elements:
+
+    x              single character
+    A-Z            character range (inclusive)
+    \d             Perl character class
+    [:foo:]        ASCII character class foo
+    \p{Foo}        Unicode character class Foo
+    \pF            Unicode character class F (one-letter name)
+
+Named character classes as character class elements:
+
+    [\d]           digits (== \d)
+    [^\d]          not digits (== \D)
+    [\D]           not digits (== \D)
+    [^\D]          not not digits (== \d)
+    [[:name:]]     named ASCII class inside character class (== [:name:])
+    [^[:name:]]    named ASCII class inside negated character class (== [:^name:])
+    [\p{Name}]     named Unicode property inside character class (== \p{Name})
+    [^\p{Name}]    named Unicode property inside negated character class (== \P{Name})
+
+Perl character classes (all ASCII-only):
+
+    \d             digits (== [0-9])
+    \D             not digits (== [^0-9])
+    \s             whitespace (== [\t\n\f\r ])
+    \S             not whitespace (== [^\t\n\f\r ])
+    \w             word characters (== [0-9A-Za-z_])
+    \W             not word characters (== [^0-9A-Za-z_])
+
+ASCII character classes:
+
+    [[:alnum:]]    alphanumeric (== [0-9A-Za-z])
+    [[:alpha:]]    alphabetic (== [A-Za-z])
+    [[:ascii:]]    ASCII (== [\x00-\x7F])
+    [[:blank:]]    blank (== [\t ])
+    [[:cntrl:]]    control (== [\x00-\x1F\x7F])
+    [[:digit:]]    digits (== [0-9])
+    [[:graph:]]    graphical (== [!-~] == [A-Za-z0-9!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~])
+    [[:lower:]]    lower case (== [a-z])
+    [[:print:]]    printable (== [ -~] == [ [:graph:]])
+    [[:punct:]]    punctuation (== [!-/:-@[-`{-~])
+    [[:space:]]    whitespace (== [\t\n\v\f\r ])
+    [[:upper:]]    upper case (== [A-Z])
+    [[:word:]]     word characters (== [0-9A-Za-z_])
+    [[:xdigit:]]   hex digit (== [0-9A-Fa-f])
+## struct 
+
+```go
+// Regexp is the representation of a compiled regular expression.
+// A Regexp is safe for concurrent use by multiple goroutines,
+// except for configuration methods, such as Longest.
+type Regexp struct {
+	expr           string       // as passed to Compile
+	prog           *syntax.Prog // compiled program
+	onepass        *onePassProg // onepass program or nil
+	numSubexp      int
+	maxBitStateLen int
+	subexpNames    []string
+	prefix         string         // required prefix in unanchored matches
+	prefixBytes    []byte         // prefix, as a []byte
+	prefixRune     rune           // first rune in prefix
+	prefixEnd      uint32         // pc for last rune in prefix
+	mpool          int            // pool for machines
+	matchcap       int            // size of recorded match lengths
+	prefixComplete bool           // prefix is the entire regexp
+	cond           syntax.EmptyOp // empty-width conditions required at start of match
+
+	// This field can be modified by the Longest method,
+	// but it is otherwise read-only.
+	longest bool // whether regexp prefers leftmost-longest match
+}
+```
+
+Note that `Regexp`is safe for concurrency except for some configuration methods such as `Longest`.
+
+## functions/methods 
+
+```go
+// leftmost
+func Compile(expr string) (*Regexp, error)
+
+// leftmost-longest
+func CompilePOSIX(expr string) (*Regexp, error)
+
+// MustCompile is like Compile but panics if the expression cannot be parsed.
+func MustCompile(str string) *Regexp
+
+// MustCompilePOSIX is like CompilePOSIX but panics if the expression cannot be parsed.
+func MustCompilePOSIX(str string) *Regexp
+
+// Match reports whether the byte slice b
+// contains any match of the regular expression re.
+func (re *Regexp) Match(b []byte) bool
+
+// MatchString reports whether the string s
+// contains any match of the regular expression re.
+func (re *Regexp) MatchString(s string) bool
+
+// MatchString reports whether the string s
+// contains any match of the regular expression pattern.
+// More complicated queries need to use Compile and the full Regexp interface.
+func MatchString(pattern string, s string) (matched bool, err error)
+
+// ReplaceAllString returns a copy of src, replacing matches of the Regexp
+// with the replacement string repl. Inside repl, $ signs are interpreted as
+// in Expand, so for instance $1 represents the text of the first submatch.
+func (re *Regexp) ReplaceAllString(src, repl string) string
+
+// Find returns a slice holding the text of the leftmost match in b of the regular expression.
+// A return value of nil indicates no match.
+func (re *Regexp) Find(b []byte) []byte
+
+// FindIndex returns a two-element slice of integers defining the location of
+// the leftmost match in b of the regular expression. The match itself is at
+// b[loc[0]:loc[1]].
+// A return value of nil indicates no match.
+func (re *Regexp) FindIndex(b []byte) (loc []int)
+```
+
+# reflect 
+
+location: src/reflect 
+
+Package reflect implements run-time reflection, allowing a program to manipulate objects with arbitrary types. The typical use is to take a value with static type `interface{}` and extract its dynamic type information by calling `TypeOf`, which returns a Type.
+
+## type
+
+file location: src/reflect/type.go
+
+### structs
+
+```go
+// Type is the representation of a Go type.
+//
+// Type values are comparable, such as with the == operator,
+// so they can be used as map keys.
+// Two Type values are equal if they represent identical types.
+type Type interface
+
+// A Kind represents the specific kind of type that a Type represents.
+// The zero Kind is not a valid kind.
+type Kind uint
+
+// Method represents a single method.
+type Method struct {
+	// Name is the method name.
+	// PkgPath is the package path that qualifies a lower case (unexported)
+	// method name. It is empty for upper case (exported) method names.
+	// The combination of PkgPath and Name uniquely identifies a method
+	// in a method set.
+	// See https://golang.org/ref/spec#Uniqueness_of_identifiers
+	Name    string
+	PkgPath string
+
+	Type  Type  // method type
+	Func  Value // func with receiver as first argument
+	Index int   // index for Type.Method
+}
+```
+
+![Type interface](img/Type interface.jpg)
+
+### methods 
+
+1.`TypeOf`
+
+```go
+// TypeOf returns the reflection Type that represents the dynamic type of i.
+// If i is a nil interface value, TypeOf returns nil.
+func TypeOf(i interface{}) Type {
+   eface := *(*emptyInterface)(unsafe.Pointer(&i))
+   return toType(eface.typ)
+}
+```
+
+`emptyInterface` is the header for an `interface{}` value.
+
+```go
+type emptyInterface struct {
+   typ  *rtype
+   word unsafe.Pointer
+}
+```
+
+`rtype` is the common implementation of most values. It is embedded in other struct types.
+
+`toType`converts from a `*rtype` to a `Type` that can be returned to the client of package reflect.
+
+```go
+func toType(t *rtype) Type {
+    // ?
+   if t == nil {
+      return nil
+   }
+   return t
+}
+```
+
+## value
+
+file location: src/go/value.go
+
+### structs
+
+````go
+// Value is the reflection interface to a Go value.
+type Value struct {
+	// typ holds the type of the value represented by a Value.
+	typ *rtype
+	
+    // Pointer-valued data or, if flagIndir is set, pointer to data.
+	// Valid when either flagIndir is set or typ.pointers() is true.
+	ptr unsafe.Pointer
+    
+    // ...
+}
+````
+
+Note: 
+
+- The zero `Value` represents no value. 
+-  A `Value` can be used concurrently by multiple goroutines provided that the underlying Go value can be used concurrently for the equivalent direct operations.
+-  To compare two Values, compare the results of the Interface method.
+
+### methods 
+
+1.`ValueOf`
+
+```go
+// ValueOf returns a new Value initialized to the concrete value
+// stored in the interface i. ValueOf(nil) returns the zero Value.
+func ValueOf(i interface{}) Value {
+	if i == nil {
+		return Value{}
+	}
+
+	// TODO: Maybe allow contents of a Value to live on the stack.
+	// For now we make the contents always escape to the heap. It
+	// makes life easier in a few places (see chanrecv/mapassign
+	// comment below).
+	escapes(i)
+
+	return unpackEface(i)
+}
+```
+
+`unpackEface` converts the empty interface `i` to a Value.
+
+```go
+func unpackEface(i interface{}) Value {
+   e := (*emptyInterface)(unsafe.Pointer(&i))
+   // NOTE: don't read e.word until we know whether it is really a pointer or not.
+   t := e.typ
+   if t == nil {
+      return Value{}
+   }
+   // type flag uintptr
+   // uintptr is an integer type that is large enough to hold the bit pattern of any pointer.
+   f := flag(t.Kind())
+   // ifaceIndir reports whether t is stored indirectly in an interface value.
+   if ifaceIndir(t) {
+      f |= flagIndir
+   }
+   return Value{t, e.word, f}
+}
+```
+
+# json
+
+location: src/encoding/json/
+
+Package json implements encoding and decoding of JSON.
+
+## functions 
+
+1.`Marshal`
+
+(1) signature 
+
+```go
+// Marshal returns the JSON encoding of v.
+func Marshal(v interface{}) ([]byte, error)
+```
+
+(2) workflow
+
+```go
+func Marshal(v interface{}) ([]byte, error) {
+   // An encodeState encodes JSON into a bytes.Buffer
+   // e is a pointer
+   e := newEncodeState()
+
+   err := e.marshal(v, encOpts{escapeHTML: true})
+   if err != nil {
+      return nil, err
+   }
+   buf := append([]byte(nil), e.Bytes()...)
+
+   e.Reset()
+   encodeStatePool.Put(e)
+
+   return buf, nil
+}
+```
+
+`encodeState.marshal`->`encodeState.reflectValue`->`valueEncoder`
+
+`valueEncoder`executes the actual encoding process. 
+
+```go
+func (e *encodeState) reflectValue(v reflect.Value, opts encOpts) {
+   valueEncoder(v)(e, v, opts)
+}
+
+func valueEncoder(v reflect.Value) encoderFunc {
+	if !v.IsValid() {
+		return invalidValueEncoder
+	}
+	return typeEncoder(v.Type())
+}
+
+type encoderFunc func(e *encodeState, v reflect.Value, opts encOpts)
+```
+
+We can learn from `typeEncoder(v.Type())`that `Marshal`function encodes a value based on its type.
+
+2.`Unmarshal`
+
+(1) signature 
+
+```go
+// Unmarshal parses the JSON-encoded data and stores the result
+// in the value pointed to by v. If v is nil or not a pointer,
+// Unmarshal returns an InvalidUnmarshalError.
+func Unmarshal(data []byte, v interface{}) error
+```
+
+Note that decoded results will be stored into **a value pointed by a not-nil pointer**.
+
+(2) workflow 
+
+```go
+func Unmarshal(data []byte, v interface{}) error {
+   // Check for well-formedness.
+   // Avoids filling out half a data structure
+   // before discovering a JSON syntax error.
+   var d decodeState
+   // checkValid verifies that data is valid JSON-encoded data. 
+   err := checkValid(data, &d.scan)
+   if err != nil {
+      return err
+   }
+
+   d.init(data)
+   return d.unmarshal(v)
+}
+
+func (d *decodeState) unmarshal(v interface{}) error {
+    // v must be a valid pointer 
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return &InvalidUnmarshalError{reflect.TypeOf(v)}
+	}
+
+	d.scan.reset()
+    // Keep processing bytes in d.data[d.off:] until
+    // it receives a byte which is not space byte 
+    // and can't be skipped
+	d.scanWhile(scanSkipSpace)
+    // value consumes a JSON value from d.data[d.off-1:], decoding into v
+	// We decode rv not rv.Elem because the Unmarshaler interface
+	// test must be applied at the top level of the value.
+	err := d.value(rv)
+	if err != nil {
+		return d.addErrorContext(err)
+	}
+	return d.savedError
+}
+```

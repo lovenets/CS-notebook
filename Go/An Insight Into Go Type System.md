@@ -266,3 +266,73 @@ for i := 0; i < s.NumField(); i++ {
 
 There's one more point about settability introduced in passing here: the field names of `T` are upper case (exported) because only exported fields of a struct are settable.
 
+# `uintptr`vs`unsafe.Pointer`
+
+In short, there are two kinds of representations of an untyped pointer in Go: `uintptr`and`unsafe.Pointer`.
+
+## `uintptr`
+
+`uintptr` is an **integer** type that is large enough to hold the bit pattern of any pointer.
+
+## `unsafe.Pointer`
+
+`Pointer` represents a **pointer** to an arbitrary type.
+
+## The difference
+
+The superficial difference is that you can do arithmetic on an `uintptr` but not on an `unsafe.Pointer` (or any other Go pointer).
+
+> A `uintptr` is an integer, not a reference. Converting a `Pointer` to a `uintptr` creates an integer value with no pointer semantics. Even if a `uintptr` holds the address of some object, the garbage collector will not update that `uintptr`'s value if the object moves, nor will that `uintptr` keep the object from being reclaimed.
+
+*Why is `Pointer` unsafe?*
+
+The GC can and will use them to keep live objects from being reclaimed and to discover further live objects (if the `unsafe.Pointer` points to an object that has pointers of its own). If you create an `unsafe.Pointer` that doesn't point to an object, even for a brief period of time, the Go garbage collector may choose that moment to look at it and then crash because it found an invalid Go pointer. 
+
+## The relation
+
+ There are four special operations available for type Pointer that are not available for other types:
+
+- A pointer value of any type can be converted to a `Pointer`.
+- A `Pointer` can be converted to a pointer value of any type.
+- A `uintptr` can be converted to a `Pointer`.
+- A `Pointer` can be converted to a `uintptr`.
+
+Let's say we want to modify a struct by moving a pointer like C:
+
+```go
+func main() {
+	u:=new(user)
+	fmt.Println(*u)
+
+    // The first field has 0 offset.
+	pName:=(*string)(unsafe.Pointer(u))
+	*pName="John"
+
+    // unsafe.Offsetof tells us a field's offset
+    // Keep in mind that only uintptr can be offset
+	pAge:=(*int)(unsafe.Pointer(uintptr(unsafe.Pointer(u))+unsafe.Offsetof(u.age)))
+	*pAge = 20
+
+	fmt.Println(*u)
+}
+
+type user struct {
+	name string
+	age int
+}
+```
+
+Note that we shouldn't change 
+
+```go
+pAge:=(*int)(unsafe.Pointer(uintptr(unsafe.Pointer(u))+unsafe.Offsetof(u.age)))
+```
+
+into 
+
+```go
+temp:=uintptr(unsafe.Pointer(u))+unsafe.Offsetof(u.age)
+pAge:=(*int)(unsafe.Pointer(temp))
+```
+
+This is dangerous because `uintptr`will not keep the object from being reclaimed so `temp`may be reclaimed before we modify the object it points to.

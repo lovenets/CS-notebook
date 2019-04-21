@@ -1884,6 +1884,321 @@ func ToUpper(s string) string
 	return Map(unicode.ToUpper, s)
 ```
 
+# strconv 
+
+## atoi
+
+location: src/strconv/atoi.go
+
+### errors
+
+```go
+// ErrRange indicates that a value is out of range for the target type.
+var ErrRange = errors.New("value out of range")
+
+// ErrSyntax indicates that a value does not have the right syntax for the target type.
+var ErrSyntax = errors.New("invalid syntax")
+```
+
+### functions 
+
+1.`ParseUint`
+
+(1) signature 
+
+```go
+func ParseUint(s string, base int, bitSize int) (uint64, error)
+```
+
+`ParseUint` is like `ParseInt` but for unsigned numbers.
+
+(2) workflow 
+
+1) Determine whether the input string is empty.
+
+```go
+	if len(s) == 0 {
+		return 0, syntaxError(fnParseUint, s)
+	}
+```
+
+2) Determine the base.
+
+```go
+	s0 := s
+	switch {
+	case 2 <= base && base <= 36:
+		// valid base; nothing to do
+
+        // Determine the base by prefix.
+	case base == 0:
+		// Look for octal, hex prefix.
+		switch {
+            // hexadecimal
+		case s[0] == '0' && len(s) > 1 && (s[1] == 'x' || s[1] == 'X'):
+			if len(s) < 3 {
+				return 0, syntaxError(fnParseUint, s0)
+			}
+			base = 16
+			s = s[2:]
+            // octal
+		case s[0] == '0':
+			base = 8
+			s = s[1:]
+            // decimal
+		default:
+			base = 10
+		}
+
+        // error
+	default:
+		return 0, baseError(fnParseUint, s0, base)
+	}
+```
+
+3) Determine the bitsize.
+
+```go
+	if bitSize == 0 {
+        // IntSize is the size in bits of an int or uint value.
+		bitSize = int(IntSize)
+	} else if bitSize < 0 || bitSize > 64 {
+		return 0, bitSizeError(fnParseUint, s0, bitSize)
+	}
+```
+
+4) conversion
+
+```go
+	// Cutoff is the smallest number such that cutoff*base > maxUint64.
+	// If a number is greater than cutoff, then it will overflow. 
+	// Use compile-time constants for common cases.
+	var cutoff uint64
+	switch base {
+	case 10:
+		cutoff = maxUint64/10 + 1
+	case 16:
+		cutoff = maxUint64/16 + 1
+	default:
+		cutoff = maxUint64/uint64(base) + 1
+	}
+
+	maxVal := uint64(1)<<uint(bitSize) - 1
+
+	var n uint64
+	// Calculate the numerical value. 
+	for _, c := range []byte(s) {
+		var d byte
+		switch {
+		case '0' <= c && c <= '9':
+			d = c - '0'
+		case 'a' <= c && c <= 'z':
+			d = c - 'a' + 10
+		case 'A' <= c && c <= 'Z':
+			d = c - 'A' + 10
+		default:
+			return 0, syntaxError(fnParseUint, s0)
+		}
+
+		if d >= byte(base) {
+			return 0, syntaxError(fnParseUint, s0)
+		}
+
+        // Add up numbers of each digit. 
+		if n >= cutoff {
+			// n*base overflows
+			return maxVal, rangeError(fnParseUint, s0)
+		}
+		n *= uint64(base)
+
+		n1 := n + uint64(d)
+		if n1 < n || n1 > maxVal {
+			// n+v overflows
+			return maxVal, rangeError(fnParseUint, s0)
+		}
+		n = n1
+	}
+
+	return n, nil
+```
+
+2.`ParseInt`
+
+(1) signature 
+
+```go
+func ParseInt(s string, base int, bitSize int) (i int64, err error)
+```
+
+`ParseInt` interprets a string s in the given base (0, 2 to 36) and bit size (0 to 64) and returns the corresponding value `i`.
+
+(2) workflow 
+
+```go
+const fnParseInt = "ParseInt"
+
+// Empty string bad.
+if len(s) == 0 {
+   return 0, syntaxError(fnParseInt, s)
+}
+
+// Pick off leading sign.
+s0 := s
+neg := false
+if s[0] == '+' {
+   s = s[1:]
+} else if s[0] == '-' {
+   neg = true
+   s = s[1:]
+}
+
+// Convert unsigned and check range.
+var un uint64
+un, err = ParseUint(s, base, bitSize)
+if err != nil && err.(*NumError).Err != ErrRange {
+   err.(*NumError).Func = fnParseInt
+   err.(*NumError).Num = s0
+   return 0, err
+}
+
+if bitSize == 0 {
+   bitSize = int(IntSize)
+}
+
+cutoff := uint64(1 << uint(bitSize-1))
+if !neg && un >= cutoff {
+   return int64(cutoff - 1), rangeError(fnParseInt, s0)
+}
+if neg && un > cutoff {
+   return -int64(cutoff), rangeError(fnParseInt, s0)
+}
+n := int64(un)
+if neg {
+   n = -n
+}
+return n, nil
+```
+
+3.`Atoi`
+
+(1) signature 
+
+```go
+func Atoi(s string) (int, error)
+```
+
+`Atoi` is equivalent to `ParseInt(s, 10, 0)`, converted to type `int`.
+
+(2) workflow 
+
+```go
+const fnAtoi = "Atoi"
+
+// Determine the bitsize.
+sLen := len(s)
+if intSize == 32 && (0 < sLen && sLen < 10) ||
+   intSize == 64 && (0 < sLen && sLen < 19) {
+   // Fast path for small integers that fit int type.
+   s0 := s
+   // Pick up the sign.
+   if s[0] == '-' || s[0] == '+' {
+      s = s[1:]
+      if len(s) < 1 {
+         return 0, &NumError{fnAtoi, s0, ErrSyntax}
+      }
+   }
+
+   n := 0
+   for _, ch := range []byte(s) {
+      ch -= '0'
+      if ch > 9 {
+         return 0, &NumError{fnAtoi, s0, ErrSyntax}
+      }
+      n = n*10 + int(ch)
+   }
+   if s0[0] == '-' {
+      n = -n
+   }
+   return n, nil
+}
+
+// Slow path for invalid or big integers.
+i64, err := ParseInt(s, 10, 0)
+if nerr, ok := err.(*NumError); ok {
+   nerr.Func = fnAtoi
+}
+return int(i64), err
+```
+
+## itoa 
+
+location: src/strconv/itoa.go
+
+### functions 
+
+1.`Itoa`
+
+```go
+func Itoa(i int) string {
+    return FormatInt(int64(i), 10)
+}
+```
+
+2.`FormatInt`
+
+(1) signature 
+
+```go
+func FormatInt(i int64, base int) string 
+```
+
+`FormatInt` returns the string representation of `i `in the given base, for 2 <= base <= 36. The result uses the lower-case letters 'a' to 'z' for digit values >= 10.
+
+(2) workflow 
+
+1) Fast path for small integers (< 100)
+
+```go
+	if fastSmalls && 0 <= i && i < nSmalls && base == 10 {
+		return small(int(i))
+	}
+```
+
+`small` returns the string for an `i` with 0 <= `i` < 100.
+
+```go
+func small(i int) string {
+   if i < 10 {
+      return digits[i : i+1]
+   }
+   return smallsString[i*2 : i*2+2]
+}
+```
+
+```go
+const digits = "0123456789abcdefghijklmnopqrstuvwxyz"
+
+// 00~99
+const smallsString = "00010203040506070809" +
+	"10111213141516171819" +
+	"20212223242526272829" +
+	"30313233343536373839" +
+	"40414243444546474849" +
+	"50515253545556575859" +
+	"60616263646566676869" +
+	"70717273747576777879" +
+	"80818283848586878889" +
+	"90919293949596979899"
+```
+
+2) Slow path for larger integers.
+
+```go
+// formatBits computes the string representation of u in the given base.	
+dst, _ = formatBits(dst, uint64(i), base, i < 0, true)
+return dst
+```
+
 # regexp
 
 location: src/regexp/

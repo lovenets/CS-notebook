@@ -937,5 +937,608 @@ func CountOnesInBinary(n int) int {
 }
 ```
 
+## 数值的整数次方
 
+实现乘方函数，不得使用库函数，不用考虑大数的问题。
+
+### 分析
+
+问题本身并不难，但是要考虑到边界情况：当指数为 0 或者负数时，底数不能为 0。
+
+```go
+func Power(base, exp float64) (float64, error) {
+	// 指数为 0
+	if exp == 0.0 {
+		if base == 0.0 {
+			return 0, errors.New("base-zero exponential of 0 is invalid")
+		} else {
+			return 1, nil
+		}
+	}
+	// 指数为负数
+	neg := false
+	if exp < 0.0 {
+		if base == 0.0 {
+			return 0, errors.New("base-zero exponential of a negative value is invalid")
+		}
+		exp = -exp
+		neg = true
+	}
+	times := int(exp)
+	n := base
+	for i := 1; i < times; i++ {
+		n *= base
+	}
+	if neg {
+		return 1.0 / n, nil
+	} else {
+		return n, nil
+	}
+}
+```
+
+时间复杂度为$$O(n)$$，空间复杂度为$$O(1)$$。
+
+这个解法的时间复杂和指数绝对值的大小正相关，指数绝对值越大，循环次数越多。
+
+假设要计算 32 次方，如果已经知道了 16 次方，那么再平方就可以得到 32 次方；而 16 次方又是 8 次方的平方……
+
+![剑指 offer 16_1](img/剑指 offer 16_1.jpg)
+
+这个公式可以用递归实现：
+
+```go
+func Power(base, exp float64) (float64, error) {
+	// 指数为 0
+	if exp == 0.0 {
+		if base == 0.0 {
+			return 0, errors.New("base-zero exponential of 0 is invalid")
+		} else {
+			return 1, nil
+		}
+	}
+	// 指数为负数
+	neg := false
+	if exp < 0.0 {
+		if base == 0.0 {
+			return 0, errors.New("base-zero exponential of a negative value is invalid")
+		}
+		exp = -exp
+		neg = true
+	}
+	n := power(base, int(exp))
+	if neg {
+		return 1.0 / n, nil
+	} else {
+		return n, nil
+	}
+}
+
+func power(base float64, exp int) float64 {
+	if exp == 0 {
+		return 1
+	}
+	if exp == 1 {
+		return base
+	}
+	// 右移 1 位就是除以 2
+	n := power(base, exp>>1)
+	n *= n
+	// 与 1 做位与运算，结果为 1 说明是奇数，为 0 说明时偶数
+	if exp&1 == 1 {
+		n *= base
+	}
+	return n
+}
+```
+
+这个算法的时间复杂度是$$O(logn)$$。注意一些位运算的技巧：
+
+- `1<<n`就是计算 2 的 n 次方
+- `n>>1`就是将 n 除以 2
+- `n&1`可以用来判断 n 的奇偶性，结果为 1 则为奇
+- `n&(n-1)`就是将 n 最低位的 1 变为 0
+
+## 打印从 1 到最大的 n 位数
+
+输入数字 n，按顺序打印出从 1 到最大的 n 位十进制数。比如输入 3，则打印出 1、2、3 一直到最大的三位数 999。
+
+### 分析
+
+解决这题关键是要意识到当 n 很大时，不管是用什么内建的整数类型都有可能溢出。这题要求的是打印整数，所以不妨用字符串来操作，只不过要在字符串上模拟整数加 1 的运算。
+
+```go
+func PrintNumbers(n int64) {
+	if n <= 0 {
+		return
+	}
+	// n 位最大整数
+	max := ""
+	for i := int64(0); i < n; i++ {
+		max += "9"
+	}
+	// 依次打印 1 - n 
+	num := make([]byte, 0)
+	num = append(num, '0')
+	for string(num) != max {
+		flag := false // 判断是否有进位
+		// 从最低位开始加 1
+		for i := len(num) - 1; i >= 0; i-- {
+			// 如果当前位上的数已经是 9，就说明要进 1
+			if num[i] == '9' {
+				num[i] = '0'
+				flag = true
+			} else {
+				num[i]++
+			}
+			if !flag {
+				// 不用进位就说明运算结束
+				break
+			} else {
+				// 如果当前是第一位，那就说明从下一个数开始就要多 1 位
+				if i == 0 {
+					num = append([]byte{'0'}, num...)
+					i++
+                }
+				flag = false
+			}
+		}
+		fmt.Println(string(num))
+	}
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(n)$$。
+
+## 删除链表的节点
+
+### 1. 给定单向链表的头指针和一个节点指针，定义一个函数在$O(1)$时间内删除该节点。
+
+#### 分析
+
+按照常规思路，找到被删除的节点就需要$$O(n)$$的时间，但是这题的特别之处在于题目已经给出了需要删除的节点的指针，所以可以这么考虑：
+
+- 如果链表中只有一个节点，直接把头节点置为空
+- 如果要删除的是尾节点，那么要先找到尾节点的前一个节点，把这个节点的 Next 指针置为空
+- 如果要删除的是中间节点，那么可以把要删除的节点的下一个节点的值赋给它，然后把它的指针指向下下个节点，这样也就相当于删除了它
+
+```go
+func DeleteNode(head *ListNode, node *ListNode) {
+	if head == nil || node == nil {
+		return
+	}
+	// 链表只有一个节点
+	if head == node {
+		head = nil
+		return
+	}
+	// 要删除的节点是尾节点
+	if node.Next == nil {
+		cur := head
+		for cur.Next != node {
+			cur = cur.Next
+		}
+		cur.Next = nil
+		return
+	}
+	// 一般情况
+	node.Key = node.Next.Key   // 赋值
+	node.Next = node.Next.Next // 修改指针
+}
+```
+
+在上面的代码中并没有考虑要删除的节点在链表中这种情况，但是因为时间复杂度必须是$$O(1)$$，所以没法检验。
+
+### 2. 在一个排序的链表中，如何删除重复的节点？
+
+```go
+func DeleteDuplicateListNodes(head *ListNode) *ListNode {
+   // 链表为空或者只有一个节点
+   if head == nil || head.Next == nil {
+      return head
+   }
+   dump := &ListNode{Next: head} // 辅助节点，便于处理从头节点开始一直都是重复的节点的情况
+   pre, cur := dump, head
+   var dup int
+   for cur != nil && cur.Next != nil {
+      if cur.Key == cur.Next.Key {
+         // 删除重复的节点，注意重复的节点可能是连续多个
+         // 注意尾节点也是重复节点的情况，先判断 cur 是否为空
+         dup = cur.Key
+         for cur != nil && cur.Key == dup {
+            pre.Next, cur = cur.Next, cur.Next
+         }
+      } else {
+         pre, cur = cur, cur.Next
+      }
+   }
+   return dump.Next
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(1)$$。
+
+## 正则表达式的匹配
+
+请实现一个函数用来匹配包含‘.’和'*'的正则表达式，前者表示任意一个字符，后者表示它前面的字符可以出现任意次（含 0 次）。在本题中，匹配是指字符串的所有字符匹配整个模式，比如字符串“aaa”与模式"a.a"和"ab\*ac\*a"匹配，但与"aa.a"和“ab\*a”均不匹配。
+
+### 分析
+
+```go
+func Match(s, pattern string) bool {
+   if s == "" && pattern == "" {
+      return true
+   }
+   if s != "" && pattern == "" {
+      return false
+   }
+   if pattern[1] == '*' {
+      if pattern[0] == s[0] || (pattern[0] == '.' && s != "") {
+         // 进入下一个状态
+         return Match(s[1:], pattern[2:]) ||
+            // 留在当前状态
+            Match(s[1:], pattern) ||
+            // 忽略一个 *
+            Match(s, pattern[2:])
+      } else {
+         // 忽略一个 *
+         return Match(s, pattern[2:])
+      }
+   }
+   if s[0] == pattern[0] || (pattern[0] == '.' && s != "") {
+      return Match(s[1:], pattern[1:])
+   }
+   return false
+}
+```
+
+## 表示数值的字符串
+
+请实现一个函数用来判断字符串是否表示数值（包括整数和小数）。例如，字符串“+100”、“5e2”、“-123”、“3.146”及“-1E-16”都表示数值，但是“12e"、“1a3.14”、“1.2.3”、“+-5”及“12e+5.4”都不是。
+
+### 分析
+
+首先尽可能多地扫描数字，如果遇到小数点，那么开始扫描表示小数的部分；如果遇到‘e’或者‘E’就开始扫描表示指数的部分。
+
+```go
+func IsNumeric(s string) bool {
+	if s == "" {
+		return false
+	}
+	numeric, _s := scanInteger(s)
+	s = _s
+	// 扫描小数部分
+	if s != "" && s[0] == '.' {
+		s = s[1:]
+		res, _s := scanUnsignedInteger(s)
+		s = _s
+		// 小数可以前后至少有一个部分有数字就行
+		numeric = res || numeric
+	}
+	if s != "" && (s[0] == 'e' || s[0] == 'E') {
+		s = s[1:]
+		res, _s := scanInteger(s)
+		s = _s
+		// e/E 前面必须有数值，后面必须是整数
+		numeric = numeric && res
+	}
+	return numeric && s == ""
+}
+
+// 扫描数字部分（带符号）
+func scanInteger(s string) (bool, string) {
+	if s != "" && (s[0] == '+' || s[0] == '-') {
+		s = s[1:]
+	}
+	return scanUnsignedInteger(s)
+}
+
+// 扫描无符号整数
+func scanUnsignedInteger(s string) (bool, string) {
+	i := 0
+	for ; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			break
+		}
+	}
+	if i > 0 {
+		return true, s[i:]
+	} else {
+		return false, s
+	}
+}
+```
+
+因为是顺序扫描输入的字符串，时间复杂度是$$O(n)$$，空间复杂度$$O(1)$$。
+
+## 调整数组顺序使奇数位于偶数前面
+
+输入一个整数数组，实现一个函数来调整数组中数字的顺序，使得所有奇数在前，偶数在后。
+
+### 分析
+
+（1）直接解法
+
+类似快速排序，利用两个指针，一个从后往前，一个从前往后，如果发现奇数在后面而偶数在前面，那么就交换。
+
+```go
+func SwapOddsAndEvens(a []int) []int {
+	if len(a) == 0 {
+		return a
+	}
+	i, j := 0, len(a)-1
+	for i < j {
+		// 向后移动 i 直到发现一个偶数
+		for i < len(a) && a[i]&1 == 1 {
+			i++
+		}
+		// 向前移动 j 直到发现一个奇数
+		for j >= 0 && a[j]&1 != 1 {
+			j--
+		}
+		if i < j {
+			a[i], a[j] = a[j], a[i]
+		}
+	}
+	return a
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(1)$$。
+
+（2）抽象
+
+如果题目修改成要求负数在前非负数在后，或者能被 3 整除的数在前不能被 3 整除的数在后等等，思路都是一样的，只不过是判断的条件发生了变化，这样就可以做一层抽象，以一个函数作为参数，作为判断条件。 
+
+```go
+func SwapNumbers(a []int, f func(int) bool) []int {
+   if len(a) == 0 {
+      return a
+   }
+   i, j := 0, len(a)-1
+   for i < j {
+      for i < len(a) && f(a[i]) {
+         i++
+      }
+      for j >= 0 && !f(a[j]) {
+         j--
+      }
+      if i < j {
+         a[i], a[j] = a[j], a[i]
+      }
+   }
+   return a
+}
+```
+
+## 链表中倒数第 k 个节点
+
+输入一个链表，输出该链表中倒数第 k 个节点。为了符合习惯，本题从 1 开始记树，即链表的尾节点是倒数第 1 个节点。例如，一个链表有 6 个节点，从头节点开始，它们的值依次是 1，2，3，4，5，6。这个链表的倒数第 3 个节点是值为 4 的节点。
+
+### 分析
+
+典型的双指针类型题。但是要考虑一些特殊情况：
+
+- 链表为空
+- 参数 k 不是正树
+- 链表中节点数小于 k
+
+```go
+func CountDownToKInList(head *ListNode, k int) *ListNode {
+	if head == nil || k <= 0 {
+		// 链表为空或参数 k 不是正数
+		return nil
+	}
+	i := 0
+	slow, fast := head, head
+	for ; fast != nil && i < k; fast, i = fast.Next, i+1 {
+	}
+	if i < k {
+		// 链表中的节点数小于 k
+		return nil
+	}
+	for ; fast != nil && slow != nil; fast, slow = fast.Next, slow.Next {
+	}
+	return slow
+}
+```
+
+时间复杂度为$$O(n)$$，空间复杂度是$$O(1)​$$。
+
+## 链表中环的入口节点
+
+如果一个链表中包含环，如何找出环的入口节点？
+
+### 分析
+
+[LeetCode](<https://leetcode.com/problems/linked-list-cycle-ii/>) 上有一模一样的题。
+
+```go
+func detectCycle(head *ListNode) *ListNode {
+    if p := detect(head); p != nil {
+        return start(p, head)
+    } else {
+        return nil
+    }
+}
+
+// Floyd 算法检测环是否存在
+func detect(head *ListNode) *ListNode {
+    slow, fast := head, head
+    for slow != nil && fast != nil && fast.Next != nil {
+        slow = slow.Next
+        fast = fast.Next.Next
+        if slow == fast {
+            return slow
+        }
+    }    
+    return nil
+}
+
+func start(p, head *ListNode) *ListNode {
+    q := head
+    for p != q {
+        p = p.Next
+        q = q.Next
+    }
+    return q
+}
+```
+
+如果更进一步要求求出环中节点的数量，那也很容易，因为已经知道了环的入口。
+
+## 反转链表
+
+定义一个函数，输入一个链表的头节点，反转该链表并输出反转后链表的头节点。
+
+### 分析
+
+经典问题，一定要背下模板。
+
+（1）非递归版
+
+```go
+func ReverseListIteration(head *ListNode) *ListNode {
+	if head == nil || head.Next == nil {
+		// 链表为空或者只有一个节点
+		return head
+	}
+	pre, cur := head, head.Next
+	var tmp *ListNode
+	for cur != nil {
+		tmp = cur.Next // 记录当前节点的位置
+		cur.Next = pre // 当前节点指向前一个节点
+		pre, cur = cur, tmp
+	}
+	head.Next = nil // 记得让原来的首结点指向 nil
+	return pre
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(1)$$。
+
+（2）递归版
+
+```go
+func ReverseListRecursion(head *ListNode) *ListNode {
+	if head == nil || head.Next == nil {
+		return head
+	}
+	// 从最后两个节点开始向前反转
+	newHead := ReverseListRecursion(head.Next)
+	// 让当前节点的下一个节点指向当前节点，当前节点指向 nil
+	head.Next.Next, head.Next = head, nil
+	return newHead
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(n)$$。
+
+## 合并两个排序的链表
+
+输入两个递增排序的链表，合并这两个链表并使新链表中的节点依然是递增有序的。
+
+### 分析
+
+采用归并排序的思想即可。不过要注意链表为空的情况。
+
+```go
+func MergeTwoLists(l1, l2 *ListNode) *ListNode {
+	if l1 == nil || l2 == nil {
+        // 存在链表为空的情况
+		if l1 != nil {
+			return l1
+		} else if l2 != nil {
+			return l2
+        } else {
+            return nil
+        }
+	}
+	dump := new(ListNode)
+	cur := dump
+	p, q := l1, l2
+	for p != nil && q != nil {
+		if p.Key < q.Key {
+			cur.Next = p
+			p = p.Next
+		} else {
+			cur.Next = q
+			q = q.Next
+		}
+		cur = cur.Next
+	}
+	for p != nil {
+		cur.Next = p
+		cur, p = cur.Next, p.Next
+	}
+	for q != nil {
+		cur.Next = q
+		cur, q = cur.Next, q.Next
+	}
+	return dump.Next
+}
+```
+
+时间复杂度$$O(n)$$，空间复杂度$$O(1)$$。
+
+## 树的子结构
+
+输入两棵二叉树 A 和 B，判断 B 是不是 A 的子树。二叉树节点定义为：
+
+```pseudocode
+struct BinaryTreeNode {
+    double Value
+    BinaryTreeNode Left
+    BinaryTreeNode Right
+}
+```
+
+### 分析
+
+ 首先判断根节点，然后再依次往下继续判断。
+
+这道题还有一个需要注意的地方就是浮点数的比较：在计算机内部浮点数是有误差的，不能用等号判断浮点数是否相等，**而要用差的绝对值是否足够小来判断**。
+
+```go
+func FindSubtree(r1, r2 *BinaryTreeNode) bool {
+	res := false
+	if r1 != nil && r2 != nil {
+		// 先找出 r1 的那一部分和 r2 的根节点相同
+		if floatEqual(r1.Value, r2.Value) {
+			res = findSubtreeHelper(r1, r2)
+		}
+		if !res {
+			res = FindSubtree(r1.Left, r2)
+		}
+		if !res {
+			res = FindSubtree(r1.Right, r2)
+		}
+	}
+	return res
+}
+
+func findSubtreeHelper(r1 *BinaryTreeNode, r2 *BinaryTreeNode) bool {
+	if r2 == nil {
+		return true
+	}
+	if r1 == nil {
+		return true
+	}
+	if !floatEqual(r1.Value, r2.Value) {
+		return false
+	}
+	// 继续判断向下比较左右子树
+	return findSubtreeHelper(r1.Left, r2.Right) && findSubtreeHelper(r1.Right, r2.Right)
+}
+
+// 比较浮点数的模板
+func floatEqual(f1 float64, f2 float64) bool {
+	EPSILON := 0.00000001
+	if math.Abs(f1-f2) < EPSILON && math.Abs(f2-f1) < EPSILON {
+		return true
+	} else {
+		return false
+	}
+}
+```
 

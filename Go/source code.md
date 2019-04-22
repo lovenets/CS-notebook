@@ -2662,3 +2662,230 @@ func (d *decodeState) unmarshal(v interface{}) error {
 	return d.savedError
 }
 ```
+
+# sort
+
+location: src/sort/
+
+## sort 
+
+location: src/sort/sort.go
+
+### structs
+
+```go
+// A type, typically a collection, that satisfies sort.Interface can be
+// sorted by the routines in this package. The methods require that the
+// elements of the collection be enumerated by an integer index.
+type Interface interface {
+	// Len is the number of elements in the collection.
+	Len() int
+	// Less reports whether the element with
+	// index i should sort before the element with index j.
+	Less(i, j int) bool
+	// Swap swaps the elements with indexes i and j.
+	Swap(i, j int)
+}
+```
+
+For convenience, there are some types implementing Interface:
+
+```go
+// IntSlice attaches the methods of Interface to []int, sorting in increasing order.
+type IntSlice []int
+
+// Float64Slice attaches the methods of Interface to []float64, sorting in increasing order
+// (not-a-number values are treated as less than other values).
+type Float64Slice []float64
+
+// StringSlice attaches the methods of Interface to []string, sorting in increasing order.
+type StringSlice []string
+```
+
+### functions 
+
+1.`Sort`
+
+(1) signature
+
+```go
+func Sort(data Interface) {
+	n := data.Len()
+	quickSort(data, 0, n, maxDepth(n))
+}
+```
+
+This function's comparing and swapping take $$O(nlogn)$$ time. It's not stable. 
+
+(2) workflow 
+
+1) Calculate a threshold at which quicksort should switch to heapsort.
+
+```go
+// It returns 2*ceil(lg(n+1))
+func maxDepth(n int) int {
+	var depth int
+    // Shifting  right 1 bit equals to divied by 2
+	for i := n; i > 0; i >>= 1 {
+		depth++
+	}
+	return depth * 2
+}
+```
+
+2) In `quickSort`, do ShellSort, QuickSort, HeapSort or InsertionSort.
+
+```go
+	for b-a > 12 { // Use ShellSort for slices <= 12 elements
+		if maxDepth == 0 {
+			heapSort(data, a, b)
+			return
+		}
+		maxDepth--
+		mlo, mhi := doPivot(data, a, b)
+		// Avoiding recursion on the larger subproblem guarantees
+		// a stack depth of at most lg(b-a).
+		if mlo-a < b-mhi {
+			quickSort(data, a, mlo, maxDepth)
+			a = mhi // i.e., quickSort(data, mhi, b)
+		} else {
+			quickSort(data, mhi, b, maxDepth)
+			b = mlo // i.e., quickSort(data, a, mlo)
+		}
+	}
+	if b-a > 1 {
+		// Do ShellSort pass with gap 6
+		// It could be written in this simplified form cause b-a <= 12
+		for i := a + 6; i < b; i++ {
+			if data.Less(i, i-6) {
+				data.Swap(i, i-6)
+			}
+		}
+		insertionSort(data, a, b)
+	}
+```
+
+`headSort`is based on a max heap. 
+
+```go
+func heapSort(data Interface, a, b int) {
+	first := a
+	lo := 0
+	hi := b - a
+
+	// Build heap with greatest element at top.
+	for i := (hi - 1) / 2; i >= 0; i-- {
+		siftDown(data, i, hi, first)
+	}
+
+	// Pop elements, largest first, into end of data.
+	for i := hi - 1; i >= 0; i-- {
+		data.Swap(first, first+i)
+         // Repair the heap.
+		siftDown(data, lo, i, first)
+	}
+}
+
+// siftDown implements the heap property on data[lo, hi).
+// first is an offset into the array where the root of the heap lies.
+func siftDown(data Interface, lo, hi, first int) {
+	root := lo
+	for {
+        // Find the largest child.
+		child := 2*root + 1 // leaf child 
+		if child >= hi {
+			break
+		}
+		if child+1 < hi && data.Less(first+child, first+child+1) {
+			child++
+        }
+		if !data.Less(first+root, first+child) {
+             // The root is the largest so we are done.
+			return
+		}
+		data.Swap(first+root, first+child)
+		root = child // Repeat to continue 
+	}
+}
+```
+
+2.
+
+For convenience, there are sorting functions for specific types.
+
+```go
+// Ints sorts a slice of ints in increasing order.
+func Ints(a []int) { Sort(IntSlice(a)) }
+
+// Float64s sorts a slice of float64s in increasing order
+// (not-a-number values are treated as less than other values).
+func Float64s(a []float64) { Sort(Float64Slice(a)) }
+
+// Strings sorts a slice of strings in increasing order.
+func Strings(a []string) { Sort(StringSlice(a)) }
+```
+
+## search 
+
+location: src/sort/search.go
+
+### functions 
+
+1.`Search`
+
+Search uses binary search to find and return the smallest index `i` in `[0, n)` at which `f(i)` is true. The argument f, typically a closure, captures the value to be searched for, and how the data structure is indexed and ordered.
+
+```go
+func Search(n int, f func(int) bool) int {
+	// Define f(-1) == false and f(n) == true.
+	// Invariant: f(i-1) == false, f(j) == true.
+	i, j := 0, n
+	for i < j {
+		h := int(uint(i+j) >> 1) // avoid overflow when computing h
+		// i ≤ h < j
+		if !f(h) {
+			i = h + 1 // preserves f(i-1) == false
+		} else {
+			j = h // preserves f(j) == true
+		}
+	}
+	// i == j, f(i-1) == false, and f(j) (= f(i)) == true  =>  answer is i.
+	return i
+}
+```
+
+Note that `h := int(uint(i+j) >> 1)`can avoid overflow when both `i`and`j`are large.
+
+2.
+
+For convenience, there are some wrappers. 
+
+```go
+// SearchInts searches for x in a sorted slice of ints and returns the index
+// as specified by Search. The return value is the index to insert x if x is
+// not present (it could be len(a)).
+// The slice must be sorted in ascending order.
+//
+func SearchInts(a []int, x int) int {
+	return Search(len(a), func(i int) bool { return a[i] >= x })
+}
+
+// SearchFloat64s searches for x in a sorted slice of float64s and returns the index
+// as specified by Search. The return value is the index to insert x if x is not
+// present (it could be len(a)).
+// The slice must be sorted in ascending order.
+//
+func SearchFloat64s(a []float64, x float64) int {
+	return Search(len(a), func(i int) bool { return a[i] >= x })
+}
+
+// SearchStrings searches for x in a sorted slice of strings and returns the index
+// as specified by Search. The return value is the index to insert x if x is not
+// present (it could be len(a)).
+// The slice must be sorted in ascending order.
+//
+func SearchStrings(a []string, x string) int {
+	return Search(len(a), func(i int) bool { return a[i] >= x })
+}
+```
+

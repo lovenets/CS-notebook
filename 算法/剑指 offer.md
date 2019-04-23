@@ -1542,3 +1542,195 @@ func floatEqual(f1 float64, f2 float64) bool {
 }
 ```
 
+## 二叉树的镜像
+
+请完成一个函数，输入一棵二叉树，该函数输出它的镜像。
+
+### 分析
+
+对于比较抽象的问题，可以多画几幅图帮助理解。
+
+![剑指 offer 17_1](img/剑指 offer 17_1.jpg)
+
+观察上面的过程发现，求二叉树的镜像其实就是每个非叶节点的左右子节点交换了位置。那么可以总结方法为，在前序遍历的过程中，如果发现有非叶节点就交换左右孩子的位置。
+
+```go
+func MirrorBinaryTree(root *BinaryTreeNode) *BinaryTreeNode {
+	if root == nil {
+		return nil
+	}
+	if root.Left == nil && root.Right == nil {
+		return root
+	}
+	// 交换左右子结点
+	root.Left, root.Right = root.Right, root.Left
+	if root.Left != nil {
+		MirrorBinaryTree(root.Left)
+	}
+	if root.Right != nil {
+		MirrorBinaryTree(root.Right)
+	}
+	return root
+}
+```
+
+每个节点遍历一次，时间复杂度为$$O(n)$$，空间复杂度是$$O(logn)​$$。
+
+## 对称的二叉树
+
+请实现一个函数，用来判断一棵二叉树是不是对称的。如果一棵二叉树和它的镜像是一样的，那么它是对称的。
+
+![剑指 offer 28](img/剑指 offer 28.jpg)
+
+### 分析
+
+可以根据前序遍历（根-左-右）和反前序遍历（根-右-左）的结果一样，那么树就是对称的。需要注意的是必须必须把空节点也考虑进去，不然就无法处理上图中第三棵树这种情况。
+
+```go
+func IsTreeSymmetrical(root *BinaryTreeNode) bool {
+	if root == nil || (root.Left == nil && root.Right == nil) {
+		return true
+	}
+	res1 := ""
+	preorder(root, &res1)
+	res2 := ""
+	reversePreorder(root, &res2)
+	return res1 == res2
+}
+
+// 反前序遍历
+func reversePreorder(root *BinaryTreeNode, s *string) {
+	if root != nil {
+		*s += fmt.Sprintf("%d", root.Value)
+		reversePreorder(root.Right, s)
+		reversePreorder(root.Left, s)
+	} else {
+		// 用特殊符号标记空节点
+		*s += "#"
+	}
+}
+
+func preorder(root *BinaryTreeNode, s *string) {
+	if root != nil {
+		*s += fmt.Sprintf("%d", root.Value)
+		preorder(root.Left, s)
+		preorder(root.Right, s)
+	} else {
+		*s += "#"
+	}
+}
+```
+
+前序遍历时间复杂度为$$O(n)$$，空间复杂度是$$O(logn)$$。
+
+## 顺时针打印矩阵
+
+输入一个矩阵，按照从外向里以顺时针的顺序依次打印出每一个数字。比如下面的矩阵打印出来的结果是1，2，3，4，8，12，16，15，14，13，9，5，6，7，11，10。
+
+```
+1  2  3  4
+5  6  7  8
+9  10 11 12
+13 14 15 16
+```
+
+### 分析
+
+顺时针打印矩阵，可以看成是打印第一行→打印最后一列→打印最后一行→打印第一列；向内收缩矩阵，重复这个过程。值得注意的是不要重复打印一些边角上的元素，还有当矩阵只有一行或是一列时要单独处理。
+
+```go
+func ClockwiseMatrix(m [][]int) {
+   if len(m) == 0 || len(m[0]) == 0 {
+      return
+   }
+   if len(m) == 1 {
+      // 只有一行
+      for i := range m[0] {
+         fmt.Printf("%d ", m[0][i])
+      }
+      return
+   }
+   if len(m[0]) == 1 {
+      // 只有一列
+      for i := range m {
+         fmt.Printf("%d ", m[i][0])
+      }
+      return
+   }
+   // 多行多列
+   l, r := 0, len(m[0])
+   u, d := 0, len(m)
+    // 一个 m 行矩阵需要重复这个过程 (m+1)/2 次
+   for count := 0; count < (len(m)+1)>>1; count++ {
+      // 打印第一行
+      for i := l; i < r; i++ {
+         fmt.Printf("%d ", m[u][i])
+      }
+      // 打印最后一列（除去第一个元素）
+      for i := u + 1; i < d; i++ {
+         fmt.Printf("%d ", m[i][r-1])
+      }
+      // 打印最后一行（除去最后一个元素）
+      for i := r - 2; i >= l; i-- {
+         fmt.Printf("%d ", m[d-1][i])
+      }
+      // 打印第一列（除去第一个元素）
+      for i := d - 2; i > u; i-- {
+         fmt.Printf("%d ", m[i][l])
+      }
+      // 矩阵向内收缩
+      l, r = l+1, r-1
+      u, d = u+1, d-1
+   }
+}
+```
+
+时间复杂度是$$O(n)$$，n 是元素个数。空间复杂度是$$O(1)$$。
+
+## 包含 min 函数的栈
+
+定义栈的数据结构，请在该类型中实现一个能够得到栈的最小元素的 min 函数。在该栈中，调用 min、push 及 pop 的时间复杂度都是$$O(1)$$。
+
+### 分析
+
+这个题的关键在于要在$$O(1)$$时间内找到最小元素，如果没有这个限制，那么就算是把所有元素出栈进行排序也可以解决问题。尽然要求时间复杂度最优，那么就考虑用空间换时间。
+
+可以使用一个辅助栈，每次入栈的时候都把当前最小元素压入辅助栈；出栈时辅助栈也要出栈。这样辅助栈的栈顶元素就一定为当前最小元素。
+
+![剑指 offer 30](img/剑指 offer 30.jpg)
+
+```go
+type Stack struct {
+	Data []int
+	Mins []int
+}
+
+func (s *Stack) Push(i int) {
+	if len(s.Mins) == 0 || s.Mins[len(s.Mins)-1] > i {
+		s.Mins = append(s.Mins, i)
+	} else {
+		s.Mins = append(s.Mins, s.Mins[len(s.Mins)-1])
+	}
+	s.Data = append(s.Data, i)
+}
+
+func (s *Stack) Pop() (int, error) {
+	if len(s.Data) == 0 || len(s.Mins) == 0 {
+		return 0, errors.New("stack is empty")
+	} else {
+		top := s.Data[len(s.Data)-1]
+		s.Data = s.Data[:len(s.Data)-1]
+		s.Mins = s.Mins[:len(s.Mins)]
+		return top, nil
+	}
+}
+
+func (s *Stack) Min() (int, error) {
+	if len(s.Mins) == 0 || len(s.Data) == 0 {
+		return 0, errors.New("stack is empty")
+	} else {
+		return s.Mins[len(s.Mins)-1], nil
+	}
+}
+```
+

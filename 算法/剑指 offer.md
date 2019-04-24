@@ -1550,7 +1550,7 @@ func floatEqual(f1 float64, f2 float64) bool {
 
 对于比较抽象的问题，可以多画几幅图帮助理解。
 
-![剑指 offer 17_1](img/剑指 offer 17_1.jpg)
+![剑指 offer 17_1](/img/剑指 offer 17_1.jpg)
 
 观察上面的过程发现，求二叉树的镜像其实就是每个非叶节点的左右子节点交换了位置。那么可以总结方法为，在前序遍历的过程中，如果发现有非叶节点就交换左右孩子的位置。
 
@@ -1697,7 +1697,7 @@ func ClockwiseMatrix(m [][]int) {
 
 可以使用一个辅助栈，每次入栈的时候都把当前最小元素压入辅助栈；出栈时辅助栈也要出栈。这样辅助栈的栈顶元素就一定为当前最小元素。
 
-![剑指 offer 30](img/剑指 offer 30.jpg)
+![剑指 offer 30](/img/剑指 offer 30.jpg)
 
 ```go
 type Stack struct {
@@ -1983,4 +1983,79 @@ func dfs(node *BinaryTreeNode, path map[*BinaryTreeNode]*BinaryTreeNode) {
 ```
 
 时间复杂度是$$O(n)$$，空间复杂度是$$O(树的高度+节点数-1)$$.
+
+## 复杂链表的复制
+
+请实现函数复制一个复杂链表。在复杂链表中，每个节点除了有一个指向下一个节点的指针，还有一个指向链表中任意节点或者空指针的指针。节点结构定义为：
+
+```pseudocode
+struct ComplexListNode {
+    int              value
+    ComplexListNode* next
+    ComplexListNode* sibling
+}
+```
+
+### 分析
+
+这道题的难点在于如何确定复制后的链表的`sibling`指针的链接关系。
+
+（1）用哈希表保存原节点和复制节点的对应关系
+
+假设 a 的复制节点是 a1，b 的复制节点是 b1，用哈希表保存这种对应关系，键是原始节点，值是复制节点。如果 a 的指针指向 b，又因为可以通过哈希表找到 a1 和 b1，所以就可建立 a1 和 b1 之间的链接指针。
+
+``` go
+func CloneWithMap(head *ComplexListNode) *ComplexListNode {
+	if head == nil {
+		return nil
+	}
+	// m 保存源节点和复制节点之间的对应关系
+	m := make(map[*ComplexListNode]*ComplexListNode)
+	for cur := head; cur != nil; cur = cur.Next {
+		node := &ComplexListNode{head.Value, nil, nil}
+		m[cur] = node
+	}
+	for origin, clone := range m {
+		clone.Next, clone.Sibling = m[origin.Next], m[origin.Sibling]
+	}
+	return m[head]
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(n)$$。
+
+（2）不使用额外空间
+
+把每一个克隆节点先插入到原节点的后面，如下图：
+
+![剑指 offer 35](img/剑指 offer 35.jpg)
+
+这样一来问题就变得很简单了。最后只需把两个链表分离就行。
+
+```go
+func CloneWithoutExtraSpace(head *ComplexListNode) *ComplexListNode {
+	if head == nil {
+		return nil
+	}
+	// 逐个复制并插入原节点后面
+	for cur := head; cur != nil; cur = cur.Next {
+		node := &ComplexListNode{cur.Value, nil, nil}
+		node.Next, cur.Next = cur.Next, node
+	}
+	// 设置 Sibling 指针
+	for cur := head; cur != nil && cur.Next != nil; cur = cur.Next.Next {
+		if cur.Sibling != nil {
+			cur.Next.Sibling = cur.Sibling.Next
+		} 
+	}
+	// 分离出复制的链表
+	cloneHead, cloneNode := head.Next, head.Next
+	head.Next, head = cloneNode.Next, head.Next
+	for cur := head; cur != nil; cur = cur.Next {
+		cloneNode.Next, cloneNode = cur.Next, cloneNode.Next
+		cur.Next = cloneNode.Next
+	}
+	return cloneHead
+}
+```
 

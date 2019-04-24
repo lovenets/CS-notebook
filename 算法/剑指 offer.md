@@ -1734,3 +1734,253 @@ func (s *Stack) Min() (int, error) {
 }
 ```
 
+## 栈的压入、弹出序列
+
+输入两个整数序列，第一个序列表示栈的压入顺序，请判断第二个是否为该栈的弹出序列。假设压入栈的所有数字均不相等。例如，序列`{1, 2, 3, 4, 5}`时入栈序列，`{4, 5, 3, 2, 1}`是一个弹出序列，但是`{4, 3, 5, 1, 2}`就不可能是弹出序列。
+
+### 分析
+
+要判断一个出栈序列能否由一个入栈序列得到，只需根据入栈序列尝试重现这个出栈序列。因为每次出栈的元素一定是栈顶元素，所以可以这样考虑：
+
+- 根据给定的入栈序列将元素依次压入一个辅助栈中，如果辅助栈的栈顶元素元素和出栈序列的当前元素相同就弹出辅助栈的栈顶元素，并且继续向后遍历出栈序列，直到辅助栈的栈顶元素和出栈序列的当前元素不一样
+
+如果出栈序列可以由入栈序列得到，那么最终辅助栈一定是空的。
+
+```go
+func validateStackSequences(pushed []int, popped []int) bool {
+    if len(pushed) == 0 || len(popped) == 0 {
+        return false
+    }
+    stack := make([]int, 0)
+    i := 0
+    for _, val := range pushed {
+        stack = append(stack, val)
+        for len(stack) > 0 && stack[len(stack)-1] == popped[i] {
+            stack = stack[:len(stack)-1]
+            i++
+        }
+    }
+    return len(stack) == 0
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(n)$$。
+
+## 从上到下打印二叉树
+
+### 1. 不分行从上到下打印二叉树
+
+从上到下打印出二叉树的每个节点，同一层的结点按照从左到右的顺序打印。
+
+#### 分析
+
+层序遍历。
+
+```go
+func LevelOrderTraversal(root *BinaryTreeNode) {
+   if root == nil {
+      return
+   }
+   queue := make([]*BinaryTreeNode, 0)
+   queue = append(queue, root)
+   for len(queue) > 0 {
+      head := queue[0]
+      queue = queue[1:]
+      fmt.Printf("%d ", head.Value)
+      if head.Left != nil {
+         queue = append(queue, head.Left)
+      }
+      if head.Right != nil {
+         queue = append(queue, head.Right)
+      }
+   }
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(n)$$。
+
+### 2. 分行从上到下打印二叉树
+
+从上到下按层打印二叉树，同一层的节点按从左到右的顺序打印，每一层打印到一行。
+
+#### 分析
+
+```go
+func LevelOrderTraversalNewLine(root *BinaryTreeNode) {
+   if root == nil {
+      return
+   }
+   queue := make([]*BinaryTreeNode, 0)
+   queue = append(queue, root)
+   // 当前层次有多少节点需要打印、下一层需要打印多少节点
+   cur, next := 1, 0
+   for len(queue) > 0 {
+      head := queue[0]
+      queue = queue[1:]
+      fmt.Printf("%d ", head.Value)
+      if head.Left != nil {
+         queue = append(queue, head.Left)
+         next++
+      }
+      if head.Right != nil {
+         queue = append(queue, head.Right)
+         next++
+      }
+      if cur = cur - 1; cur == 0 {
+         fmt.Println()
+         cur, next = next, 0
+      }
+   }
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(n)$$。
+
+### 3. 之字形打印二叉树
+
+请实现一个函数按照之字形打印顺序打印二叉树，即第一行从左到右打印，第二层从右到左打印，第三行再次从左到右打印等等。
+
+#### 分析
+
+遍历到一个节点时不急着打印，而是等到当前层次所有节点都遍历完了再根据具体的顺序打印当前层次的所有节点。
+
+```go
+func LevelOrderZigzagTraversal(root *BinaryTreeNode) {
+	if root == nil {
+		return
+	}
+	queue := make([]*BinaryTreeNode, 0)
+	queue = append(queue, root)
+	// 当前层次有多少节点需要打印、下一层需要打印多少节点
+	cur, next := 1, 0
+	// 当前层次从左到右还是从右到左打印
+	ltr := true
+	// 保存当前层次的节点的值
+	tmp := make([]int, 0)
+	for len(queue) > 0 {
+		head := queue[0]
+		queue = queue[1:]
+		if head.Left != nil {
+			queue = append(queue, head.Left)
+			next++
+		}
+		if head.Right != nil {
+			queue = append(queue, head.Right)
+			next++
+		}
+		tmp = append(tmp, head.Value)
+		if cur = cur - 1; cur == 0 {
+			// 当前层次的节点已经遍历完了
+			if ltr {
+				// 从左到右打印
+				for i := range tmp {
+					fmt.Printf("%d ", tmp[i])
+				}
+			} else {
+				// 从右到左打印
+				for i := len(tmp) - 1; i >= 0; i-- {
+					fmt.Printf("%d ", tmp[i])
+				}
+			}
+			fmt.Println()
+			cur, next = next, 0
+			ltr = !ltr
+			tmp = tmp[len(tmp):]
+		}
+	}
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(n)$$。
+
+这道题也可以用两个栈来解决，在打印某一层的节点时，把下一层的节点保存到相应的栈里。如果当前打印的是奇数层，则先保存左子节点再保存右子节点到第一个栈里；如果当前打印得使偶数层，则先保存右子节点再保存左子节点到第二个栈里。
+
+## 二叉搜索树的后序遍历序列
+
+输入一个整数数组，判断该数组是不是某个二叉搜索树的后序遍历结果。如果是则`true`，否则返回`false`。假设输入的数组的任意两个数字都互不相同。
+
+### 分析
+
+```go
+func PostorderOfBST(seq []int) bool {
+	// 面试中应该问清楚空的序列应该怎么处理
+	// 这里认为空的序列对应一棵空的 BST
+	if len(seq) == 0 {
+		return true
+	}
+	root := len(seq) - 1
+	// 找出左子树的范围
+	lb, le := 0, 0
+	for i := lb; i < root; i++ {
+		if seq[i] >= seq[root] {
+			le = i
+			break
+		}
+	}
+	// 找出右子树的范围
+	rb, re := le, le
+	for ; re < root; re++ {
+		if seq[re] < seq[root] {
+			// 如果在右子树中发现了比根节点小的节点
+			// 说明这不是一棵搜索二叉树
+			return false
+		}
+	}
+	// 递归地判断左右子树
+	return PostorderOfBST(seq[lb:le]) && PostorderOfBST(seq[rb:re])
+}
+```
+
+时间复杂度是$$O(nlogn)$$，空间复杂度是$$O(logn)$$。
+
+##  二叉树中和为某一值的路径
+
+输入一棵二叉树和一个整数，打印出二叉树中节点值的和为输入整数得所有路径。从根节点开始往下一直到叶节点经过得所有节点形成一条路径。
+
+### 分析
+
+```go
+func PathInBinaryTree(root *BinaryTreeNode, num int) {
+   if root == nil {
+      return
+   }
+   // path 用来记录每个节点的前驱节点
+   path := make(map[*BinaryTreeNode]*BinaryTreeNode)
+   // 深度优先搜索
+   dfs(root, path)
+   nodes := make([]int, 0)
+   for leaf := range path {
+      if leaf.Left != nil || leaf.Right != nil {
+         // 中间节点则跳过
+         continue
+      }
+      sum := 0
+      // 获取路径，并计算路径上的节点值之和
+      for cur := leaf; cur != nil; cur = path[cur] {
+         sum += cur.Value
+         nodes = append(nodes, cur.Value)
+      }
+      if sum == num {
+         for i := len(nodes) - 1; i >= 0; i-- {
+            fmt.Printf("%d ", nodes[i])
+         }
+         fmt.Println()
+      }
+      node = node[len(nodes):]
+   }
+}
+
+func dfs(node *BinaryTreeNode, path map[*BinaryTreeNode]*BinaryTreeNode) {
+   if node.Left != nil {
+      path[node.Left] = node
+      dfs(node.Left, path)
+   }
+   if node.Right != nil {
+      path[node.Right] = node
+      dfs(node.Right, path)
+   }
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(树的高度+节点数-1)$$.
+

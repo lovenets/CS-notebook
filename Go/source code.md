@@ -136,6 +136,8 @@ func growslice(et *_type, old slice, cap int) slice
 	if et.size == 0 {
 		// append should not create a slice with nil pointer but non-zero len.
 		// We assume that append doesn't need to preserve old.array in this case.
+        // zerobase is the base address for all 0-byte allocations
+        // it's an uintptr
 		return slice{unsafe.Pointer(&zerobase), old.len, cap}
 	}
 ```
@@ -169,7 +171,7 @@ func growslice(et *_type, old slice, cap int) slice
 
 (2) If old length (the number of elements) is less than 1024, then new capacity is double old capacity.
 
-(3) If  old length is not less than 1024, then we do a loop `newcap += newcap / 4` until `newcap`overflows or `newcap`is not less than required capacity. If `newcap`at last overflows, then `newcap`is required capacity.
+(3) If  old length is not less than 1024, then we do a loop `newcap += newcap / 4` until `newcap`overflows or `newcap`is not less than required capacity. If `newcap`at last overflows, then`newcap`is the same as required capacity.
 
 3.Calculate the memory size of new slice based on type and new capacity.
 
@@ -310,7 +312,7 @@ file location: src\runtime\map.go
 
 A map is just a hash table. The data is arranged into ==an array of buckets==. Each bucket contains up to **8** key/value pairs. The low-order bits of the hash are used to select a bucket. Each bucket contains a few high-order bits of each hash to distinguish the entries within a single bucket. When searching for a key, top byte of each key will be compared at first.
 
-If more than 8 keys hash to a bucket, we chain on extra buckets. When the hash table grows, we allocate a new array of buckets ==twice as big==. Buckets are incrementally copied from the old bucket array to the new bucket array. 
+If more than 8 keys hash to a bucket, we chain on extra buckets. When the hash table grows, we allocate a new array of buckets ==twice as big==. Buckets are **incrementally** copied from the old bucket array to the new bucket array. 
 
 ![img](https://user-gold-cdn.xitu.io/2017/11/29/16006583b2d81bcd?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
 
@@ -650,6 +652,8 @@ bucketloop:
 	return unsafe.Pointer(&zeroVal[0])
 ```
 
+`dataOffset`should be the size of the`bmap`struct, but needs to be aligned correctly.
+
 ## grow
 
 ### function signature 
@@ -660,7 +664,7 @@ func growWork(t *maptype, h *hmap, bucket uintptr)
 
 ### workflow 
 
-When the number of items in a map is greater than `6.5*2^B`(6.5 is load factor and B is the number of buckets), it shows that map may overflow and need to grow. New bucket will be allocated and elements in old bucket will be hashed again and copied, which is called `evacuate`.
+When the number of items in a map is greater than `6.5*2^B`(6.5 is load factor and 2^B is the number of buckets), it shows that map may overflow and need to grow. New bucket will be allocated and elements in old bucket will be hashed again and copied, which is called `evacuate`.
 
 ## delete 
 
@@ -767,7 +771,7 @@ search:
 		}
 ```
 
-Note that the bucket will not be clear even if it is empty.
+Note that the bucket will not be cleared even if it is empty.
 
 (4) Determine if there exist concurrent map writes again.
 
@@ -785,10 +789,6 @@ file location: src/builtin/builtin.go
 `builtin`package predeclares some types, constants and functions. 
 
 ```go
-// Copyright 2011 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 /*
 	Package builtin provides documentation for Go's predeclared identifiers.
 	The items documented here are not actually in package builtin
@@ -1052,7 +1052,7 @@ type error interface {
 
 ## something fun about types
 
-1.How Go team define constants `true` and `false`
+1.How Go team defines constants `true` and `false`
 
 ```go
 // true and false are the two untyped boolean values.
@@ -1090,7 +1090,7 @@ type int8 int8
 
 # io
 
-file location: sr/io/
+file location: src/io/
 
 ## errors
 

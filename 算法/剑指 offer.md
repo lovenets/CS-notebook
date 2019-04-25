@@ -2059,3 +2059,240 @@ func CloneWithoutExtraSpace(head *ComplexListNode) *ComplexListNode {
 }
 ```
 
+## 二叉搜索树与双向链表
+
+输入一棵二叉搜索树，将该二叉搜索树转换成一个排序的双向链表，要求不能创建任何新的节点，只能调整树中节点指针的指向。比如下图中的例子：
+
+![剑指 offer 36](img/剑指 offer 36.jpg)
+
+### 分析
+
+```go
+func ConvertBSTtoBL(root *BinaryTreeNode) *BinaryTreeNode {
+   if root == nil {
+      return nil
+   }
+   if root.Left == nil && root.Right == nil {
+      return root
+   }
+   // 中序遍历得到一个有序的节点序列
+   nodes := make([]*BinaryTreeNode, 0)
+   inorder(root, &nodes)
+   // 遍历 nodes，设置每个节点的左右指针的指向
+   // 左指针指向链表中的前驱节点
+   // 右指针指向链表中的后继节点
+   for i := range nodes {
+      if i == 0 {
+         nodes[i].Right = nodes[i+1]
+      } else if i == len(nodes)-1 {
+         nodes[i].Left = nodes[i-1]
+      } else {
+         nodes[i].Left, nodes[i].Right = nodes[i-1], nodes[i+1]
+      }
+   }
+   return nodes[0]
+}
+
+func inorder(root *BinaryTreeNode, nodes *[]*BinaryTreeNode) {
+   if root.Left != nil {
+      inorder(root.Left, nodes)
+   }
+   *nodes = append(*nodes, root)
+   if root.Right != nil {
+      inorder(root.Right, nodes)
+   }
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(nlogn)$$。
+
+## 序列化二叉树
+
+请实现两个函数，用来序列化和反序列化二叉树。
+
+### 分析
+
+（1）迭代
+
+按照从上到下，从左到右编号的思想进行序列化；反序列化的时候下标为`i`的节点左孩子为`2*i+1`（如果存在），右孩子为`2*i+2`（如果存在）。
+
+```go
+func SerializeTree(root *BinaryTreeNode, filename string) (int, error) {
+   f, err := os.Create(filename)
+   if err != nil {
+      return 0, err
+   }
+   defer f.Close()
+   total := 0
+   // 层序遍历
+   q := make([]*BinaryTreeNode, 0)
+   q = append(q, root)
+   for len(q) > 0 {
+      cur := q[0]
+      q = q[1:]
+      if cur == nil {
+         // 空节点做一个特殊标记
+         count, err := f.WriteString("# ")
+         total += count
+         if err != nil {
+            return total, err
+         }
+      } else {
+         // 非空节点输出自己的值
+         count, err := f.WriteString(fmt.Sprintf("%d ", cur.Value))
+         total += count
+         if err != nil {
+            return total, err
+         }
+         q = append(q, cur.Left, cur.Right)
+      }
+   }
+   count, err := f.WriteString("\n")
+   total += count
+   return total, err
+}
+
+func DeserializeTree(filename string) (*BinaryTreeNode, error) {
+   f, err := os.Open(filename)
+   if err != nil {
+      return nil, err
+   }
+   defer f.Close()
+   rd := bufio.NewReader(f)
+   if str, err := rd.ReadString('\n'); err != nil {
+      return nil, err
+   } else {
+      return constructTree(strings.Split(str[:len(str)-2], " "))
+   }
+}
+
+func constructTree(values []string) (*BinaryTreeNode, error) {
+   if len(values) == 0 {
+      return nil, errors.New("empty input")
+   }
+   if values[0] == "#" {
+      return nil, nil
+   }
+   nodes := make([]*BinaryTreeNode, 0)
+   // 创建节点
+   for i := range values {
+      if values[i] == "#" {
+         nodes = append(nodes, nil)
+         continue
+      }
+      v, err := strconv.Atoi(values[i])
+      if err != nil {
+         return nil, err
+      }
+      nodes = append(nodes, &BinaryTreeNode{Value: v})
+   }
+   // 设置节点之间的关系
+   for i := range nodes {
+      if nodes[i] == nil {
+         continue
+      }
+      if l := 2*i + 1; l < len(nodes) {
+         // 有左子节点
+         nodes[i].Left = nodes[l]
+      }
+      if r := 2*i + 2; r < len(nodes) {
+         // 有右子节点 
+         nodes[i].Right = nodes[r]
+      }
+   }
+   return nodes[0], nil
+}
+```
+
+（2）递归
+
+其实可以直接按照前序遍历的顺序序列化，反序列化的时候也是按照前序的顺序进行。
+
+## 字符串的排列
+
+输入一个字符串，打印出该字符串的所有排列。
+
+### 分析
+
+求 permutation 的算法中实现起来比较容易的有 [Heap's algorithm](<https://en.wikipedia.org/wiki/Heap%27s_algorithm>)：
+
+```go
+func PermutationOfString(s string) {
+	c := make([]int, len(s))
+	fmt.Println(s)
+	bs := []byte(s)
+	for i := 0; i < len(bs); {
+		if c[i] < i {
+			if i&1 != 1 {
+				bs[0], bs[i] = bs[i], bs[0]
+			} else {
+				bs[c[i]], bs[i] = bs[i], bs[c[i]]
+			}
+			fmt.Println(string(bs))
+			c[i], i = c[i]+1, 0
+		} else {
+			c[i], i = 0, i+1
+		}
+	}
+}
+```
+
+上面的算法可以翻译成：
+
+```go
+func mypermutations(s string) {
+	fmt.Println(s)
+	if len(s) <= 1 {
+		return
+	}
+	bs := []byte(s)
+	count := factorial(len(bs))-1 // 迭代次数
+	for i, j := 0, 1; i < count; i++ {
+		bs[0], bs[j] = bs[j], bs[0] // 每次迭代交换第一个字符和其余的字符中的一个
+		fmt.Println(string(bs))
+		if tmp := (j + 1) % (len(bs)); tmp == 0 {
+			j = tmp + 1
+		} else {
+			j = tmp
+		}
+	}
+}
+
+func factorial(n int) int {
+	if n == 0 {
+		return 1
+	}
+	res := 1
+	for i := 2; i <= n; i++ {
+		res *= i
+	}
+	return res
+}
+```
+
+### 扩展
+
+输入一个字符串，求所有字符的组合。
+
+#### 分析
+
+```go
+func Combinations(s string) {
+   combinationRecursive([]byte(s), []byte{}, 0)
+}
+
+func combinationRecursive(s []byte, c []byte, idx int) {
+   if idx == len(s) {
+      // 得到一种组合，但是要排除掉一个元素都不选的情况
+      if len(c) > 0 {
+         fmt.Println(string(c))
+      }
+   } else {
+      // 选择当前元素
+      combinationRecursive(s, c, idx+1)
+      // 不选择当前元素
+      combinationRecursive(s, append(c, s[idx]), idx+1)
+   }
+}
+```
+

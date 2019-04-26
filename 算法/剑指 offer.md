@@ -2296,3 +2296,239 @@ func combinationRecursive(s []byte, c []byte, idx int) {
 }
 ```
 
+## 数组中出现次数超过一半的数字
+
+数组中有一个数字出现的次数超过数组长度的一半，请找出这个数字。
+
+### 分析
+
+（1）用空间换时间
+
+```go
+func NumberOccuredTooManyTimes(a []int) (int, error) {
+	l := len(a)
+	if l == 0 {
+		return 0, errors.New("invalid input")
+	}
+	// 记录每个数字出现的次数
+	times := make(map[int]int)
+	for _, n := range a {
+		if times[n]++; times[n] > l>>1 {
+			return n, nil
+		}
+	}
+	return 0, errors.New("no such number")
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(n)$$。
+
+（2）利用数组的特点
+
+数组中有一个数字出现的次数超过数组长度的一半，也就是说它出现的次数比其他所有的数字出现的次数加起来的还要多。
+
+设置两个变量`res`和`times`，`res`用来保存一个数字，`times`用来保存次数：如果当前`times`为 0，将`times`设为 1，`res`设为当前遍历到的数字；如果当前数字和`res`相同，`times++`，否则`times--`。用这种方法遍历数组之后，`res`保存的一定是出现次数最多的数。
+
+```go
+func NumberOccuredTooManyTimes(a []int) (int, error) {
+	l := len(a)
+	if l == 0 {
+		return 0, errors.New("invalid input")
+	}
+	res, times := a[0], 1
+	for _, n := range a[1:] {
+		if times == 0 {
+			res, times = n, 1
+		} else if n == res {
+			times++
+		} else {
+			times--
+		}
+	}
+	// 检查 res 的出现次数是否真的超过数组长度一半
+	times = 0
+	for _, n := range a {
+		if n == res {
+			if times++; times > l>>1 {
+				return res, nil
+			}
+		}
+	}
+	return 0, errors.New("no such number")
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(1)$$。
+
+## 最小的 k 个数
+
+输入 n 个整数，找出其中最小的 k 个数。
+
+### 分析
+
+（1）基于快速排序的思想
+
+如果在某次调整之后，枢轴的位置是 k - 1，那就说明它和它左边的 k - 1 个数就是最小的 k 个数。当然，这 k 个数不一定是排好序的。
+
+```go
+func MinK(a []int, k int) []int {
+	if len(a) < k || k <= 0 {
+		return nil
+	}
+    // 调整数组一直到某次调整之后枢轴的位置是 k - 1
+	start, end := 0, len(a)-1
+	idx := partition(a, start, end)
+	for idx != -1 && idx != k-1 {
+		if idx > k-1 {
+			end, idx = idx-1, partition(a, start, end)
+		} else {
+			start, idx = idx+1, partition(a, start, end)
+		}
+	}
+	res := make([]int, 0)
+	for i := 0; i < k; i++ {
+		res = append(res, a[i])
+	}
+	return res
+}
+
+// 快速排序种调整数组的函数
+func partition(a []int, start int, end int) int {
+	if start >= end {
+		return -1
+	}
+	pivot := a[start]
+	i, j := start+1, end
+	for {
+		for ; a[i] < pivot && i < end; i++ {
+		}
+		for ; a[j] >= pivot && j > start; j-- {
+		}
+		if i >= j {
+			break
+		}
+		a[i], a[j] = a[j], a[i]
+	}
+	a[start], a[j] = a[j], a[start]
+	return j
+}
+```
+
+时间复杂度是$$O(n)$$（为什么？），空间复杂度是$$O(1)$$。但是这种算法要修改输入的数据，在面试中要问清楚可不可以这样做。
+
+（2）基于特殊的数据结构
+
+可以创建一个节点数为 k 的大顶堆，某次从输入的数组中读取一个数，如果这个数大于堆顶元素，那么就说明这个数不可能是最小的 k 个数之一；如果小于，那就更新堆。当然，当堆中的元素个数不足 k 时，读取的数字就直接插入。
+
+这种方法的好处是适合处理海量数据，假设题目是要求从海量的数据中找出最小的 k 个数字，由于内存的大小是有限的，每次只能从外存中读取一个数字。这个时候就可以用这种算法来解决。
+
+在面试中手写一个堆是不太现实的，可以询问是否能够使用标准库中已经实现好的结构。
+
+```go
+// An IntHeap is a max-heap of ints.
+type IntHeap []int
+
+func (h IntHeap) Len() int           { return len(h) }
+func (h IntHeap) Less(i, j int) bool { return h[i] > h[j] }
+func (h IntHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *IntHeap) Push(x interface{}) {
+	*h = append(*h, x.(int))
+}
+
+func (h *IntHeap) Pop() interface{} {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[0 : n-1]
+	return x
+}
+
+func MinK(a []int, k int) []int {
+	if len(a) < k || k <= 0 {
+		return nil
+	}
+	h := new(IntHeap)
+	for i := range a {
+		if h.Len() < k {
+			heap.Push(h, a[i])
+		} else {
+			top := []int(*h)[0]
+			if top > a[i] {
+				heap.Pop(h)
+				heap.Push(h, a[i])
+			}
+		}
+	}
+	return []int(*h)
+}
+```
+
+堆的插入和删除操作的时间复杂度都是$$O(logk)$$，因此总的时间复杂度是$$O(nlogk)$$，空间复杂度是$$O(k)$$.
+
+**当需要在某组数据中频繁查找及替换最大值时，要想到堆是一种合适的数据结构，红黑树也可以。**
+
+## 数据流中的中位数
+
+如果从数据流中读出奇数个数值，那么中位数就是所有数值排序之后位于中间的数值。如果从数据流中读出偶数个数值，那么中位数就是排序之后中间两个数的平均值。
+
+### 分析
+
+ （1）基于未排序的数组
+
+读取数据时直接插入到数组末尾，时间复杂度是$$O(1)$$。读取完之后基于快速排序的思想找到中位数，时间复杂度是$$O(n)$$。
+
+（2）基于排序的数组
+
+读取数据的同时用插入排序，时间复杂度为$$O(n)$$，读取完之后直接取中位数，时间复杂度为$$O(1)$$。基于链表也可以这么做。
+
+（3）基于二叉搜索树
+
+二叉搜索树插入操作的平均时间复杂度是$$O(logn)$$，最差情况下是$$O(n)$$。在插入的过程中更新节点总数。然后用$$$O(n)​$$的时间中序遍历得到一个有序数组，根据节点总数找中位数。
+
+（4）基于 AVL
+
+AVL 可以保证插入操作时间复杂是$$O(logn)$$。假设将平衡因子定义为左右子树节点数目之差，那么中位数就是树根（奇数个数节点的情况下）。
+
+（5）基于堆
+
+假设容器中数据已经排好序，那么如下图，p1 指向的是左边部分的最大元素，p2 指向的是右边部分的最小元素。如果能够保证数据容器左边的数据都小于右边的数据，那么即使左、右两边内部的数据不是有序的，也可以根据左边最大的数及右边最小的数得到中位数。所以，可以将左边的数据保存在一个大顶堆，右边的数据保存在一个小顶堆。往堆插入数据的时间复杂度是$$O(logn)$$，取堆顶数据的时间复杂度是$$O(1)$$。
+
+![剑指 offer 41](img/剑指 offer 41.jpg)
+
+## 连续子数组的最大和
+
+输入一个整型数组，数组里有正数也有负数。数组中的一个或连续多个整数组成一个子数组。求所有子数组的和的最大值。要求时间复杂度为$$O(n)$$。
+
+### 分析
+
+这个题显然要用动态规划。要求连续子数组的和，也就是说要从某一个数开始，连续累加到另一个数。假设现在已经求出了子区间`[i, j]`的连续子数组的最大和，那么`[i, j+1]`这个子区间上的解必然要基于`[i, j]`这个区间上的解。这就说明这个问题可以分成独立的子问题，而这些子问题的求解过程是重叠的。如果设子问题为`[0, i]`上的解，那么整个问题的最优解也就是所有子问题的解中最优的一个，即子问题最优解可以推出整个问题的最优解。
+
+设`dp[i]`为**以`array[i]`结尾**的连续子数组的最优解，显然初始化时`dp[0]=array[0]`，之后有递推公式
+
+```
+dp[i] = max(dp[i-1]+array[i], array[i])
+```
+
+`dp[i]`的最大值就是问题的最优解。
+
+```go
+func MaxSumOfSubarray(a []int) (int, error) {
+	if len(a) == 0 {
+		return 0, errors.New("invalid input")
+	}
+	dp := make([]int, len(a))
+	dp[0] = a[0]
+	max := math.MinInt64
+	for i := 1; i < len(a); i++ {
+		dp[i] = int(math.Max(float64(dp[i-1]+a[i]), float64(a[i])))
+		if dp[i] > max {
+			max = dp[i]
+		}
+	}
+	return dp[len(dp)-1], nil
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(1)$$。
+

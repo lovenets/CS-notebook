@@ -2530,5 +2530,100 @@ func MaxSumOfSubarray(a []int) (int, error) {
 }
 ```
 
+时间复杂度是$$O(n)$$，空间复杂度是$$O(n)$$。
+
+## 1~n 整数中 1  出现的次数
+
+输入一个整数 n，求 1~n 这 n 个整数的十进制表示中 1 出现的次数。例如，输入 12，1~12 这些整数中包含 1 的数字有 1、10、11 和 12，1 一共出现了 5 次。
+
+### 分析
+
+转换成字符串来处理。
+
+```go
+func CountOnes(n int) (int, error) {
+	if n <= 0 {
+		return 0, errors.New("invalid input")
+	}
+	count := 0
+	for i := 1; i <= n; i++ {
+		count += strings.Count(strconv.Itoa(i), "1")
+	}
+	return count, nil
+}
+```
+
+## 数字序列中某一位的数字
+
+数字以 0123456789101112131415... 的格式序列化到一个字符串中。在这个序列中，第 5 位（从 0 开始计数）是 5，第 13 位是 1，第 19 位是 4，等等。请写一个函数，求任意第 n 位对应的数字。
+
+### 分析
+
+```go
+func NumberInSequence(n int) (int, error) {
+	if n < 0 {
+		return 0, errors.New("invalid input")
+	}
+	// 快速处理 0-9 以内的数
+	if n >= 0 && n <= 9 {
+		return n, nil
+	}
+	// 找出 n 对应几位数
+	// 2 位数的区间为 [10, 190)
+	// 3 位数的区间为 [190, 2890)
+	// 以此类推
+	l, d := 10, 2 // l 是区间的左端点，d 是位数
+	for count := 90; n < l || n >= l+d*count; l, count, d = l+d*count, count*10, d+1 { // count 是这个区间上的数字个数
+	}
+	// 找出 n 在这个区间上对应的数字
+	// 比如 n = 19 在二位数区间上对应的是数字 14
+	n -= l 
+	q, r := n/d, n%d // q 表示在 n 对应的数字之前还有多少个完整的数字 
+	for i := 0; i < q; i++ {
+		l++
+	}
+    // r 表示应该取这个数字的第几位
+	return int((strconv.Itoa(l))[r] - '0'), nil
+}
+```
+
 时间复杂度是$$O(n)$$，空间复杂度是$$O(1)$$。
+
+## 把数组排成最小的数
+
+输入一个正整数数组，把数组里所有数字拼接起来拍成一个数，打印能拼接出的所有数字中最小的一个。例如输入`{3, 32, 321}`则打印出 321323.
+
+### 分析
+
+这道题实际上是要求找到一个排序规则，数组里的数根据这个规则排序之后就能拼接成一个最小的数字。排序的前提是比较，所以要先想好应该怎么比较数字。由题意，要使两个数字`a`和`b`拼接成的数字最小，则应该比较`ab`和`ba`的大小，`ab<ba`则`a`排在`b`的前面，反之就是`b`排在前面。比较的时候应该注意，如果`a`和`b`都是大数，那么拼接起来就有可能溢出，因此应该转成字符串之后进行比较。而且转成字符串之后`ab`和`ba`的位数相同，可直接按照一般的字符串比较规则进行比较。
+
+```go
+type Strings []string
+
+func (s Strings) Len() int { return len(s) }
+
+func (s Strings) Less(i, j int) bool { return s[i]+s[j] < s[j]+s[i] }
+
+func (s Strings) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+func GetMinNumber(numbers []int) {
+	if len(numbers) == 0 {
+		return
+	}
+	strs := make([]string, len(numbers))
+	for i := range numbers {
+		strs[i] = strconv.Itoa(numbers[i])
+	}
+    // 使用标准库中的 sort
+	sort.Sort(Strings(strs))
+	for i := range strs {
+		fmt.Print(strs[i])
+	}
+	fmt.Println()
+}
+```
+
+平均时间复杂度是$$O(nlogn)$$，空间复杂度是$$O(n)$$。
+
+
 

@@ -2762,11 +2762,169 @@ func LongestSubstringWithoutDuplicates(s string) int {
 
 时间复杂度是$$O(n)$$，空间复杂度是$$O(n)$$。
 
+## 丑数
 
+把只包含因子 2、3 和 5 的数称为丑数，习惯上把 1 当作第一个丑数，求从小到大排列的第 1500 个丑数。
 
- 
+### 分析
 
+判断一个数是不是只有 2、3 和 5 这三个因数，可以按照如下方法进行：
 
+```go
+for number%2 == 0 {
+    number /= 2
+}
+for number%3 == 0 {
+    number /= 3
+}
+for number%5 == 0 {
+    number /= 5
+}
+return number == 1
+```
+
+如果对 1~n 逐个进行判断，那么显然时间复杂度会很高。除了 1 以外，一个丑数应该是另一个比它小的丑数乘以 2、3 或 5 的结果。因此，不需要依次遍历所有可能的自然数，而是用一个丑数生成下一个丑数。
+
+假设数组中已经又若干个**排好序**的丑数，并且把当前最大的丑数记为 M。为了生成下一个丑数，首先把已有的丑数乘以 2，记录下第一个大于 M 结果，设为 M2（因为只是要生成下一个丑数，其他更大的结果以后再说）；同样把每一个已有的丑数分别乘以 3 和 5，记录下相应的 M3 和 M5。那么下一个丑数就应该是 M2、M3、M5 中的最小值。
+
+其实还可以更简化，因为所有的丑数已经排好序，那么就肯定存在某个丑数，小于它的丑数乘以 2 都会小于 M，大于它的丑数乘以 2 都会大于 M。对于 3 和 5 也是如此。因此，每次尝试生成下一个丑数的时候只需要从这一个丑数开始计算就可以。
+
+```go
+func UglyNumberAtN(n int) int {
+	if n <= 0 {
+		return -1
+	}
+	ugly := make([]int, n)
+	ugly[0] = 1
+	times2, times3, times5 := 0, 0, 0
+	next := 1
+	for next < n {
+		// 求出下一个丑数
+		min := ugly[times2] * 2
+		if three := ugly[times3] * 3; three < min {
+			min = three
+		}
+		if five := ugly[times5] * 5; five < min {
+			min = five
+		}
+		ugly[next] = min
+		// 更新
+		for ugly[times2]*2 <= ugly[next] {
+			times2++
+		}
+		for ugly[times3]*3 <= ugly[next] {
+			times3++
+		}
+		for ugly[times5]*5 <= ugly[next] {
+			times5++
+		}
+		next++
+	}
+	return ugly[next-1]
+}
+```
+
+时间复杂度是$$O(n^2)$$，空间复杂度是$$O(n)$$。
+
+## 第一个只出现一次的字符
+
+### 1. 字符串中第一个只出现一次的字符
+
+在字符串中找出第一个只出现一次的字符，如输入“abaccdeff”，则输出'b'。
+
+#### 分析
+
+用一个哈希表来记录每个字符出现的次数。
+
+```go
+func FirstCharOccursOnce(s string) (rune, error) {
+	if s == "" {
+		return rune(-1), errors.New("invalid input")
+	}
+	freq := make(map[rune]int)
+	for _, r := range s {
+		freq[r]++
+	}
+	for r := range freq {
+		if freq[r] == 1 {
+			return r, nil
+		}
+	}
+	return rune(-1), errors.New("no such character")
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(n)$$。
+
+### 2. 字符流中第一个只出现一次的字符
+
+请实现一个函数，用来找出字符流中第一个只出现一次的字符。例如，当从字符流中只读出前两个字符“go”时，第一个只出现一次的字符时'g'；当从该字符流中读出前 6 个字符“google”时，第一个只出现一次的字符时'l'。
+
+#### 分析
+
+与上题一样的思路。
+
+## 数组中的逆序对
+
+在数组中的两个数字，如果前面一个数字大于后面的数字，那么这两个数字组成一个逆序对。输入一个数组，求出这个数组中的逆序对的总数。例如在数组中`{7, 5, 6, 4}`中，一共存在 5 个逆序对，`(7, 6), (7, 5), (7, 4), (6, 4), (5, 4)`。
+
+### 分析
+
+可以基于归并排序的思想解决这个问题。
+
+![剑指 offer 51_1](img/剑指 offer 51_1.jpg)
+
+注意归并的时候时从后向前归并，如果第一个字数组中的数字大于第二个字数组中的数字，那么存在逆序对，数目等于第二个字数组中剩余的数字个数。
+
+![剑指 offer 51_2](img/剑指 offer 51_2.jpg)
+
+```go
+func InversePairs(a []int) int {
+	if len(a) == 0 {
+		return 0
+	}
+	b := make([]int, len(a)) // 辅助数组
+	for i := range b {
+		b[i] = a[i]
+	}
+	return inversePairsCore(&a, &b, 0, len(a)-1)
+}
+
+func inversePairsCore(a *[]int, b *[]int, start int, end int) int {
+	if start == end {
+		(*b)[start] = (*a)[start]
+		return 0
+	}
+	// 分成两段
+	length := (end - start) / 2
+	left := inversePairsCore(a, b, start, start+length)
+	right := inversePairsCore(a, b, start+length+1, end)
+	// 归并
+	count := 0
+	i, j, k := start+length, end, end
+	for i >= start && j >= start+length+1 {
+		if (*a)[i] > (*a)[j] {
+			(*b)[k] = (*a)[i]
+			k, i = k-1, i-1
+			count += j - start - length
+		} else {
+			(*b)[k] = (*a)[j]
+			k, j = k-1, j-1
+		}
+	}
+	for ; i >= start; i-- {
+		(*b)[k] = (*a)[i]
+		k, i = k-1, i-1
+	}
+	for ; j >= start+length+1; j-- {
+		(*b)[k] = (*a)[j]
+		k, j = k-1, j-1
+	}
+	return left + right + count
+}
+```
+
+归并排序的时间复杂度是$$O(nlogn)$$，空间复杂度是$$O(n)$$。
 
 
 

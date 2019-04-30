@@ -2926,5 +2926,229 @@ func inversePairsCore(a *[]int, b *[]int, start int, end int) int {
 
 归并排序的时间复杂度是$$O(nlogn)$$，空间复杂度是$$O(n)$$。
 
+## 两个链表的第一个公共节点
 
+输入两个链表，找出它们的第一个公共节点。
+
+![剑指 offer 52](img/剑指 offer 52.jpg)
+
+### 分析
+
+（1）方法一
+
+```go
+func FirstCommonNode(l1, l2 *ListNode) *ListNode {
+	if l1 == nil || l2 == nil {
+		return nil
+	}
+	// 遍历第一个链表并标记访问过的节点
+	visited := make(map[*ListNode]bool)
+	for p := l1; p != nil; p = p.Next {
+		visited[p] = true
+	}
+	// 遍历第二个链表的过程中检测是否有某个节点
+	// 已经被访问过
+	for p := l2; p != nil; p = p.Next {
+		if visited[p] {
+			return p
+		}
+	}
+	return nil
+}
+```
+
+时间复杂度是$$O(l1+l2)$$，空间复杂度是$$O(l1)$$。
+
+（2）方法二
+
+可以先对两个链表分别遍历一遍得到两个链表的长度，得到两个链表长度的差值，记为 d。然后现在较长的链表上走 d 步，再同时开始遍历两个链表，如果存在公共节点，那么就会同时到达。
+
+```go
+func FirstCommonNode(l1, l2 *ListNode) *ListNode {
+	if l1 == nil || l2 == nil {
+		return nil
+	}
+	// 求出第一个链表的长度
+	length1 := 0
+	for p := l1; p != nil; p = p.Next {
+		length1++
+	}
+	// 求出第二个链表的长度
+	length2 := 0
+	for p := l2; p != nil; p = p.Next {
+		length2++
+	}
+	// 在较长的链表上先走 d 步
+	// 然后再同时开始遍历
+	if length1 > length2 {
+		p1 := l1
+		for i := 0; i < length1-length2; i++ {
+			p1 = p1.Next
+		}
+		for p2 := l2; p1 != nil && p2 != nil; p1, p2 = p1.Next, p2.Next {
+			if p1 == p2 {
+				return p1
+			}
+		}
+	} else {
+		p2 := l2
+		for i := 0; i < length2-length1; i++ {
+			p2 = p2.Next
+		}
+		for p1 := l1; p1 != nil && p2 != nil; p1, p2 = p1.Next, p2.Next {
+			if p1 == p2 {
+				return p1
+			}
+		}
+	}
+	return nil
+}
+```
+
+时间复杂度是$$O(l1+l2)$$，空间复杂度是$$O(1)​$$。
+
+## 在排序数组中查找数字
+
+### 1. 数字在排序数组中出现的次数
+
+统计一个数字在排序数组中出现的次数。例如，输入排序数组`{1, 2, 3, 3, 3, 3, 4, 5}`和数字 3，由于 3 在这个数组中出现了 4 次，因此输出 4.
+
+#### 分析
+
+在一个已经排好序的数组中统计某个数字出现的次数，只需找出这个数字第一次和最后一次出现的位置。可以基于二分法进行查找。需要注意的是，如果数组中间的数字刚好等于 k，这时需要再向前判断一个数字，如果前一个数字不是 k，那么此时就找到了 k 第一次出现的位置；如果前一个也是 k，那么还要在前半段查找。查找 k 最后一次出现的位置的思路也是如此。
+
+```go
+func TimesOfK(arr []int, k int) int {
+	if len(arr) == 0 {
+		return 0
+	}
+	first, last := getFirstK(arr, k, 0, len(arr)-1), getLastK(arr, k, 0, len(arr)-1)
+	if first > -1 && last > -1 {
+		return last - first + 1
+	}
+	return 0
+}
+
+func getFirstK(arr []int, k int, start int, end int) int {
+	if start > end {
+		return -1
+	}
+	mid := start + (end-start)/2
+	if arr[mid] == k {
+		if mid > 0 && arr[mid-1] != k || mid == 0 {
+			return mid
+		} else {
+			end = mid - 1
+		}
+	} else if arr[mid] > k {
+		end = mid - 1
+	} else {
+		start = mid + 1
+	}
+	return getFirstK(arr, k, start, end)
+}
+
+func getLastK(arr []int, k int, start int, end int) int {
+	if start > end {
+		return -1
+	}
+	mid := start + (end-start)/2
+	if arr[mid] == k {
+		if mid < len(arr)-1 && arr[mid+1] != k || mid == len(arr)-1 {
+			return mid
+		} else {
+			start = mid + 1
+		}
+	} else if arr[mid] > k {
+		end = mid - 1
+	} else {
+		start = mid + 1
+	}
+	return getFirstK(arr, k, start, end)
+}
+```
+
+基于二分查找，时间复杂度是$$O(logn)$$，空间复杂度是$$O(logn)$$。
+
+### 2. 0~n-1 中缺失的数字
+
+一个长度为 n-1 的递增数组中的所有数字是唯一的，并且每个数字都在范围 0~n-1 之内。在范围 0~n-1 内的 n 个数字中有且只有一个数字不再该数组中，请找出这个数字。
+
+#### 分析
+
+直观的想法就是遍历数组，检查缺失的是哪个数字。
+
+```go
+func LostNumber(arr []int) int {
+	target := 0
+	for i := range arr {
+		if arr[i] != target {
+			return target
+		} else {
+			target++
+		}
+	}
+	return -1
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(1)$$。
+
+也可以基于二分查找进行。由于数组是排好序的，那么 0 在下标为 0 的位置，1 在下标为 1 的位置，以此类推。假设 k 不在数组中，那么 k+1 在下标为 k 的位置……如果中间元素的值和下标相等，那么下一轮查找只需要查找右半边；如果中间元素的值和下标不相等，并且它前一个元素和下标相等，那么中间元素就是对应的下标就是数组中不存在的数字；如果中间元素的值和下下标不相等，并且它前面一个元素和它的下标不相等，那么下一轮在左半边查找。
+
+```go
+func LostNumber(arr []int) int {
+	if len(arr) == 0 {
+		return -1
+	}
+	l, r := 0, len(arr)-1
+	for l <= r {
+		mid := l + (r-l)/2
+		if arr[mid] != mid {
+			if mid > 0 && arr[mid-1] == mid-1 || mid == 0 {
+				return mid
+			}
+			r = mid - 1
+		} else {
+			l = mid + 1
+		}
+	}
+	if l == len(arr) {
+		return l
+	}
+	return -1
+}
+```
+
+时间复杂度是$$O(logn)$$，空间复杂度是$$O(1)$$。
+
+### 3. 数组中数值和下标相等的元素
+
+假设一个单调递增的数组里的每个元素都是整数并且是唯一的，请实现一个函数，找出数组中任意一个数值等于下标的元素。
+
+#### 分析
+
+可以顺序找，亦可以基于二分查找，思路和前面的两题都是类似的。
+
+```go
+func NumberEqualsIndex(arr []int) int {
+	if len(arr) == 0 {
+		return -1
+	}
+	l, r := 0, len(arr)-1
+	for l <= r {
+		mid := l + (r-l)/2
+		if arr[mid] == mid {
+			return arr[mid]
+		} else if arr[mid] > mid {
+			r = mid - 1
+		} else {
+			l = mid + 1
+		}
+	}
+	return -1
+}
+```
+
+时间复杂度是$$O(logn)$$，空间复杂度是$$O(1)$$。
 

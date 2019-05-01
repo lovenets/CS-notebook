@@ -3152,3 +3152,177 @@ func NumberEqualsIndex(arr []int) int {
 
 时间复杂度是$$O(logn)$$，空间复杂度是$$O(1)$$。
 
+## 二叉搜索树的第 k 大节点
+
+给定一棵二叉搜索树，请找出其中第 k 大的节点。
+
+### 分析
+
+当中序遍历到第 k 个节点时，自然就找到第 k 大节点。
+
+```go
+func kthNode(root *BinaryTreeNode, k int) *BinaryTreeNode {
+	if root == nil || k <= 0 {
+		return nil
+	}
+	target := BinaryTreeNode{}
+	inorder(root, &target, &k)
+	if target == (BinaryTreeNode{}) {
+		// 树中不存在第 k 大的节点
+		return nil
+	} else {
+		return &target
+	}
+}
+
+func inorder(root *BinaryTreeNode, target *BinaryTreeNode, k *int, ) {
+	if root.Left != nil {
+		inorder(root.Left, target, k)
+	}
+	if *k--; *k == 1 {
+		target = root
+		return
+	}
+	if root.Right != nil {
+		inorder(root.Right, target, k)
+	}
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(logn)$$。
+
+## 二叉树的深度
+
+### 1. 二叉树的深度
+
+输入一棵二叉树的根节点，求该树的深度。从根节点到叶节点依次经过的节点形成树的一条路径，最长路径的长度为树的深度。
+
+#### 分析
+
+```go
+func depthOfBinaryTree(root *BinaryTreeNode) int {
+	if root == nil {
+		return 0
+	}
+	return 1 + int(math.Max(float64(depthOfBinaryTree(root.Left)),
+		float64(depthOfBinaryTree(root.Right))))
+}
+```
+
+时间复杂度是$$O(logn)$$，空间复杂度是$$O(logn)$$。
+
+### 2. 平衡二叉树
+
+输入一棵二叉树的根节点，判断该树是不是平衡二叉树。如果某二叉树中任意节点的左右子树的深度相差不超过 1，那么它就是一棵平衡二叉树。
+
+#### 分析
+
+可以后序遍历二叉树，在遍历了某个节点的左右子树之后判断它是不是平衡的，并且得到当前节点的深度。当最后遍历到根节点时，也就判断了整棵树是不是平衡的。
+
+```go
+func IsBalanced(root *BinaryTreeNode) bool {
+	depth := 0
+	return postorder(root, &depth)
+}
+
+func postorder(root *BinaryTreeNode, depth *int) bool {
+	if root == nil {
+		*depth = 0
+		return true
+	}
+	dl, dr := 0, 0 // 左右子树的高度
+	l, r := postorder(root.Left, &dl), postorder(root.Right, &dr)
+	if l && r {
+		if math.Abs(float64(dl)-float64(dr)) <= 1.0 {
+			// 如果该节点是平衡的，就向上传递结果以及该节点的深度
+			*depth = int(math.Max(float64(dl), float64(dr))) + 1
+			return true
+		}
+	}
+	return false
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(logn)$$。
+
+## 数组中数字出现的次数
+
+### 1. 数组中只出现一次的两个数字
+
+一个整数数组里除两个数字之外，其他数字都出现了两次。请写程序找出这两个只出现一次的数字。要求时间复杂度是$$O(n)$$，空间复杂度是$$O(1)$$。
+
+#### 分析
+
+这个题难点在于不能使用额外的空间。
+
+依然从头到尾**异或**所有的数字，这样得到的结果实际上就是两个只出现了一次的数字异或的结果，我们在异或后的结果中找出其二进制中最右边为1的位，该位既然为 1，说明异或的两个数字对应的该位肯定不同，必定一个为 1，一个为 0。因此我们可以根据此位是否为 1 来划分这两个子数组，这样两个只出现一次的数字就分开了，但我们还要保证出现两次的数字都分到同一个子数组中，肯定不能两个重复的数字分在两个不同的子数组中，这样得到的结果是不对的，很明显，相同的数字相同的位上的值是相同的，要么都为 1，要么都为 0，因此我们同样可以通过判断该位是否为 1 来将这些出现两次的数字划分到同一个子数组中，该位如果为 1，就分到一个子数组中，如果为 0，就分到另一个子数组中。这样就能保证每个子数组中只有一个出现一次的数字，其他的数字都出现两次，分别全部异或即可得到这两个只出现一次的数字。
+
+```go
+func NumbersOccurOnce(arr []int) (a int, b int) {
+	if len(arr) == 0 {
+		return
+	}
+	resultOfXOR := 0
+	for i := range arr {
+		resultOfXOR ^= arr[i]
+	}
+	firstOne := bitOfFirstOne(resultOfXOR)
+	for i := range arr {
+		if isBitOne(arr[i], firstOne) {
+			a ^= arr[i]
+		} else {
+			b ^= arr[i]
+		}
+	}
+	return
+}
+
+// 找到二进制数字中第一个 1 的位置
+func bitOfFirstOne(num int) (pos int) {
+	for ; pos < int(reflect.TypeOf(num).Size())*8 && 1&num == 0;
+	num, pos = num>>1, pos+1 {
+	}
+	return
+}
+
+// 判断二进制数的某一位是不是 1
+func isBitOne(num int, pos int) bool {
+	return (num>>uint(pos))&1 == 1
+}
+```
+
+### 2. 数组中唯一只出现一次的数字
+
+在一个数组中除了一个数字只出现过一次，其他数字都出现了三次，请找出只出现了一次的数字。
+
+#### 分析
+
+同样可以借助位运算来解问题。如果一个数字出现了三次，那么它的二进制的每一位加起来的和都能被 3 整除。把数组中所有数字的二进制表示的每一位都加起来，如果某一位的和能被 3 整除，那么只出现了一次的数字在这一位上就是 0，否则是 1.
+
+```go
+func NumberOccursOnce(arr []int) (int, error) {
+	if len(arr) == 0 {
+		return 0, errors.New("invalid input")
+	}
+	countOfBits := unsafe.Sizeof(arr[0])
+	bitSum := make([]int, countOfBits)
+	for i := range arr {
+		mask := 1
+		for j := countOfBits - 1; j >= 0; j-- {
+			if arr[i]&mask != 0 {
+				bitSum[j]++
+			}
+			mask <<= 1
+		}
+	}
+	res := 0
+	for i := range bitSum {
+		res <<= 1
+		res += bitSum[i] % 3
+	}
+	return res, nil
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度与`int`在本机上的大小有关。
+

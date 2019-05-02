@@ -3326,3 +3326,233 @@ func NumberOccursOnce(arr []int) (int, error) {
 
 时间复杂度是$$O(n)$$，空间复杂度与`int`在本机上的大小有关。
 
+## 和为 s 的数字
+
+### 1. 和为 s 的两个数字
+
+输入一个递增排序的数组和一个数字 s，在数组中查找两个数，使得它们的和正好是 s。如果有多对数字的和等于 s，则输出任意一对即可。
+
+#### 分析
+
+（1）使用额外的空间
+
+```go
+func SumToS(arr []int, s int) (int, int, error) {
+   if len(arr) == 0 {
+      return 0, 0, errors.New("invalid input")
+   }
+   compliment := make(map[int]bool)
+   for i := range arr {
+      // 遍历到 a 的时候，检查 s - a 是否也存在于数组中  
+      if compliment[s-arr[i]] {
+         return arr[i], s - arr[i], nil
+      } else {
+         compliment[arr[i]] = true
+      }
+   }
+   return 0, 0, errors.New("no solution")
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(n)$$。
+
+（2）双指针
+
+先在数组中选择两个数字，如果它们的和等于 s，那么就找到了要找的两个数字；如果和小于 s，由于数组是递增的，那么考虑选择位于较小的数字之后的其他数字，这样和就有可能等于 s；和大于 s 的时候就考虑选择位于较大的数字之前的其他数字。
+
+```go
+func SumToS(arr []int, s int) (int, int, error) {
+	if len(arr) == 0 {
+		return 0, 0, errors.New("invalid input")
+	}
+	for i, j := 0, len(arr)-1; i < j; {
+		if sum := arr[i] + arr[j]; sum == s {
+			return arr[i], arr[j], nil
+		} else if sum < s {
+			i++
+		} else {
+			j--
+		}
+	}
+	return 0, 0, errors.New("no solution")
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(1)$$。
+
+### 2. 和为 s 的连续正数序列
+
+输入一个正数 s，打印出所有和为 s 的连续正数序列（至少含有两个数）。
+
+#### 分析
+
+这个题也可以用双指针法。指针`start`和`end`分别初始化为 1 和 2，然后如果当前序列`start~end`的和等于 s，那么就输出；如果小于 s，`end++`；如果大于 s，`start++`。因为序列中至少要有 2 个数字，所以`small`增加到`(1+s)/2`就停止。
+
+新的序列之和可以通过从前一个序列中减去一个数或者加上一个数得到。
+
+```go
+func SequenceSumsToS(s int) {
+	if s <= 0 {
+		return
+	}
+	start, end := 1, 2
+	sum := start + end
+	for start < (1+s)/2 {
+		if sum == s {
+			for i := start; i <= end; i++ {
+				fmt.Printf("%d ", i)
+			}
+			fmt.Println()
+		} else if sum > s {
+			// 序列缩短
+			sum -= start
+			start++
+			continue
+		}
+		// 序列变长
+		end++
+		sum += end
+	}
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(1)​$$。
+
+## 反转字符串
+
+### 1. 反转单词顺序
+
+输入一个英文句子，反转句子中单词的顺序，但单词内字符的顺序不变。为简单起见，标点符号和普通字母一样处理。例如输入字符串“I am a student.”，则输出“student. a am I”。
+
+#### 分析
+
+允许使用标准库函数的话，这题就很简单。
+
+```go
+func ReverseWordSequence(s string) string {
+   if s == "" {
+      return ""
+   }
+   words := strings.Split(s, " ")
+   for i, j := 0, len(words)-1; i < j; i, j = i+1, j-1 {
+      words[i], words[j] = words[j], words[i]
+   }
+   return strings.Join(words, " ")
+}
+```
+
+如果不允许使用标准库函数，那么可以先反转整个字符串，比如将“I am a student.”反转为“.tneduts a ma I”，然后再反转每个单词的字符。
+
+### 2. 左旋转字符串
+
+字符串的左旋转操作是把字符串前面的若干个字符转移到字符串的尾部。比如输入字符串“abcdefg”和 2，左旋转两位的结果是“cdefgab”。
+
+```go
+func RotateLeft2OfString(s string, count int) string {
+    if len(s) < count {
+        return ""
+    }
+    return s[count:] + s[:count]
+}
+```
+
+## 队列的最大值
+
+### 1. 滑动窗口的最大值
+
+给定一个数组和滑动窗口的大小，请找出所有滑动窗口里的最大值。
+
+#### 分析
+
+这个问题最好的解决方法是使用一个双端队列。设窗口大小为 k，那么在顺序扫描数组的过程：
+
+- 如果队列中某个元素已经不在窗口范围内，那么就从队头删除这个元素。为了方便判断一个元素是否在窗口内，队列中保存的应该是元素的下标而不是元素本身。
+- 设当前扫描到的元素下表是`i`，那么经过上一步，现在队列中的所有元素都在窗口`[i-k+1, i]`范围内。这时需要从队尾开始删除队列中小于`a[i]`的元素。这是因为如果队尾元素小于`a[i]`，那么此时的队尾元素不可能是当前窗口的最大值；又因为队尾元素在数组中的下标小于`i`，那么它也不可能成为后续窗口的最大值（因为它会比`a[i]`更早滑出窗口）
+- 然后把`a[i]`加入队列
+- 经过以上三步，队头元素就一定是当前窗口内的最大值
+
+```go
+func MaxInWindow(arr []int, k int) []int {
+   if len(arr) == 0 || k <= 0 {
+      return nil
+   }
+   maxs := make([]int, len(arr)-k+1)
+   q := make([]int, 0)
+   for i := 0; i < len(arr); i++ {
+      // 从队头开始删除已经在窗口之外的元素
+      for len(q) > 0 && q[0] < i-k+1 {
+         q = q[1:]
+      }
+      // 从队尾开始删除小于 arr[i] 的元素
+      for len(q) > 0 && arr[q[len(q)-1]] < arr[i] {
+         q = q[:len(q)-1]
+      }
+      q = append(q, i)
+      // 保证当前窗口范围是有效的
+      if i-k+1 >= 0 {
+         maxs = append(maxs, arr[q[0]])
+      }
+   }
+   return maxs
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(n)$$。
+
+### 2. 队列的最大值
+
+请定义一个队列并实现函数`max`得到队列中的最大值，要求出入队和求最大值的操作的时间复杂度都是$$O(1)​$$。
+
+#### 分析
+
+这个题与上一题的区别仅在于窗口的大小要一直等于整个队列的大小。
+
+```go
+type InternalData struct {
+	value int
+	index int
+}
+
+type Queue struct {
+	data     []InternalData
+	maximums []InternalData // 记录最大值
+	curIndex int
+}
+
+func NewQueue() *Queue {
+	return &Queue{}
+}
+
+func (q *Queue) Push(value int) {
+	for len(q.maximums) > 0 && value >= q.maximums[len(q.maximums)-1].value {
+		q.maximums = q.maximums[:len(q.maximums)-1]
+	}
+	internalData := InternalData{value, q.curIndex}
+	q.data = append(q.data, internalData)
+	q.maximums = append(q.maximums, internalData)
+	q.curIndex++
+}
+
+func (q *Queue) Pop() (int, error) {
+	if len(q.data) == 0 {
+		return 0, errors.New("empty queue")
+	}
+	if q.data[0].index == q.maximums[0].index {
+		// 如果队头元素就是最大值，那么要更新 maximums
+		q.maximums = q.maximums[1:]
+	}
+	value := q.data[0].value
+	q.data = q.data[1:]
+	return value, nil
+}
+
+func (q *Queue) Max() (int, error) {
+	if len(q.maximums) == 0 {
+		return 0, errors.New("empty queue")
+	}
+	return q.maximums[0].value, nil
+}
+```
+
+
+

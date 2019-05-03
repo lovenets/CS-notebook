@@ -3554,5 +3554,194 @@ func (q *Queue) Max() (int, error) {
 }
 ```
 
+## n 个骰子的点数
 
+把 n 个骰子扔在地上，所有骰子朝上一面的点数之和为 s。输入 n，打印出 s 的所有可能的值出现的概率。
+
+### 分析
+
+当有 k-1 个骰子时，再增加一个骰子，这个骰子的点数只可能为 1、2、3、4、5 或 6。那 k 个骰子得到点数和为 s 的情况有：
+
+```go
+(k-1, s-1)：第 k 个骰子投了点数1
+(k-1, s-2)：第 k 个骰子投了点数2
+(k-1, s-3)：第 k 个骰子投了点数3
+.......
+(k-1, s-6)：第 k 个骰子投了点数6
+```
+
+所以：`dp(k,s)=dp(k-1,s-1)+dp(k-1,s-2)+dp(k-1,s-3)+dp(k-1,s-4)+dp(k-1,s-5)+dp(k-1,s-6)`。
+
+```go
+func NDices(n int) {
+   if n <= 0 {
+      return
+   }
+   // n 个骰子总共有 6^n 种可能
+   total := math.Pow(6.0, float64(n))
+   // dp[i][j]：i 个 骰子点数之和为 j 的种数 
+   dp := make([][]int, n+1)
+   for i := range dp {
+      dp[i] = make([]int, 6*n+1)
+   }
+   // 初始化，只有一个骰子的情况
+   for i := 0; i < n; i++ {
+      dp[1][i] = 1
+   }
+   // i 个骰子
+   for i := 2; i <= n; i++ {
+      // 点数之和的可能值为 i ~ 6*i
+      for j := i; j <= 6*i; j++ {
+         sum := 0
+         for k := 1; k < j && k <= 6; k++ {
+            sum += dp[i-1][j-k]
+         }
+         dp[i][j] = sum
+      }
+   }
+   // 打印结果
+   for i := n; i <= 6*n; i++ {
+      fmt.Printf("%d: %f\n", i, float64(dp[n][i])/total)
+   }
+}
+```
+
+## 扑克牌中的顺子
+
+从扑克牌中随机抽 5 张牌，判断是不是一个顺子，即这 5 张牌是不是连续的。2~10 为数字本身，A 为 1，J 为 11，Q 为 12，K 为 13，而大小王可以看成任意数字。
+
+### 分析
+
+每一张牌都可以看成一个数字（大小王可以看成 0），所以 5 张牌就可以表示为一个数组。5 张牌是不是构成顺子就看这个数组是不是连续的，即相邻两个元素间隔 1。如果相邻两个元素间隔大于 1，那么只要有足够的大小王（即足够的 0）就可以填补。为了方便判断，应该先把数组排序。
+
+另外还要注意，如果两张牌（除了大小王）一样，那么这手牌就不可能构成顺子。
+
+```go
+func IsStraight(pokers []int) bool {
+	if len(pokers) < 5 {
+		return false
+	}
+	// 排序
+	sort.Ints(pokers)
+	// 统计数组中 0 的个数
+	index, jokers := 0, 0
+	for ; index < len(pokers); index++ {
+		if pokers[index] == 0 {
+			jokers++
+		} else {
+			break
+		}
+	}
+	// 此时 index 指向第二个不是 0 的数
+	for index = index + 1; index < len(pokers); index++ {
+		if gap := pokers[index] - pokers[index-1]; gap == 0 {
+			// 出现了两张一样的牌
+			return false
+		} else if gap > 1 {
+			if jokers >= gap-1 {
+				// 有足够的大小王填补间隔
+				jokers -= gap - 1
+			} else {
+				// 大小王不足
+				return false
+			}
+		}
+	}
+	return true
+}
+```
+
+时间复杂度是$$O(nlogn)$$，空间复杂度是$$O(1)$$。
+
+## 圆圈中最后剩下的数字
+
+0，1，……，n-1 这 n 个数字排成一个圆圈，从数字 0 开始，每次从这个圆圈里面删除第 m 个数字，求出这个圆圈里面剩下的最后一个数字。
+
+### 分析
+
+（1）模拟整个删除的过程
+
+可以用一个链表来模拟圆环。
+
+```go
+func LastOneInCircle(n int, m int) (int, error) {
+	if n < 1 || m < 1 {
+		return 0, errors.New("invalid input")
+	}
+	if n == 1 {
+		return 0, nil
+	}
+	// 构造环型链表
+	head := &ListNode{0, nil}
+	pre := head
+	for i := 1; i <= n-1; i++ {
+		node := &ListNode{i, nil}
+		pre.Next, pre = node, node
+	}
+	pre.Next = head
+	// 开始删除的过程
+	pre, cur := nil, head
+	// 只有一个节点的时候终止
+	for cur.Next != cur {
+		for i := 0; i < m-1; i++ {
+			pre, cur = cur, cur.Next
+		}
+		cur, pre.Next = cur.Next, cur
+	}
+	return cur.Value, nil
+}
+```
+
+时间复杂度是$$O(nm)$$，空间复杂度是$$O(n)$$。
+
+（2）找规律
+
+如果不关心删除的过程而只想直接找到剩下的最后一个数字，那么可以从数学的角度进行分析，尝试找到规律。
+
+最初有 n 个数，每次删除第 k 个数，最后剩下的数的递推公式：
+
+$${\displaystyle f(n,k)=(f(n-1,k)+k){\bmod {n}}}$$
+
+```go
+func LastOneInCircle(n int, m int) (int, error) {
+	if n < 1 || m < 1 {
+		return 0, errors.New("invalid input")
+	}
+	s := 0
+	for i := 2; i <= n; i++ {
+		s = (s + m) % i
+	}
+	return s, nil
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(1)$$。
+
+## 股票的最大利润
+
+假设把某股票的价格按照时间先后顺序存储在数组中，请问买卖该股票一次可能获得的最大利润是多少？例如，一只股票在某些时间节点的价格为`{9, 11, 8, 5, 7, 12, 16 ,14}`。如果我们能在价格为 5 的时候买入并在价格为 16 的时候卖出，则能收获最大的利润 11。
+
+### 分析
+
+```go
+func MaxProfit(prices []int) int {
+   if len(prices) < 2 {
+      return 0
+   }
+   // minPrice 记录 0~i-1 的最低价格
+   // maxProfit 记录以 prices[i] 卖出时能获得的最大收益
+   minPrice, maxProfit := prices[0], prices[1]-prices[0]
+   for i := 2; i < len(prices); i++ {
+      if prices[i-1] < minPrice {
+         minPrice = prices[i-1]
+      }
+      if profit := prices[i] - minPrice; profit > maxProfit {
+         maxProfit = profit
+      }
+   }
+   return maxProfit
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(1)$$。
 

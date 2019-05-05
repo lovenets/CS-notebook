@@ -3833,3 +3833,118 @@ func Product(a []int) []int {
 ```
 
 时间复杂度是$$O(n)$$，空间复杂度是$$O(1)$$。
+
+## 把字符串转换成整数
+
+实现一个函数，把字符串转换为整数。
+
+### 分析
+
+注意特殊的输入如字符串为空，还有转换后的整数溢出等情况。
+
+```go
+func StrToInt(s string) (int, error) {
+	if s == "" {
+		return 0, errors.New("invalid input")
+	}
+	// 判断符号
+	sign := 1
+	if s[0] == '+' {
+		sign, s = 1, s[1:]
+	} else if s[0] == '-' {
+		sign, s = -1, s[1:]
+	}
+	if len(s) < 1 {
+		return 0, errors.New("invalid input")
+	}
+	num, carry := 0, 1
+	for i := len(s) - 1; i >= 0; i-- {
+		if s[i] >= '0' && s[0] <= '9' {
+			num += int(s[i]-'0') * carry
+			carry *= 10
+			// 判断溢出
+			if sign == 1 {
+				if num > math.MaxInt64 {
+					return 0, errors.New("overflow")
+				}
+			} else {
+				if -num < math.MinInt64 {
+					return 0, errors.New("overflow")
+				}
+			}
+		} else {
+			return 0, errors.New("invalid input")
+		}
+	}
+	return num * sign, nil
+}
+```
+
+时间复杂度是$$O(n)$$，空间复杂度是$$O(1)​$$。
+
+## 树中两个节点的最低公共祖先
+
+输入两个节点，求它们的最低公共祖先。
+
+### 分析
+
+（1）如果是二叉搜索树
+
+如果当前节点的值比两个节点的值都大，那么最低的公共父节点一定再当前节点的左子树中；如果当前节点的值比两个节点都小，那么最低的公共父节点一定在当前节点的右子树中。
+
+（2）如果节点有指向父节点的指针
+
+把这个题转换为求两个链表的第一个公共节点。
+
+（3）如果只是普通的树
+
+求从根节点到两个节点的路径，找出路径上的最后一个公共节点。
+
+```go
+type TreeNode struct {
+   Value    int
+   Children []*TreeNode
+}
+
+func CommonParent(n1, n2, root *TreeNode) *TreeNode {
+   if root == nil || n1 == nil || n2 == nil {
+      return nil
+   }
+   // 求路径
+   lastNode1, lastNode2 := make(map[*TreeNode]*TreeNode), make(map[*TreeNode]*TreeNode) 
+   lastNode(n1, nil, root, lastNode1) 
+   lastNode(n2, nil, root, lastNode2)
+   path1, path2 := make([]*TreeNode, 0), make([]*TreeNode, 0) // path 的第一个元素是树根
+   for cur := n1; cur != nil; cur = lastNode1[cur] {
+      path1 = append([]*TreeNode{cur}, path1...)
+   }
+   for cur := n2; cur != nil; cur = lastNode2[cur] {
+      path2 = append([]*TreeNode{cur}, path2...)
+   }
+   // 找路径上的最后一个公共节点
+   i, j := 0, 0
+   for ; i < len(path1) && j < len(path2) && path1[i] == path2[j]; i, j = i+1, j+1 {
+   }
+   if i > 0 {
+      return path1[i-1]
+   } else {
+      return nil
+   }
+}
+
+func lastNode(target *TreeNode, parent *TreeNode, node *TreeNode, path map[*TreeNode]*TreeNode) {
+   if node == nil {
+      return
+   }
+   path[node] = parent
+   if node == target {
+      return
+   }
+   children := node.Children
+   for i := range children {
+      lastNode(target, node, children[i], path)
+   }
+}
+```
+
+时间复杂度最差是$$O(n)$$，平均是$$O(logn)$$。空间复杂度是$$O(n)$$。

@@ -96,3 +96,147 @@ $$O(kc^k)$$, where k is the length of the string and c is the number of characte
 The best conceivable runtime is the best runtime you could conceive of a solution to a problem having, i.e., it's the solution taking the least time *in theory*. You can easily prove that there is no way you could beat the BCR.
 
 It tells us that we  are done in terms of optimizing the runtime and we should therefore turn our efforts to the space complexity. If we ever reach the BCR and have $$O(1)$$ additional space, then we know we can't optimize the time or space.
+
+# Arrays and Strings
+
+Array questions and string questions are often interchangeable. 
+
+## 1. Is Unique
+
+Implement an algorithm to determine if a string has all unique characters. What if you cannot use additional data structures?
+
+(1) hash table  
+
+```go
+func IsUnique(s string) bool {
+	if s == "" {
+		return false
+	}
+	chars := make(map[rune]bool)
+	for _, r := range s {
+		if chars[r] {
+			return false
+		}
+		chars[r] = true
+	}
+	return true
+}
+```
+
+$$O(n)$$ time, $$O(n)$$ space.
+
+(2) 
+
+```go
+// Assumes only letters a through z
+func IsUnique(s string) bool {
+	if l := len(s); l == 0 || l > 26 {
+		return false
+	}
+    // As long as the string has all unique characters
+    // the one bit must be different
+	checker := 0
+	for i := range s {
+		if val := 1 << (s[i] - 'a'); (checker & val) > 0 {
+			return false
+		} else {
+			checker |= val
+		}
+	}
+	return true
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ space.
+
+## 2. Check Permutation 
+
+Given two strings, write a method to decide if one is a permutation of the other.
+
+(1) count characters' frequency
+
+```go
+func CheckPermutation(a, b string) bool {
+	if len(a) != len(b) || a == b {
+		return false
+	}
+	// mapping a character to its frequency
+	charsOfA := make(map[byte]int)
+	for i := range a {
+		charsOfA[a[i]]++
+	}
+	for i := range b {
+		if _, ok := charsOfA[b[i]]; !ok {
+			return false
+		} else if charsOfA[b[i]]--; charsOfA[b[i]] < 0 {
+			return false
+		}
+	}
+
+	return true
+}
+```
+
+$$O(n)$$ time, $$O(n)$$ space.
+
+(2) sort
+
+```go
+func CheckPermutation(a, b string) bool {
+	if len(a) != len(b) || a == b {
+		return false
+	}
+	return sortString(a) == sortString(b)
+}
+
+func sortString(s string) string {
+	ints := make([]int, len(s))
+	for _, r := range s {
+		ints = append(ints, int(r))
+	}
+	sort.Ints(ints)
+	var b strings.Builder
+	for i := range ints {
+		b.WriteRune(rune(ints[i]))
+	}
+	return b.String()
+}
+```
+
+$$O(nlogn)$$ time.
+
+## 3. URLify
+
+Write a method to replace all spaces in a string with '%20'. You may assume that the string has sufficient space at the end to hold the additional characters, and that you are given the "true" length of the string. (Note: If implementing in Java or other similar languages, please use a character array so that you can perform this operation in place.)
+
+```go
+func Urlify(s []rune, length int) []rune {
+	// Count spaces.
+	spaceCount := 0
+	for i := 0; i < length; i++ {
+		if s[i] == ' ' {
+			spaceCount++
+		}
+	}
+	// i is initialized to point to the last character of old string
+	// j is initialized to point to the last character of new string
+	for i, j := length-1, length+2*spaceCount-1; i >= 0; i-- {
+		if s[i] == ' ' {
+			// Replace space.
+			s[j], s[j-1], s[j-2] = '0', '2', '%'
+			j = j - 3
+		} else {
+			// Move other characters back.
+			s[j], j = s[i], j-1
+		}
+	}
+	return s
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ space.
+
+
+
+
+

@@ -236,7 +236,157 @@ func Urlify(s []rune, length int) []rune {
 
 $$O(n)$$ time, $$O(1)$$ space.
 
+## 4. Palindrome Permutation 
 
+Given a string, write a function to check if it is a permutation of a palindrome. A palindrome is a word or phrase that is the same forwards and backwards. A permutation is a rearrangement of letters. The palindrome does not need to be limited to just dictionary word. 
+
+```
+EXAMPLE
+Input: on no evil live star Rats
+Output: True (palindrome: "Rats live on no evil star")
+```
+
+```go
+func PalindromePermutation(s string) bool {
+	if s == "" {
+		return false
+	}
+	// Build character frequency table.
+	freq := make(map[rune]int)
+	for _, r := range s {
+		if unicode.IsLetter(r) {
+			freq[unicode.ToLower(r)]++
+		}
+	}
+	// If a string is palindrome,
+	// the number of letters occurring odd times
+	// must be odd.
+	count := 0
+	for r := range freq {
+		if freq[r]&1 == 1 {
+            count++
+		}
+	}
+	return count == 0 || count&1 == 1
+}
+```
+
+$$O(n)$$ time, $$O(n)$$ space.
+
+ ## 5. One Away
+
+There are three types of edits that can be performed on strings: insert a character, remove a character, or replace a character. Given two strings, write a function to check if they are one edit (or zero edit) away.
+
+```
+EXAMPLE
+pales, pale -> true
+pale, bale  -> true
+pale, bake  -> false
+```
+
+```go
+func OneAway(a, b string) bool {
+   if a == b {
+      return true
+   }
+   // Try to insert a character.
+   // Inserting a character into the short one equals
+   // removing a character from the long one.
+   if math.Abs(float64(len(a)-len(b))) == 1.0 {
+      var s, l string
+      if len(a) > len(b) {
+         s, l = b, a
+      } else {
+         s, l = a, b
+      }
+      i := 0
+      for ; i < len(s); i++ {
+         if s[i] != l[i] {
+            break
+         }
+      }
+      if s[0:i]+string(l[i])+s[i:] == l {
+         return true
+      }
+   }
+   // Try to replace a character. 
+   if len(a) == len(b) {
+      count := 0
+      for i := range a {
+         if a[i] != b[i] {
+            // There are more than one different characters. 
+            if count++; count > 1 {
+               return false
+            }
+         }
+      }
+      return true
+   }
+   return false
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ space.
+
+## 6. String Compression 
+
+Implement a method to perform basic string compression using the counts of repeated characters. For example, the string "aabcccccaaa" would become "a2b1c5a3", if the "compressed" string would not become smaller than the original string, your method should return the original string. You can assume the string has only uppercase and lowercase letters (a-z).
+
+```go
+func StringCompression(origin string) string {
+	if origin == "" {
+		return ""
+	}
+	var compressed string
+	count := 0
+	for i, r := range origin {
+		count++
+		// If next character is different, 
+		// append it to result.
+		if i+1 >= len(origin) || origin[i] != origin[i+1] {
+			compressed += string(r) + strconv.Itoa(count)
+			count = 0
+		}
+	}
+	if len(compressed) >= len(origin) {
+		compressed = origin
+	}
+	return compressed
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ space.
+
+## 7. Rotate Matrix 
+
+Given an image represented by an N*N matrix, where each pixel in the image is 4 bytes, write a method to rotate the image by 90 degrees. Can you do this in place?
+
+```go
+func RotateMatri(matrix [][]int) [][]int {
+   if len(matrix) == 0 || len(matrix) != len(matrix[0]) {
+      return nil
+   }
+   rows := len(matrix)
+   for r := 0; r < rows/2; r++ {
+      first, last := r, rows-1-r
+      for i := first; i < last; i++ {
+         offset := i - last
+         top := matrix[first][i]
+         // left -> top
+         matrix[first][i] = matrix[last-offset][first]
+         // bottom -> left
+         matrix[last-offset][first] = matrix[last][last-offset]
+         // right -> bottom
+         matrix[last][last-offset] = matrix[i][last]
+         // top -> right
+         matrix[i][last] = top
+      }
+   }
+   return matrix
+}
+```
+
+$$O(N^2)$$ time, $$O(1)$$ space.
 
 
 

@@ -1,4 +1,4 @@
-# Virtualization 
+# CPU Virtualization 
 
 ## The Process
 
@@ -270,7 +270,7 @@ Any time a new job enters the system, the STCF scheduler determines which of the
 
 The introduction of time-shared machines changed all that. Now users would sit at a terminal and demand interactive performance from the system as well. And thus, a new metric was born: response time. Response time is defined as the time from when the job arrives in a system to the first time it is scheduled.  
 
-$$T_{response}=T_{firstrun}-T_{arrival}$$
+$$T_{response}=T_{firstrun}-T_{arrival}​$$
 
 While great for turnaround time, STCF is quite bad for response time and interactivity.  
 
@@ -288,3 +288,277 @@ A scheduler clearly has a decision to make when a job initiates an I/O
 request, because the currently-running job won’t be using the CPU during the I/O; it is blocked waiting for I/O completion.  
 
 When taking I/O into account, **overlap** is better. CPU is used by one process while waiting for the I/O of another process to complete. By treating each CPU burst as a job, the scheduler makes sure processes that are “interactive” get run frequently. While those interactive jobs are performing I/O, other CPU-intensive jobs run, thus better utilizing the processor. 
+
+## Scheduling Policy: The Multi-Level Feedback Queue
+
+The multi-level feedback queue is an excellent example of a system that learns from the past to predict the future. 
+
+### Basic Rules
+
+MLFQ has a number of distinct **queues**, each assigned a different **priority level**. At any given time, a job that is ready to run is on a single queue. A job with higher priority (i.e., a job on a higher queue) is chosen to run. Of course, more than one job may be on a given queue, and thus have the same priority. In this case, we will just use round-robin scheduling among those jobs. 
+
+- Rule 1: If Priority(A) > Priority(B), A runs.
+- Rule 2: If Priority(A) = Priority(B), A & B runs in RR.
+
+Rather than giving a fixed priority to each job, MLFQ varies the priority of a job based on its **observed behavior**. 
+
+### How to Change Priority 
+
+- Rule 3: When a job enters the system, it is placed at the highest priority.
+- Rule 4a: If a job uses up an entire time slice while running, its priority is **reduced** (such as CPU-intensive jobs).
+- Rule 4b: If a job gives up the CPU before the time slice is up, it stays at the **same** priority level (such as jobs issuing I/O). 
+
+These rules may arise some problems. 
+
+1. Starvation: if there are too many interactive jobs in the system, they will combine to consume **all** CPU time and thus long-running jobs will never receive any CPU time.
+2. A smart user could rewrite their program to **game the scheduler**. Gaming the scheduler generally refers to the idea of doing something sneaky to trick the scheduler into giving you more than your fair share of the resource. 
+
+### The Priority Boost 
+
+- Rule 5: After some time period $$S$$, change all the jobs in the system to the highest priority. 
+
+1.Advantage 
+
+(1) Processes are guaranteed not to starve. A job with the highest priority will share the CPU with other high-priority jobs in a RR fashion.
+
+(2) If a CPU-bound job becomes interactive, the scheduler treats it properly once it has received the priority boost. 
+
+2.Disadvantage 
+
+If $$S$$ is set too high, long-running jobs could starve; too low, and interactive jobs may not get a proper share of the CPU.
+
+### Better Accounting 
+
+If we want to prevent gaming of our scheduler, the scheduler should keep track how much a time slice a process used at a given level instead of just forgetting it. 
+
+We thus rewrite Rules 4a and 4b to the following single rule:
+
+- Rule 4: Once a job uses up its time allotment at a given level (regardless of how many times it has given up the CPU), its priority is reduced.
+
+Without any protection from gaming, a process can issue an I/O just before a time slice ends and thus dominate CPU time. With such protections in place, regardless of the I/O behavior of the process, it slowly moves down the queues, and thus cannot gain an unfair share of the CPU.
+
+### Tuning MLFQ And Other Issues 
+
+One big question is how to parameterize such a scheduler. For example, how many queues should there be? How big should the time slice be per queue? How often should priority be boosted in order to avoid starvation and account for changes in behavior?
+
+Unfortunately, there are no easy answers to these questions, and thus only some experience with workloads and subsequent tuning of the scheduler will lead to a satisfactory balance.
+
+### MLFQ: Summary 
+
+MLFQ approach has **multiple levels** of queues, and uses **feedback** to determine the priority of a given job. History is its guide: pay attention to how jobs behave over time and treat them accordingly.
+
+- Rule 1: If Priority(A) > Priority(B), A runs (B doesn’t).
+- Rule 2: If Priority(A) = Priority(B), A & B run in RR.
+- Rule 3: When a job enters the system, it is placed at the highest priority (the topmost queue).
+- Rule 4: Once a job uses up its time allotment at a given level (regardless of how many times it has given up the CPU), its priority is reduced (i.e., it moves down one queue).
+- Rule 5: After some time period S, move all the jobs in the system to the topmost queue 
+
+MLFQ can deliver excellent overall performance (similar to SJF/STCF) for short-running interactive jobs and is fair and makes progress for long-running CPU-intensive workloads. 
+
+## Scheduling Policy: Proportional Share
+
+Proportional-share is based around a simple concept: instead of optimizing for turnaround or response time, a scheduler might instead try to guarantee that each job obtain a certain percentage of CPU time.
+
+An excellent modern example of proportional-share scheduling is **lottery scheduling**. The basic idea is quite simple: every so often, hold a lottery to determine which process should get to run next; processes that should run more often should be given more chances to win the lottery.
+
+### Basic Concept: Tickets
+
+Underlying lottery scheduling is one very basic concept: **tickets**, which are used to represent the share of a resource that a process (or user or whatever) should receive. The percent of tickets that a process has represents its share of the system resource in question. 
+
+The scheduler must know how many total tickets there are (in our example, there are 100). The scheduler then picks a winning ticket, which is just a number. Assuming A holds tickets 0 through 74 and B 75 through 99, the winning ticket simply determines whether A or B runs. The scheduler then loads the state of that winning process and runs it.
+
+### Ticket Mechanism 
+
+1.ticket currency 
+
+Currency allows a user with a set of tickets to allocate tickets among their own jobs in whatever currency they would like; the system then automatically converts said currency into the correct global value.
+
+For example, assume users A and B have each been given 100 tickets.
+User A is running two jobs, A1 and A2, and gives them each 500 tickets
+(out of 1000 total) in User A’s own currency. User B is running only 1 job
+and gives it 10 tickets (out of 10 total). The system will convert A1’s and
+A2’s allocation from 500 each in A’s currency to 50 each in the global currency; similarly, B1’s 10 tickets will be converted to 100 tickets. The lottery will then be held over the global ticket currency (200 total) to determine which job runs. 
+
+2.ticket transfer
+
+This is useful especially in a C/S setting, where a client process sends a message to a server asking it to do some work on the client's behalf. 
+
+With transfers, a process can temporarily hand off its tickets to another process. When finished, the process which received tickets before transfers the tickets back to the client and all is as before. 
+
+3.ticket inflation 
+
+With inflation, a process can temporarily raise or lower the number of tickets it owns. Inflation can be applied in an environment where a group of processes trust one another; in such a case, if any one process knows it needs more CPU time, it can boost its ticket value as a way to reflect that need to the system, all without communicating with any other processes.
+
+### Implementation of Lottery Scheduling
+
+Let’s assume we keep the processes in a list. Here is an example comprised of three processes, A, B, and C, each with some number of tickets. 
+
+![implementation of lottery scheduling](img/implementation of lottery scheduling.jpg)
+
+To make a scheduling decision, we first have to pick a random number (the winner) from the total number of tickets (400). Let’s say we pick the number 300. Then, we simply traverse the list, with a simple counter used to help us find the winner.
+
+```c
+// counter: used to track if we've found the winner yet
+int counter = 0;
+
+// winner: use some call to a random number generator 
+// to get a value, between 0 and the total # of tickets
+int winner = getrandom(0, totaltickets);
+
+// current: use this to walk through the list of jobs
+node_t *current = head;
+
+// loop until the sum of ticket values is > the winner
+while (current) {
+    counter = counter + current->tickets;
+    if (counter > winner) {
+        break; // found the winner
+    }
+    current = current->next;
+}
+// 'current' is the winner: schedule it
+```
+
+To make this process most efficient, it might generally be best to organize the list in descending order. The ordering does not affect the correctness of the algorithm; however, it does ensure in general that the fewest number of list iterations are taken, especially if there are a few processes that possess most of the tickets.
+
+### Stride Scheduling 
+
+Lottery scheduling is random; while random gets us a simple (and approximately correct) scheduler, it occasionally will not deliver the exact right proportions, especially over short time scales. That's why **stride scheduling**, a deterministic fair-share scheduler, comes. 
+
+Each job in the system has a stride, which is inverse in proportion to the number of tickets it has. In our example, with jobs A, B, and C, with 100, 50, and 250 tickets, respectively, we can compute the stride of each by dividing some large number by the number of tickets each process has been assigned. For example, if we divide 10,000 by each of those ticket values, we obtain the following stride values for A, B, and C: 100, 200, and 40. We call this value the **stride** of each process; every time a process runs, we will increment a counter for it (called its pass value) by its stride to track its global progress.
+
+The scheduler then uses the stride and pass to determine which process should run next. The basic idea is simple: at any given time, pick the process to run that has the lowest pass value so far; when you run a process, increment its pass counter by its stride.
+
+```pseudocode
+current = remove_min(queue); // pick client with minimum pass
+schedule(current); // use resource for quantum
+current->pass += current->stride; // compute next pass using stride
+insert(queue, current); // put back into the queue
+```
+
+Lottery scheduling achieves the proportions probabilistically over time; stride scheduling gets them exactly right at the end of each scheduling cycle.
+
+*So why use lottery scheduling at all instead of stride scheduling?*
+
+Lottery scheduling has one nice property that stride scheduling does not: **no global state**. Imagine a new job enters in the middle of our stride scheduling example above; what should its pass value be? Should it be set to 0? If so, it will monopolize the CPU. With lottery scheduling, there is no global state per process; we simply add a new process with whatever tickets it has, update the single global variable to track how many total tickets we have, and go from there. In this way, lottery  makes it much easier to incorporate new processes in a sensible manner.
+
+### Summary 
+
+Lottery and stride scheduling are wo implementations of proportional-share scheduling. 
+
+Although both are conceptually interesting, they have not achieved wide-spread adoption as CPU schedulers for a variety of reasons. One is that such approaches do not particularly mesh well with I/O; another is that they leave open the hard problem of ticket assignment, i.e., how do you know how many tickets your browser should be allocated?
+
+## Multiprocessor Scheduling
+
+### Background: Multiprocessor Architecture
+
+To understand the new issues surrounding multiprocessor scheduling, we have to understand a new and fundamental difference between single-CPU hardware and multi-CPU hardware. This difference centers around the use of hardware **caches**, and exactly how data is shared across multiple processors.
+
+Caches are thus based on the notion of **locality**, of which there are two kinds: temporal locality and spatial locality. The idea behind temporal locality is that when a piece of data is accessed, it is likely to be accessed again in the near future. The idea behind spatial locality is that if a program accesses a data item at address x, it is likely to access data items near x as well.
+
+### Synchronization
+
+The solution, of course, is to make such routines correct via locking. In this case, allocating a simple mutex and then adding a `lock(&m)` at the beginning of the routine and an `unlock(&m)` at the end will solve the problem, ensuring that the code will execute as desired. Unfortunately, as we will see, such an approach  is not without problems, in particular with regards to performance. Specifically, as the number of CPUs grows, access to a synchronized shared data structure becomes quite slow.
+
+### Cache Affinity
+
+A process, when run on a particular CPU, builds up a fair bit of state in the caches (and TLBs) of the CPU. The next time the process runs, it is often advantageous to run it on the same CPU, as it will run faster if some of its state is already present in the caches on that CPU. If, instead, one runs a process on a different CPU each time, the performance of the process will be worse, as it will have to reload the state each time it runs (note it will run correctly on a different CPU thanks to the cache coherence protocols of the hardware). Thus, a multiprocessor scheduler should consider cache affinity when making its scheduling decisions, perhaps preferring to keep a process on the  same CPU if at all possible.
+
+### Single-Queue Scheduling
+
+The most basic approach is to simply reuse the basic framework for single processor scheduling, by putting all jobs that need to be scheduled into a single queue; we call this single-queue multiprocessor scheduling or **SQMS** for short.
+
+1.advantages
+
+This approach has the advantage of simplicity.
+
+2.disadvantages 
+
+(1) a lack of **scalability**
+
+To ensure the scheduler works correctly on multiple CPUs, the developers will have inserted some form of **locking** into the code. Locks, unfortunately, can greatly reduce performance, particularly as the number of CPUs in the systems grows
+
+(2) cache affinity 
+
+Because each CPU simply picks the next job to run from the globally shared queue, each job ends up bouncing around from CPU to CPU, thus doing exactly the opposite of what would make sense from the standpoint of cache affinity.
+
+### Multi-Queue Scheduling
+
+Some systems opt for multiple queues, e.g., one per CPU. We call this approach multi-queue multiprocessor scheduling (or **MQMS**).
+
+Each queue will likely follow a particular scheduling discipline, such as round robin, though of course any algorithm can be used. When a job enters the system, it is placed on exactly one scheduling queue, according to some heuristic (e.g., random, or picking one with fewer jobs than others). Then it is scheduled essentially **independently**, thus avoiding the problems of information sharing and synchronization found in the single-queue approach.
+
+1.advantages 
+
+(1) As the number of CPUs grows, so too does the number of queues, and thus lock and cache contention should not become a central problem.
+
+(2) Jobs stay on the same CPU and thus reap the advantage of cache affinity.
+
+2.disadavantages
+
+Workload imbalance is the biggest problem. Let's say there is only one job running on CPU 0 and there are two jobs running on CPU 1, both CPU using round-robin policy. The resulting schedule:
+
+![workload imbalance](img/workload imbalance.jpg)
+
+How should a multi-queue multiprocessor scheduler handle load imbalance, so as to better achieve its desired scheduling goals? The obvious answer to this query is to move jobs around, a technique which we (once again) refer to as **migration**. By migrating a job from one CPU to another, true load balance can be achieved.
+
+One basic approach is to use a technique known as **work stealing**. With a work-stealing approach, a (source) queue that is low on jobs will occasionally peek at another (target) queue, to see how full it is. If the target queue is (notably) more full than the source queue, the source will “steal” one or more jobs from the target to help balance load.
+
+But if you look around at other queues too often, you will suffer from high overhead and have trouble scaling; if you don't look at other queues very often, you are in dangerous of suffering from severe load imbalance. Finding the right threshold remains, as is common in system policy design, a black art.
+
+# Memory Virtualization
+
+## Address Space 
+
+Address space is the running program’s view of memory in the system. The address space of a process contains all of the memory state of the
+running program, such as the **code**, **stack** and **heap**. Heap and stack may grow (and shrink) while the program runs. We put them at opposite ends of the address space so we can allow such growth: they just have to grow in opposite directions.
+
+When the OS virtualizes memory, the running program thinks it is loaded into memory at a particular address (say 0) and has a potentially very large address space. When, for example, process A tries to perform a load at address 0 (which we will call a virtual address), somehow the OS, with some hardware support, will have to make sure the load doesn’t actually go to physical address 0 but rather to physical address 320KB (where A is loaded into memory).
+
+So never forget: if you print out an address in a program, it’s a virtual one, an illusion of how things are laid out in memory; only the OS (and the hardware) knows the real truth.
+
+### VM Goals
+
+1.transparency
+
+The OS should implement virtual memory in a way that is invisible to
+the running program. Thus, the program shouldn’t be aware of the fact
+that memory is virtualized; rather, the program behaves as if it has its
+own private physical memory.
+
+2.efficiency
+
+The OS should strive to make the virtualization as efficient as possible, both in terms of time (i.e., not making programs run much more slowly) and space (i.e., not using too much memory for structures needed to support virtualization).
+
+3.protection
+
+Protection thus enables us to deliver the property of isolation among processes; each process should be running in its own isolated cocoon, safe from the ravages of other faulty or even malicious processes.
+
+## Memory API
+
+### Types of Memory
+
+1.stack memory 
+
+Allocations and deallocations of it are managed *implicitly* by the compiler for you, the programmer.
+
+2.heap memory
+
+All allocations and deallocations are *explicitly* handled by you, programmer.
+
+### The `malloc()`Call
+
+### The `free()`Call
+
+### Memory Leak
+
+No matter what the state of your heap in your address space, the OS takes back all of those pages when the process dies, thus ensuring that no memory is lost despite the fact that you didn’t free it.
+
+Thus, for short-lived programs, leaking memory often does not cause any operational problems. When you write a long-running server (such as a web server or database management system, which never exit), leaked memory is a much bigger issue, and will eventually lead to a crash when the application runs out of memory.
+
+### Underlying OS Support
+
+`malloc`and`free`are not system calls, but rather library calls. Thus the malloc library manages space within your virtual address space, but itself is built on top of some system calls which call into the OS to ask for more memory or release some back to the system.
+
+One such system call is called `brk`, which is used to change the location of the program’s break: the location of the end of the heap. It takes one argument (the address of the new break), and thus either increases or decreases the size of the heap based on whether the new break is larger or smaller than the current break. An additional call `sbrk` is passed an increment but otherwise serves a similar purpose.
+

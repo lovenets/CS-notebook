@@ -388,5 +388,247 @@ func RotateMatri(matrix [][]int) [][]int {
 
 $$O(N^2)$$ time, $$O(1)$$ space.
 
+## 8. Zero Matrix 
 
+Write an algorithm such that if an element in an M*N matrix is 0, its entire row and column are set to 0.
+
+```go
+func ZeroMatrix(matrix [][]int) [][]int {
+   if len(matrix) == 0 {
+      return nil
+   }
+   // Mark the zero cells' rows and columns.
+   zeroRows, zeroCols := make([]int, 0), make([]int, 0)
+   for i := range matrix {
+      for j := range matrix[i] {
+         if matrix[i][j] == 0 {
+            zeroRows, zeroCols = append(zeroRows, i), append(zeroCols, j)
+         }
+      }
+   }
+   // Clear specific rows and columns.
+   rows, cols := len(matrix), len(matrix[0])
+   for i := range zeroRows {
+      for j := 0; j < cols; j++ {
+         matrix[zeroRows[i]][j] = 0
+      }
+   }
+   for i := range zeroCols {
+      for j := 0; j < rows; j++ {
+         matrix[j][zeroCols[i]] = 0
+      }
+   }
+   return matrix
+}
+```
+
+$$O(nm)$$ time, $$O(n+m)$$ space where n is the number of rows and m is the number of columns.
+
+## 9. String Rotation
+
+Assume you have a method `isSubstring`which checks if one word is a substring of another. Given two strings, s1 and s2, write code to check if  s2 is a rotation of s1 using only one call to `isSubstring`(e.g., "waterbottle" is a rotation of "erbottlewat").
+
+```go
+func StringRotation(s1, s2 string) bool {
+    // Assure s1 and s2 have the same length 
+    // and are not empty.
+   if len(s1) == len(s2) && len(s1) != 0 {
+      // Too tricky
+      return isSubstring(s1+s1, s2)
+   }
+   return false
+}
+
+func isSubstring(str, sub string) bool {
+	return strings.Contains(str, sub)
+}
+```
+
+# Linked List
+
+**The "Runner" Technique**
+
+The "runner" (or second pointer) technique is used in many linked list problems. The runner technique means that you iterate through the list with two pointers simultaneously, with one ahead of the other.  The "fast" node might be ahead by a fixed amount, or it might be hopping multiple nodes for each one node that the "slow" node iterates through. 
+
+**Recursive Problems**
+
+If you are having trouble solving a linked list problem, you should explore if a recursive approach will work. 
+
+Recursive algorithms take at least $$O(n)$$ space, where n is the depth of the recursive call. All recursive algorithms can be implemented iteratively although they may be much more complex. 
+
+## 1. Remove Dups
+
+Write code to remove duplicates from an unsorted linked list. 
+
+FOLLOW UP: How would you solve this problem if a temporary buffer is not allowed?
+
+(1) 
+
+```go
+func RemoveDups(head *ListNode) *ListNode {
+   if head == nil {
+      return nil
+   }
+   dump := &ListNode{Next: head}
+   existed := make(map[int]bool)
+   for pre, cur := dump, head; cur != nil; {
+      if !existed[cur.Value] {
+         existed[cur.Value] = true
+         pre, cur = pre.Next, cur.Next
+      } else {
+         // Remove the duplicate node. 
+         cur = cur.Next
+         pre.Next = cur
+      }
+   }
+   return dump.Next
+}
+```
+
+$$O(n)$$ time, $$O(n)$$ space.
+
+(2) 
+
+```go
+func RemoveDups(head *ListNode) {
+	for cur := head; cur != nil; cur = cur.Next {
+		// Remove all future nodes that have the same value as current node.
+		runner := cur
+		for runner.Next != nil {
+			if runner.Next.Value == cur.Value {
+				runner.Next = runner.Next.Next
+			} else {
+				runner = runner.Next
+			}
+		}
+	}
+}
+```
+
+$$O(n^2)$$ time, $$O(1)$$ space.
+
+## 2. Return Kth to Last
+
+Implement an algorithm to find the kth to last element of a singly linked list. 
+
+(1)
+
+```go
+func ReturnKthToLast(head *ListNode, k int) *ListNode {
+	if head == nil || k <= 0 {
+		return nil
+	}
+	fast, i := head, 0
+	for ; fast != nil && i < k; fast, i = fast.Next, i+1 {
+	}
+	if i < k {
+		// The number of nodes is less than k.
+		return nil
+	}
+	slow := head
+	for ; fast != nil && slow != nil; slow, fast = slow.Next, fast.Next {
+	}
+	return slow
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ space.
+
+(2) 
+
+```go
+func ReturnKthToLast(head *ListNode, k int) *ListNode {
+   if k <= 0 {
+      return nil
+   }
+   index := 0
+   return kToLast(head, k, &index)
+}
+
+func kToLast(node *ListNode, k int, i *int) *ListNode {
+   if node == nil {
+      return nil
+   }
+   tmp := kToLast(node.Next, k, i)
+   if *i++; *i == k {
+      return node
+   }
+   return tmp
+}
+```
+
+$$O(n)$$ time, $$O(n)$$ space.
+
+## 3. Delete Middle Node
+
+Implement an algorithm to delete a node in the middle (i.e. any node but the first and last, not necessarily the exact middle) of a singly linked list, given only access to that node.
+
+```
+EXAMPLE
+Input: the node c from the linked list a -> b -> c -> d -> e -> f
+Result: nothing is return, but the new linked list looks like a -> b -> d -> e -> f
+```
+
+```go
+func DeleteMiddleNode(middle *ListNode) {
+	if middle == nil || middle.Next == nil {
+		return
+	}
+	pre, cur, next := middle, middle, middle.Next
+	for ; next != nil; pre, cur, next = cur, cur.Next, next.Next {
+		// Overwrite current node's value with next node's.
+		cur.Value = next.Value
+	}
+	// Remove the last node.
+	pre.Next = nil
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ space.
+
+## 4. Partition 
+
+Write code to partition a linked list around a value x, such that all nodes less than x come before all nodes greater than or equal to x. If x is contained within the list, the value of x only need to be after the elements less than x. The partition element x can appear everywhere in the "right partition"; it doesn't need to appear between the left and right partitions.
+
+```
+EXAMPLE
+Input: 3->5->8->5->10->2->1 [partition=5]
+Output: 3->1->2->10->5->5->5->8
+```
+
+```go
+func Partition(head *ListNode, x int) *ListNode {
+   if head == nil {
+      return nil
+   }
+   var headOfLess, less, headOfGreater, greater *ListNode
+   for cur := head; cur != nil; cur = cur.Next {
+      if cur.Value < x {
+         if headOfLess == nil {
+            headOfLess = cur
+            less = headOfLess
+         } else {
+            less.Next = cur
+            less = less.Next
+         }
+      } else {
+         if headOfGreater == nil {
+            headOfGreater = cur
+            greater = headOfGreater
+         } else {
+            greater.Next = cur
+            greater = greater.Next
+         }
+      }
+   }
+   if headOfLess != nil && headOfGreater != nil || headOfLess != nil {
+      less.Next = headOfGreater
+      return headOfLess
+   } else {
+      return headOfGreater
+   }
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ space.
 

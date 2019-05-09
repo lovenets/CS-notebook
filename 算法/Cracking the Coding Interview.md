@@ -632,3 +632,197 @@ func Partition(head *ListNode, x int) *ListNode {
 
 $$O(n)$$ time, $$O(1)$$ space.
 
+## 5. Sum Lists
+
+You have two numbers represented by a linked list, where each node contains a single digit. The digits are stored in reverse order, such that the Vs digit is at the head of the list. Write a function that adds the two numbers and returns the sum as as linked list. 
+
+```
+EXAMPLE
+Input: (7->1->6)+(5->9->2) That is 617 + 295
+Output: 2->1->9 That is 912.
+```
+
+FOLLOW UP
+
+Suppose the digits are stored in forward order. Repeat the above problem. 
+
+(1) Digits stored in reverse order
+
+```go
+func SumListsInReverseOrder(a, b *ListNode) *ListNode {
+   if a == nil && b == nil {
+      return nil
+   } else if a == nil {
+      return b
+   } else if b == nil {
+      return a
+   }
+   // Assure that tow lists are not empty.
+   var head, last *ListNode
+   carry := 0
+   p, q := a, b
+   for ; p != nil && q != nil; p, q = p.Next, q.Next {
+      tmp := p.Value + q.Value + carry
+      if tmp > 10 {
+         carry, tmp = 1, tmp-10
+      } else {
+         carry = 0
+      }
+      if head == nil {
+         head = &ListNode{
+            Value: tmp,
+            Next:  nil,
+         }
+         last = head
+      } else {
+         node := &ListNode{
+            Value: tmp,
+            Next:  nil,
+         }
+         last.Next = node
+         last = last.Next
+      }
+   }
+   // If one list is longer than the other.
+   if p != nil || q != nil {
+      var cur *ListNode
+      if p != nil {
+         cur = p
+      } else {
+         cur = q
+      }
+      for ; cur != nil; cur = cur.Next {
+         tmp := cur.Value + carry
+         if tmp > 10 {
+            carry, tmp = 1, tmp-10
+         } else {
+            carry = 0
+         }
+         node := &ListNode{
+            Value: tmp,
+            Next:  nil,
+         }
+         last.Next = node
+         last = last.Next
+      }
+   }
+   return head
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ space.
+
+(2) Digits stored in forward order
+
+Just reverse lists and do as above.
+
+```go
+func SumListsInForwardOrder(a, b *ListNode) *ListNode {
+	reverse := func(head *ListNode) *ListNode {
+		if head == nil {
+			return nil
+		}
+		cur := head
+		var pre, next *ListNode
+		for cur != nil {
+			next = cur.Next
+			cur.Next = pre
+			pre = cur
+			cur = next
+		}
+		return pre
+	}
+	ra, rb := reverse(a), reverse(b)
+	return reverse(SumListsInReverseOrder(ra, rb))
+}
+```
+
+$$O(n)​$$ time, $$O(1)​$$ space.
+
+### 6. Palindrome 
+
+Implement a function to check if a linked list is a palindrome.
+
+```go
+func IsPalindrome(head *ListNode) bool {
+   if head == nil {
+      return false
+   }
+   var b strings.Builder
+   for cur := head; cur != nil; cur = cur.Next {
+      b.WriteByte(byte(cur.Value))
+   }
+   forward := b.String()
+   rhead := reverseList(head)
+   b.Reset()
+   for cur := rhead; cur != nil; cur = cur.Next {
+      b.WriteByte(byte(cur.Value))
+   }
+   reverse := b.String()
+   return forward == reverse
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ space.
+
+## 7. Intersection
+
+Given two singly linked lists, determine if the two lists intersect. Return the intersecting nodes. Note that the intersection is defined based on reference, not value. That is, if the kth node of the first list is the exact same node (by reference) as the jth node of the second linked list, then they are intersecting.
+
+```go
+func Intersection(a, b *ListNode) *ListNode {
+   if a == nil || b == nil {
+      return nil
+   }
+   existed := make(map[*ListNode]bool)
+   for cur := a; cur != nil; cur = cur.Next {
+      existed[cur] = true
+   }
+   for cur := b; cur != nil; cur = cur.Next {
+      if existed[cur] {
+         return cur
+      }
+   }
+   return nil
+}
+```
+
+$$O(n)$$ time, $$O(n)$$ space.
+
+## 8. Loop Detection
+
+Given a circular linked list, implement an algorithm that returns the node at the beginning of the loop.
+
+```go
+func LoopDetection(head *ListNode) *ListNode {
+        if p := detect(head); p != nil {
+            return start(p, head)
+        } else {
+            return nil
+        }
+}
+
+func detect(head *ListNode) *ListNode {
+    slow, fast := head, head
+    for slow != nil && fast != nil && fast.Next != nil {
+        slow = slow.Next
+        fast = fast.Next.Next
+        if slow == fast {
+            return slow
+        }
+    }
+    return nil
+}
+
+func start(p, head *ListNode) *ListNode {
+    q := head
+    for p != q {
+        p = p.Next
+        q = q.Next
+    }
+    return q
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ space.
+

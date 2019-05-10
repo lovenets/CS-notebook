@@ -739,7 +739,7 @@ func SumListsInForwardOrder(a, b *ListNode) *ListNode {
 
 $$O(n)​$$ time, $$O(1)​$$ space.
 
-### 6. Palindrome 
+## 6. Palindrome 
 
 Implement a function to check if a linked list is a palindrome.
 
@@ -825,4 +825,299 @@ func start(p, head *ListNode) *ListNode {
 ```
 
 $$O(n)$$ time, $$O(1)$$ space.
+
+# Stacks and Queues
+
+## 1. Three In One
+
+Describe how you could use a single array to implement three stacks.
+
+Just think of a array as it is combined with three arrays one by one.
+
+```go
+type MultiStacks struct {
+   values   []int // underlying array
+   sizes    []int // actual capacity of each stack
+   capacity int   // max capacity of each stack
+}
+
+func NewMultiStacks(numOfStacks int, capacity int) *MultiStacks {
+   return &MultiStacks{
+      values:   make([]int, capacity*numOfStacks),
+      sizes:    make([]int, numOfStacks),
+      capacity: capacity,
+   }
+}
+
+func (ms *MultiStacks) IsEmpty(idxOfStack int) (bool, error) {
+   if idxOfStack >= len(ms.sizes) {
+      return false, errors.New("index out of range")
+   }
+   return ms.sizes[idxOfStack] == 0, nil
+}
+
+func (ms *MultiStacks) Push(idxOfStack int, value int) error {
+   if idxOfStack >= len(ms.sizes) {
+      return errors.New("index of range")
+   }
+   if ms.sizes[idxOfStack] == ms.capacity {
+      return errors.New("stack is full")
+   }
+   ms.values[idxOfStack*ms.capacity+ms.sizes[idxOfStack]] = value
+   ms.sizes[idxOfStack]++
+   return nil
+}
+
+func (ms *MultiStacks) Peek(idxOfStack int) (int, error) {
+   if idxOfStack >= len(ms.sizes) {
+      return 0, errors.New("index out of range")
+   }
+   if ms.sizes[idxOfStack] == 0 {
+      return 0, errors.New("stack is empty")
+   }
+   return ms.values[idxOfStack*ms.capacity+ms.sizes[idxOfStack]-1], nil
+}
+
+func (ms *MultiStacks) Pop(idxOfStack int) error {
+   if idxOfStack >= len(ms.sizes) {
+      return errors.New("index out of range")
+   }
+   if ms.sizes[idxOfStack] == 0 {
+      return errors.New("stack is empty")
+   }
+   ms.sizes[idxOfStack]--
+   return nil
+}
+```
+
+## 2. Stack Min
+
+How would you design a stack which, in addition to pop and push, has a function min which returns the minimum element? Push, pop and min should all operate in $$O(1)$$ time.
+
+Just make each element contain a field called `min`which represents the *current* minimum value on the stack, which means the minimum value in the "substack" ended with the element.
+
+```go
+type NodeWithMin struct {
+	val int
+	min int
+}
+
+type StackWithMin struct {
+	nodes []NodeWithMin
+}
+
+func NewStackWithMin() *StackWithMin {
+	return &StackWithMin{make([]NodeWithMin, 0)}
+}
+
+func (s *StackWithMin) Push(val int) {
+	curMin := math.MaxInt64
+	if len(s.nodes) > 0 {
+		curMin = s.nodes[len(s.nodes)-1].min
+	}
+	if curMin > val {
+		curMin = val
+	}
+	s.nodes = append(s.nodes, NodeWithMin{val, curMin})
+}
+
+func (s *StackWithMin) Pop() (int, error) {
+	if len(s.nodes) == 0 {
+		return 0, errors.New("empty stack")
+	}
+	top := s.nodes[len(s.nodes)-1]
+	s.nodes = s.nodes[:len(s.nodes)-1]
+	return top.val, nil
+}
+
+func (s *StackWithMin) Min() (int, error) {
+	if len(s.nodes) == 0 {
+		return 0, errors.New("empty stack")
+	}
+	return s.nodes[len(s.nodes)-1].min, nil
+}
+```
+
+## 3. Stack Of Plates
+
+Imagine a literal stack of plates. If the stack gets too high, it might topple. Therefore, in real life, we would likely start a new stack when the previous stack exceeds some threshold. Implement a data structure `SetOfStacks` that mimics this. `SetOfStacks` should be composed of several stacks and should create a new stack once the previous one exceeds capacity, `SetOfStacks.push()`and `SetOfStacks.pop()`should behave identically to a single stack (that is, `pop()`should return the same values as it would if there were just a single stack.)
+
+FOLLOW UP
+
+Implement a function `popAt(int index)`which preforms a pop operation on a specific sub-stack.
+
+```go
+type SetOfStacks struct {
+   capacity int
+   stacks   [][]int
+}
+
+func NewSetOfStacks(capacity int) (*SetOfStacks, error) {
+   if capacity <= 0 {
+      return nil, errors.New("invalid capacity")
+   }
+   stacks := make([][]int, 0)
+   stacks = append(stacks, make([]int, capacity))
+   return &SetOfStacks{
+      capacity: capacity,
+      stacks:   stacks,
+   }, nil
+}
+
+func (ss *SetOfStacks) Push(val int) {
+   if len(ss.stacks[len(ss.stacks)-1]) == ss.capacity {
+      newStack := make([]int, ss.capacity)
+      newStack = append(newStack, val)
+      ss.stacks = append(ss.stacks, newStack)
+   } else {
+      ss.stacks[len(ss.stacks)-1] = append(ss.stacks[len(ss.stacks)-1], val)
+   }
+}
+
+func (ss *SetOfStacks) Pop() (int, error) {
+   if len(ss.stacks[len(ss.stacks)-1]) == 0 {
+      return 0, errors.New("empty set of stacks")
+   }
+   lenOfLastStack := len(ss.stacks[len(ss.stacks)-1])
+   top := ss.stacks[len(ss.stacks)-1][lenOfLastStack-1]
+   ss.stacks[len(ss.stacks)-1] = ss.stacks[len(ss.stacks)-1][:lenOfLastStack-1]
+   return top, nil
+}
+
+func (ss *SetOfStacks) PopAt(index int) (int, error) {
+   if index < 0 || index >= len(ss.stacks) {
+      return 0, errors.New("index of range")
+   }
+   if len(ss.stacks[index]) == 0 {
+      return 0, errors.New("empty stack")
+   }
+   lenOfStack := len(ss.stacks[index])
+   top := ss.stacks[index][lenOfStack-1]
+   ss.stacks[index] = ss.stacks[index][:lenOfStack-1]
+   return top, nil
+}
+```
+
+## 4. Queue via Stacks
+
+Implement a MyQueue class which implements a queue using two stacks.
+
+```go
+type MyQueue struct {
+	stack1 *Stack
+	stack2 *Stack
+}
+
+func NewMyQueue() *MyQueue {
+	return &MyQueue{NewStack(), NewStack()}
+}
+
+func (mq *MyQueue) IsEmpty() bool {
+	return mq.stack1.IsEmpty()
+}
+
+func (mq *MyQueue) Add(val int) {
+	mq.stack1.Push(val)
+}
+
+func (mq *MyQueue) Remove() (int, error) {
+	for mq.stack1.Size() > 1 {
+		val, _ := mq.stack1.Pop()
+		mq.stack2.Push(val)
+	}
+	peek, _ := mq.stack1.Pop()
+	for !mq.stack2.IsEmpty() {
+		val, _ := mq.stack2.Pop()
+		mq.stack1.Push(val)
+	}
+	return peek, nil
+}
+```
+
+## 5. Sort Stack
+
+Write a program to sort a stack such that the smallest item are on the top. You can use an additional stack, but you may not copy the elements into any other data structure (such as an array). The stack supports the following operations: `push`, `pop`, `peek` and `isEmpty`.
+
+1. Create a temporary stack say **helper stack**.
+2. While input stack is NOT empty do this:
+   - Pop an element from input stack call it **temp**
+   - While temporary stack is NOT empty and top of temporary stack is greater than temp, pop from temporary stack and push it to the input stack. By doing this, we can assure elements in helper stack are in order and max is on the top.
+   - Push **temp** in helper stack
+3. The sorted numbers are in helper stack
+
+```go
+func (s *Stack) Sort() {
+   helper := NewStack()
+   for !s.IsEmpty() {
+      // Push each element in s in sorted order to helper stack.
+      tmp, _ := s.Pop()
+      for !helper.IsEmpty() && helper.Peek() > tmp {
+         val, _ := helper.Pop()
+         s.Push(val)
+      }
+      helper.Push(tmp)
+   }
+   // Now elements in helper are in order and max is on the top.
+   for !helper.IsEmpty() {
+      val, _ := helper.Pop()
+      s.Push(val)
+   }
+}
+```
+
+$$O(n^2)$$ time in the worst case?
+
+## 6. Animal Shelter 
+
+An animal shelter, which holds only dogs and cats, operates on a strictly    "first in, first out" basis. People must adopt either the "oldest" (based on arrival time) of all animals at the shelter, or they can select whether they would prefer a dog or a cat (and will receive the oldest animal of that type). They cannot select which specific animal they would like. Create the data structure to maintain this system and implement operations such as `enqueue`, `dequeueAny`, `dequeueDog`, and `dequeueCat`. You may use the built-in linked list data structure.
+
+```go
+type Animal struct {
+   Id   int
+   Kind int // 1: dog, 2: cat
+}
+
+type AnimalShelter struct {
+   animals []*Animal
+}
+
+func NewAniamlShelter() *AnimalShelter {
+   return &AnimalShelter{make([]*Animal, 0)}
+}
+
+func (as *AnimalShelter) Enqueue(a *Animal) {
+   as.animals = append(as.animals, a)
+}
+
+func (as *AnimalShelter) DequeueAny() (*Animal, error) {
+   if len(as.animals) == 0 {
+      return nil, errors.New("empty shelter")
+   }
+   peek := as.animals[0]
+   as.animals = as.animals[1:]
+   return peek, nil
+}
+
+func (as *AnimalShelter) DequeueDog() (*Animal, error) {
+   return as.dequeueKind(1)
+}
+
+func (as *AnimalShelter) DequeueCat() (*Animal, error) {
+   return as.dequeueKind(2)
+}
+
+func (as *AnimalShelter) dequeueKind(kind int) (*Animal, error) {
+   if len(as.animals) == 0 {
+      return nil, errors.New("empty shelter")
+   }
+   for i := range as.animals {
+      if as.animals[i].Kind == kind {
+         animal := as.animals[i]
+         as.animals = append(as.animals[:i], as.animals[i+1:]...)
+         return animal, nil
+      }
+   }
+   return nil, errors.New("no such kind animal")
+}
+```
 

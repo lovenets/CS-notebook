@@ -1073,51 +1073,80 @@ An animal shelter, which holds only dogs and cats, operates on a strictly    "fi
 
 ```go
 type Animal struct {
-   Id   int
-   Kind int // 1: dog, 2: cat
+	Name string
+	Kind int // 1: dog, 2: cat
+}
+
+type AnimalWrapper struct {
+	id     int
+	animal *Animal
 }
 
 type AnimalShelter struct {
-   animals []*Animal
+	count int
+	dogs  []*AnimalWrapper
+	cats  []*AnimalWrapper
 }
 
 func NewAniamlShelter() *AnimalShelter {
-   return &AnimalShelter{make([]*Animal, 0)}
+	return &AnimalShelter{0, make([]*AnimalWrapper, 0), make([]*AnimalWrapper, 0)}
 }
 
 func (as *AnimalShelter) Enqueue(a *Animal) {
-   as.animals = append(as.animals, a)
+	as.count++
+	switch a.Kind {
+	case 1:
+		as.dogs = append(as.dogs, &AnimalWrapper{
+			id:     as.count,
+			animal: a,
+		})
+	case 2:
+		as.cats = append(as.cats, &AnimalWrapper{
+			id:     as.count,
+			animal: a,
+		})
+	}
 }
 
 func (as *AnimalShelter) DequeueAny() (*Animal, error) {
-   if len(as.animals) == 0 {
-      return nil, errors.New("empty shelter")
-   }
-   peek := as.animals[0]
-   as.animals = as.animals[1:]
-   return peek, nil
+	if len(as.cats) == 0 && len(as.dogs) == 0 {
+		return nil, errors.New("empty shelter")
+	}
+	var peek *Animal
+	if numOfCats, numOfDogs := len(as.cats), len(as.dogs); numOfCats > 0 && numOfDogs > 0 {
+		if as.cats[0].id < as.dogs[0].id {
+			peek = as.cats[0].animal
+			as.cats = as.cats[1:]
+		} else {
+			peek = as.dogs[0].animal
+			as.dogs = as.dogs[1:]
+		}
+	} else if numOfCats > 0 {
+		peek = as.cats[0].animal
+		as.cats = as.cats[1:]
+	} else {
+		peek = as.dogs[0].animal
+		as.dogs = as.dogs[1:]
+	}
+	return peek, nil
 }
 
 func (as *AnimalShelter) DequeueDog() (*Animal, error) {
-   return as.dequeueKind(1)
+	if len(as.dogs) == 0 {
+		return nil, errors.New("no dog")
+	}
+	dog := as.dogs[0].animal
+	as.dogs = as.dogs[1:]
+	return dog, nil
 }
 
 func (as *AnimalShelter) DequeueCat() (*Animal, error) {
-   return as.dequeueKind(2)
-}
-
-func (as *AnimalShelter) dequeueKind(kind int) (*Animal, error) {
-   if len(as.animals) == 0 {
-      return nil, errors.New("empty shelter")
-   }
-   for i := range as.animals {
-      if as.animals[i].Kind == kind {
-         animal := as.animals[i]
-         as.animals = append(as.animals[:i], as.animals[i+1:]...)
-         return animal, nil
-      }
-   }
-   return nil, errors.New("no such kind animal")
+	if len(as.cats) == 0 {
+		return nil, errors.New("no dog")
+	}
+	cat := as.cats[0].animal
+	as.cats = as.cats[1:]
+	return cat, nil
 }
 ```
 

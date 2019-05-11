@@ -1121,3 +1121,201 @@ func (as *AnimalShelter) dequeueKind(kind int) (*Animal, error) {
 }
 ```
 
+# Trees and Graphs
+
+## 1. Route Between Nodes
+
+Given a directed graph, design an algorithm to find out whether there is a route between two nodes.
+
+Assuming a graph is represented by a adjacency matrix.
+
+```go
+func RouteBetweenNodes(g [][]int, u int, v int) bool {
+	if maxIdx := len(g) - 1; maxIdx < 0 ||
+		u < 0 || u >= maxIdx ||
+		v < 0 || v >= maxIdx {
+		return false
+	}
+	visited := make([]bool, len(g))
+	// BFS
+	q := make([]int, 0)
+	q = append(q, u)
+	visited[u] = true
+	for len(q) > 0 {
+		vertex := q[0]
+		q = q[1:]
+		if vertex == v {
+			return true
+		}
+		for i := range g[vertex] {
+			if g[vertex][i] == 1 && !visited[i] {
+				q = append(q, i)
+				visited[i] = true
+			}
+		}
+	}
+	return false
+}
+```
+$$O(n^2)$$ time, $$O(n)$$ space.
+
+```go
+func RouteBetweenNodesDfs(g [][]int, u int, v int) bool {
+   if maxIdx := len(g) - 1; maxIdx < 0 ||
+      u < 0 || u >= maxIdx ||
+      v < 0 || v >= maxIdx {
+      return false
+   }
+   visited := make([]bool, len(g))
+   return dfs(&g, u, v, &visited)
+}
+
+func dfs(g *[][]int, u int, v int, visited *[]bool) bool {
+	if !(*visited)[u] {
+		(*visited)[u] = true
+		if u == v {
+			return true
+		}
+		for i := range (*g)[u] {
+			if (*g)[u][i] == 1 {
+				if dfs(g, i, v, visited) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+```
+$$O(n^2)$$ time, $$O(n^2)$$ space.
+
+## 2. Minimal Tree
+
+Given a sorted (increasing order) array with unique integer elements, write an algorithm to create a binary tree with minimal height.
+
+Since the array is sorted, then we just build the BST recursively using the median as root.
+
+```go
+func MinimalTree(numbers []int) *TreeNode {
+   if len(numbers) == 0 || !sort.IsSorted(sort.IntSlice(numbers)) {
+      return nil
+   }
+   mid := len(numbers) / 2
+   return &TreeNode{
+      Val:   numbers[mid],
+      Left:  MinimalTree(numbers[0:mid]),
+      Right: MinimalTree(numbers[mid+1:]),
+   }
+}
+```
+
+$$O(n)$$ time, $$O(n)$$ space.
+
+## 3. List of Depths
+
+Given a binary tree, design an algorithm which creates a linked list of all the nodes at each depth (e.g., if you have a tree with depth D, you will have D linked lists).
+
+```go
+func ListOfDepths(root *TreeNode) []*ListNode {
+	if root == nil {
+		return nil
+	}
+	// Level-order traversal
+	q := make([]*TreeNode, 0)
+	q = append(q, root)
+	numOfNodesAtCurLevel, numOfNodesAtNextLevel := 1, 0
+	nodesAtCurLevel := make([]int, 0)
+	lists := make([]*ListNode, 0)
+	for len(q) > 0 {
+		node := q[0]
+		q = q[1:]
+		if node.Left != nil {
+			q = append(q, node.Left)
+			numOfNodesAtNextLevel++
+		}
+		if node.Right != nil {
+			q = append(q, node.Right)
+			numOfNodesAtNextLevel++
+		}
+		nodesAtCurLevel = append(nodesAtCurLevel, node.Val)
+		if numOfNodesAtCurLevel--; numOfNodesAtCurLevel == 0 {
+			// Build a list
+			head := &ListNode{Value: nodesAtCurLevel[0]}
+			cur := head
+			for _, v := range nodesAtCurLevel[1:] {
+				cur.Next = &ListNode{Value: v}
+				cur = cur.Next
+			}
+			lists = append(lists, head)
+			numOfNodesAtCurLevel = numOfNodesAtNextLevel
+			numOfNodesAtNextLevel = 0
+			nodesAtCurLevel = nodesAtCurLevel[:0]
+		}
+	}
+	return lists
+}
+```
+
+$$O(n)$$ time, $$O(n)$$ space.
+
+## 4. Check Balanced
+
+Implement a function to check if a binary tree is balanced. For the purposes of this question, a balanced tree is defined to be a tree such that the length of the two subtrees of any node never differ by more than one.
+
+```go
+func CheckBalanced(root *BinaryTreeNode) bool {
+	depth := 0
+	return postorder(root, &depth)
+}
+
+func postorder(root *BinaryTreeNode, depth *int) bool {
+	if root == nil {
+		*depth = 0
+		return true
+	}
+	dl, dr := 0, 0 // depths of two subtrees
+	l, r := postorder(root.Left, &dl), postorder(root.Right, &dr)
+	if l && r {
+		if math.Abs(float64(dl)-float64(dr)) <= 1.0 {
+             // If this subtree is balanced, then propagate the result and its height
+			*depth = int(math.Max(float64(dl), float64(dr))) + 1
+			return true
+		}
+	}
+	return false
+}
+```
+
+$$O(n)$$ time, $$O(logn)$$ space.
+
+## 5. Validate BST
+
+Implement a function to check if a binary tree is a binary search tree.
+
+Do inorder-traversal iteratively.
+
+```go
+func ValidateBST(root *TreeNode) bool {
+	if root == nil {
+		return true
+	}
+	stack := make([]*TreeNode, 0)
+	var pre *TreeNode
+	for cur := root; cur != nil || len(stack) > 0; {
+		for cur != nil {
+			stack = append(stack, cur)
+			cur = cur.Left
+		}
+		top := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		if pre != nil && pre.Val >= top.Val {
+			return false
+		}
+		pre, cur = top, top.Right
+	}
+	return true
+}
+```
+
+$$O(n)$$ time, $$O(n)$$ space.
+

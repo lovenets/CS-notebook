@@ -789,3 +789,169 @@ Instead of always beginning the first-fit search at the beginning of the list, t
 
 (2) An exhaustive search is once again avoided.
 
+## Paging
+
+Instead of splitting up a process’s address space into some number of variable-sized logical segments (e.g., code, heap, stack), we divide it into fixed-sized units, each of which we call a **page**. Correspondingly,we view physical memory as an array of fixed-sized slots called **page frames**; each of these frames can contain a single virtual-memory page.
+
+### Overview
+
+To record where each virtual page of the address space is placed in physical memory, the operating system usually keeps a **per-process** data structure known as a **page table**. The major role of the page table is to store address translations for each of the virtual pages of the address space, thus letting us know where in physical memory each  page resides. For example, the page table may have some entries (PTE): (Virtual Page 0 → Physical Frame 3), (VP 1→PF 7), (VP 2→PF 5), and (VP 3→PF 2).
+
+![pages](img/pages.jpg)
+
+In the example above, there are four pages and each of them is 16 bytes. because the virtual address space of the process is 64 bytes, we need 6 bits total for our virtual address (2^6^ = 64). The page size is 16 bytes in a 64-byte address space; thus we need to be able to select 4 pages, and the top 2 bits of the address do just that. Thus, we have a 2 bit **virtual page number (VPN)**. The remaining bits tell us which byte of the page we are interested in, 4 bits in this case; we call this the **offset**. In this way, we can translate a virtual address into physical address. 
+
+### Where Are Page Table Stored?
+
+Because page tables are too big,we don’t keep any special on-chip hardware in the MMU to store the page table of the currently-running process. Instead, we store the page table for each process in memory somewhere.
+
+### What's Actually In The Page Table?
+
+The simplest form of a page table is called a **linear page table**, which is just an array. The OS *indexes* the array by the virtual page number (VPN), and looks up the page-table entry (PTE) at that index in order to find the desired physical frame number (PFN).
+
+As for the contents of each PTE, different bits may have different meanings. 
+
+- A **valid bit** is common to indicate whether the particular translation is valid.
+- **Protection bits** indicate whether the page could be read from, written to, or executed from.
+- A **present bit** indicates whether this page is in physical memory or on disk (i.e., it has been swapped out).
+- A **dirty bit** indicates whether the page has been modified since it was brought into memory.
+- A **reference bit** (a.k.a. accessed bit) is sometimes used to track whether a page has been accessed, and is useful in determining which pages are popular and thus should be kept in memory
+
+### Paging Is Also Too Slow
+
+```pseudocode
+// Extract the VPN from the virtual address
+VPN = (VirtualAddress & VPN_MASK) >> SHIFt
+
+// Form the address of the page-table entry (PTE)
+PTEAddr = PTBR + (VPN + sizeof(PTE))
+
+// Fecth the PTE
+PTE = AccessMemory(PTEAddr)
+
+// Check if process can access the page
+if (PTE.Valid == FALSE)
+	RaiseException(SEGMENTATION_FAULT)
+else if (CanAccess(PTE.ProtectBits) == FALSE)
+	RaiseException(PROTECTION_FAULT)
+else 
+	// Access if OK: form physsical address and fetch it
+	offset = VirtualAddress & OFFSET_MASK
+	PhysAddr = (PTE.PFN << PFN_SHIFt) | offset
+	Register = AccessMemory(PhysAddr)
+```
+
+To summarize, we now describe the initial protocol for what happens on each memory reference. For every memory reference (whether an instruction fetch or an explicit load or store), paging requires us to perform one extra memory reference in order to first fetch the translation from the page table. That is a lot of work! Extra memory references are costly, and in this case will likely slow down the process by a factor of two or more.
+
+## Translation-lookaside Buffer (TLB)
+
+How can we speed up address translation, and generally avoid the extra memory reference that paging seems to require?
+
+A **TLB** is part of the chip’s memory-management unit (MMU), and is simply a hardware cache of popular virtual-to-physical address translations; thus, a better name would be an address-translation **cache**.  Upon each virtual memory reference, the hardware first checks the TLB to see if the desired translation is held therein; if so, the translation is performed (quickly) without having to consult the page table.
+
+### TLB Basic Algorithm
+
+The algorithm the hardware follows works like this: first, extract the virtual page number (VPN) from the virtual address and check if the TLB holds the translation for this VPN (Line 2). If it does, we have a **TLB hit**, which means the TLB holds the translation.
+
+If the CPU does not find the translation in the TLB (a **TLB miss**), we have some more work to do. The hardware accesses the page table to find the translation, and, assuming that the virtual memory reference generated by the process is valid and accessible , updates the TLB with the translation. Finally, once the TLB is updated, the hardware retries the instruction; this time, the translation is found in the TLB, and the memory reference is processed quickly.
+
+It's out hope to have more TLB hits. Like any cache, TLBs rely upon both **spatial** and **temporal locality** for success, which are program properties. If the program of interest exhibits such locality (and many programs do), the TLB hit rate will likely be high.
+
+### Who Handles The TLB Miss?
+
+Some "older" architectures have hardware-managed TLBs. More modern architectures have what is known as a software-managed TLB. On a TLB miss, the hardware simply raises an exception, which pauses the current instruction stream, raises the privilege level to kernel mode, and jumps to a **trap handler**. This trap handler is code within the OS that is written with the express purpose of handling TLB misses. When run, the code will lookup the translation in the page table, use special “privileged” instructions to update the TLB, and return from the trap; at this point, the hardware retries the instruction (resulting in a TLB hit).
+
+The primary advantage of the software-managed approach is *flexibility*: the OS can use any data structure it wants to implement the page table, without necessitating hardware change. Another advantage is *simplicity*; as you can see in the TLB control flow, the hardware doesn’t have to do much on a miss; it raises an exception, and the OS TLB miss handler does the rest.
+
+*Important Details*
+
+First, the return-from-trap instruction needs to be a little different than the return-from-trap which services a system call. In the latter case, the return-from-trap should resume execution at the instruction after the trap into the OS, just as a return from a procedure call returns to the instruction immediately following the call into the procedure. In the former case, when returning from a TLB miss-handling trap, the hardware must resume execution at the instruction that caused the trap; this retry thus lets the instruction run again, this time resulting in a TLB hit.
+
+Second, when running the TLBmiss-handling code, the OS needs to be
+extra careful not to cause an infinite chain of TLB misses to occur. Many
+solutions exist; for example, you could keep TLB miss handlers in physical memory (where they are **unmapped** and not subject to address translation), or reserve some entries in the TLB for permanently-valid translations and use some of those permanent translation slots for
+
+### TLB Contents
+
+A typical TLB might have 32, 64, or 128 entries and be what is called fully associative. Basically, this just means that any given translation can be anywhere in the TLB, and that the hardware will search the entire TLB in parallel to find the desired translation. A TLB entry might look like this:
+
+VPN | PFN | other bits
+
+Note that both the VPN and PFN are present in each entry, as a translation could end up in any of these locations.
+
+### TLB Issus: Context Switches 
+
+When context-switching between processes, the translations in the TLB for the last process are not meaningful to the about-to-be-run process. What should the hardware or OS do in order to solve this problem?
+
+One approach is to simply **flush** the TLB on context switches, thus emptying it before running the next process. However, there is a cost: each time a process runs, it must incur TLB misses as it touches its data and code pages. If the OS switches between processes frequently, this cost may be high.
+
+To reduce this overhead, some systems add hardware support to enable sharing of the TLB across context switches. In particular, some hardware systems provide an **address space identifier** (**ASID**) field in the TLB. You can think of the ASID as a process identifier (PID), but usually it has fewer bits. Here is a depiction of a TLB with the added ASID field:
+
+| VPN  | PFN  | valid | prot | ASID |
+| ---- | ---- | ----- | ---- | ---- |
+| 10   | 100  | 1     | rwx  | 1    |
+| -    | -    | 0     | -    | -    |
+| 10   | 170  | 1     | rwx  | 2    |
+| -    | -    | 0     | -    | -    |
+
+### Issue: Replacement Policy
+
+Which TLB entry should be replaced when we add a new TLB entry? The goal, of course, being to minimize the miss rate (or increase hit rate) and thus improve performance.
+
+1.LRU
+
+One common approach is to evict the **least-recently-used** or LRU entry. LRU tries to take advantage of locality in the memory-reference stream, assuming it is likely that an entry that has not recently been used is a good candidate for eviction.
+
+2.random
+
+Such a policy is useful due to its simplicity and ability to avoid corner case behaviors; for example, a “reasonable” policy such as LRU behaves quite unreasonably when a program loops over n + 1 pages with a TLB of size n; in this case, LRU misses upon every access, whereas random does much better.
+
+## Paging: Smaller Tables
+
+Simple array-based page tables (usually called linear page tables) are too big, taking up far too much memory on typical systems. How can we make page tables smaller?
+
+A quite simple approach is to use bigger pages. However, the major problem with this approach, however, is that big pages lead to waste within each page, a problem known as **internal fragmentation**. Our problem will not be solved so simply, alas.
+
+### Hybrid Approach: Paging and Segments
+
+Instead of having a single page table for the entire address space of the process, why not have one **per logical segment**? In this example, we might thus have three page tables, one for the code, heap, and stack parts of the address space. Now, remember with segmentation, we had a base register that told us where each segment lived in physical memory, and a bound or limit register that told us the size of said segment. In our hybrid, we still have those structures in the MMU; here, we use the base not to point to the segment itself but rather to hold the **physical address of the page table** of that segment. The bounds register is used to indicate the end of the page table (i.e., how many valid pages it has).
+
+When a process is running, the base register for each of these segments  contains the physical address of a linear page table for that segment; thus, each process in the system now has **three** page tables associated with it.
+
+*Disadvantages*
+
+First, it still requires us to use segmentation. Second, this hybrid causes external fragmentation to arise again. 
+
+### Multi-Level Page Tables
+
+The basic idea behind a multi-level page table is simple. First, chop up the page table into page-sized units; then, if an entire page of page-table entries (PTEs) is invalid, don’t allocate that page of the page table at all. To track whether a page of the page table is valid (and if valid, where it is in memory), use a new structure, called the **page directory**. The page directory thus either can be used to tell you where a page of the page table is, or that the entire page of the page table contains no valid pages.
+
+![linear and multi-level page tables](img/linear and multi-level page tables.jpg)
+
+The page directory, in a simple two-level table, contains one entry per page of the page table. It consists of a number of **page directory entries** (PDE). A PDE (minimally) has a valid bit and a **page frame number** (PFN), similar to a PTE. However, as hinted at above, the meaning of this valid bit is slightly different: if the PDE entry is valid, it means that at least one of the pages of the **page table** that the entry points to (via the PFN) is valid, i.e., in at least one PTE on that page pointed to by this PDE, the valid bit in that PTE is set to one. If the PDE entry is not valid (i.e., equal to zero), the rest of the PDE is not defined.
+
+*Advantages*
+
+First, and perhaps most obviously, the multi-level table only allocates page-table space in proportion to the amount of address space you are using; thus it is generally compact and supports sparse address spaces.
+
+Second, if carefully constructed, each portion of the page table fits neatly within a page, making it easier to manage memory; the OS can simply grab the next free page when it needs to allocate or grow a page table.
+
+*Disadvantages*
+
+1. On a TLB miss, two loads from memory will be required to get the right translation information from the page table (one for the page directory, and one for the PTE itself).
+2. Whether it is the hardware or OS handling the page-table lookup (on a TLB miss), doing so is undoubtedly more involved than a simple linear page-table lookup.
+
+### Inverted Page Tables
+
+Instead of having many page tables (one per process of the system), we keep a single page table that has an entry for each physical page of the system. The entry tells us which process is using this page, and which virtual page of that process maps to this physical page.
+
+Finding the correct entry is now a matter of searching through this data structure. A linear scan would be expensive, and thus a hash table is often built over the base structure to speed lookups.
+
+### Swapping the Page Tables To Disk
+
+Some systems place page tables in kernel virtual memory, thereby allowing the system to swap some of these page tables to disk when memory pressure gets a little tight.
+
+
+
+
+

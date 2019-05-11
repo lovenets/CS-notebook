@@ -951,7 +951,103 @@ Finding the correct entry is now a matter of searching through this data structu
 
 Some systems place page tables in kernel virtual memory, thereby allowing the system to swap some of these page tables to disk when memory pressure gets a little tight.
 
+## Hard Disk Drive: Mechanisms
 
+In our memory hierarchy, big and slow hard drives sit at the bottom, with memory just above. How can the OS make use of a larger, slower device to transparently provide the illusion of a larger virtual address space?
 
+### Swap Space
 
+We *swap* pages out of memory to it and *swap* pages into memory from **swap space**. Thus, we will simply assume that the OS can read from and write to the swap space, in page-sized units. To do so, the OS will need to remember the **disk address** of a given page.
+
+### The Present Bit
+
+When the hardware looks in the PTE, it may find that the page is not present in physical memory. The way the hardware (or the OS, in a software-managed TLB approach) determines this is through a new piece of information in each page-table entry, known as the **present bit**. If the present bit is set to one, it means the page is present in physical memory; if it is set to zero, the page is not in memory but rather on disk somewhere. The act of accessing a page that is not in physical memory is commonly referred to as a **page fault**.
+
+Upon a page fault, the OS is invoked to service the page fault. A particular piece of code, known as a **page-fault handler**, runs, and must service the page fault.
+
+### The Page Fault
+
+The OS could use the bits in the PTE normally used for data such as the PFN of the page for a disk address. When the OS receives a page fault for a page, it looks in the PTE to find the address, and issues the request to disk to fetch the page into memory.
+
+When the disk I/O completes, the OS will then update the page table to mark the page as present, update the PFN field of the page-table entry (PTE) to record the in-memory location of the newly-fetched page, and retry the instruction. This next attempt may generate a TLB miss, which would then be serviced and update the TLB with the translation (one could alternately update the TLB when servicing the page fault to avoid this step). Finally, a last restart would find the translation in the TLB and thus proceed to fetch the desired data or instruction from memory at the translated physical address.
+
+### What If Memory Is Full?
+
+Memory may be full (or close to it). Thus, the OS might like to first page out one or more pages to make room for the new page(s) the OS is about to bring in. The process of picking a page to kick out, or replace is known as the **page-replacement policy**.
+
+### Page Fault Control Flow
+
+There are now three important cases to understand when a TLB miss occurs. First, that the page was both present and valid; in this case, the TLB miss handler can simply grab the PFN from the PTE, retry the instruction (this time resulting in a TLB hit), and thus continue as described (many times) before. In the second case, the page fault handler must be run; although this was a legitimate page for the process to access (it is valid, after all), it is not present in physical memory. Third (and finally), the access could be to an invalid page, due for example to a bug in the program. In this case, no other bits in the PTE really matter; the hardware traps this invalid access, and the OS trap handler runs, likely terminating the offending process.
+
+### When Replacements Really Occur
+
+To keep a small amount of memory free, most operating systems thus have some kind of **high watermark** (HW) and **low watermark** (LW) to help decide when to start evicting pages from memory. When the OS notices that there are fewer than *LW* pages available, a background thread that is responsible for freeing memory runs. The thread evicts pages until there are *HW* pages available. The background thread, sometimes called the **swap daemon** or **page daemon**, then goes to sleep.
+
+To work with the background paging thread, the control flow should be modified slightly; instead of performing a replacement directly, the algorithm would instead simply check if there are any free pages available. If not, it would inform the background paging thread that free pages are needed; when the thread frees up some pages, it would re- awaken the original thread, which could then page in the desired page and go about its work.
+
+## Hard Drive Disk: Policies
+
+How can the OS decide which page (or pages) to evict from memory?
+
+### Cache Management
+
+Given that main memory holds some subset of all the pages in the system, it can rightly be viewed as a **cache** for virtual memory pages in the system. Thus, our goal in picking a replacement policy for this cache is to minimize the number of cache misses.
+
+Knowing the number of cache hits and misses let us calculate the average memory access time (AMAT) for a program.
+
+$$AMAT=(P_{Hit}T_{M})+(P_{Miss}T_{D})$$
+
+where $$T_{M}$$ represents the cost of accessing memory, $$T_{D}$$ the cost of accessing disk, $$P_{Hit}$$ the probability of finding the data item in the cache (a hit), and $$P_{Miss}$$ the probability of not finding the data in the cache (a miss). $$P_{Hit}$$ and $$P_{Miss}$$ each vary from 0.0 to 1.0, and $$P_{Miss} + P_{Hit} = 1.0.$$.
+
+The cost of disk access is so high in modern systems that even a tiny miss rate will quickly dominate the overall AMAT of running programs.
+
+### The Optimal Replacement Policy
+
+The optimal replacement policy leads to the fewest number of misses overall. a simple (but, unfortunately, difficult to implement!) approach that replaces the page that will be accessed **furthest in the future** is the optimal policy, resulting in the fewest-possible cache misses. 
+
+Unfortunately, as we saw before in the development of scheduling policies, the future is not generally known; you can’t build the optimal policy for a general-purpose operating system.
+
+### FIFO
+
+Pages were simply placed in a queue when they enter the system; when a replacement occurs, the page on the tail of the queue (the “first in” page) is evicted. FIFO has one great strength: it is quite simple to implement.
+
+FIFO simply can’t determine the importance of blocks: even though a page had been accessed a number of times, FIFO still kicks it out, simply because it was the first one brought into memory.
+
+### Random
+
+Another similar replacement policy is Random, which simply picks a random page to replace under memory pressure.
+
+Random has properties similar to FIFO; it is simple to implement, but it doesn’t really try to be too intelligent in picking which blocks to evict.
+
+### LRU 
+
+One type of historical information a page-replacement policy could use is **frequency**; if a page has been accessed many times, perhaps it should not be replaced as it clearly has some value.
+
+The **Least-Frequently-Used** (**LFU**) policy replaces the least-frequently used page when an eviction must take place. Similarly, the **Least-Recently-Used** (**LRU**) policy replaces the least-recently-used page.
+
+### Implementing Historical Algorithms: Approximation
+
+Approximating LRU is more feasible from a computational-overhead standpoint, and indeed it is what many modern systems do. 
+
+The idea requires some hardware support, in the form of a **use bit** (sometimes called the reference bit). Whenever a page is referenced (i.e., read or written), the use bit is set by hardware to 1. The hardware never clears the bit, though (i.e., sets it to 0).
+
+The **clock algorithm** suggested a simple approach to approximate LRU. Imagine all the pages of the system arranged in a circular list. A clock hand points to some particular page to begin with (it doesn’t really matter which). When a replacement must occur, the OS checks if the currently-pointed to page P has a use bit of 1 or 0. If 1, this implies that page P was recently used and thus is not a good candidate for replacement. Thus, the use bit for P set to 0 (cleared), and the clock hand is incremented to the next page (P + 1). The algorithm continues until it finds a use bit that is set to 0, implying this page has not been recently used (or, in the worst case, that all pages have been and that we have now searched through the entire set of pages, clearing all the bits).
+
+Note that this approach is not the only way to employ a use bit to approximate LRU. Indeed, any approach which periodically clears the  use bits and then differentiates between which pages have use bits of 1 versus 0 to decide which to replace would be fine.
+
+*Considering Dirty Pages*
+
+If a page has been modified and is thus **dirty**, it must be written back to disk to evict it, which is expensive. If it has not been modified (and is thus clean), the eviction is free; the physical frame can simply be reused for other purposes without additional I/O. Thus, some VM systems prefer to evict clean pages over dirty pages.
+
+To support this behavior, the hardware should include a **modified bit** (a.k.a. dirty bit). This bit is set any time a page is written, and thus can be incorporated into the page-replacement algorithm. The clock algorithm, for example, could be changed to scan for pages that are both unused and clean to evict first; failing to find those, then for unused pages that are dirty, and so forth.
+
+### Thrashing
+
+What should the OS do when memory is simply oversubscribed, and the memory demands of the set of running processes simply exceeds the available physical memory?
+
+In this case, the system will constantly be paging, a condition sometimes referred to as thrashing. 
+
+Some earlier operating systems could decide not to run a subset of processes, with the hope that the reduced set of processes’ working sets (the pages that they are using actively) fit in memory and thus can make progress.
+
+Some current systems run an out-of-memory killer when memory is oversubscribed; this daemon chooses a memory intensive process and kills it.
 

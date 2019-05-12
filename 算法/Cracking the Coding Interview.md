@@ -1348,3 +1348,142 @@ func ValidateBST(root *TreeNode) bool {
 
 $$O(n)$$ time, $$O(n)$$ space.
 
+## 6. Successor 
+
+Write an algorithm to find the "next" node (i.e., in-order successor) of a given node in a binary search tree. You may assume that each node has a link to its parent. 
+
+If this given node has right subtree, then it's next in-order node is the leftmost node of its right subtree. 
+
+If it doesn't have a right subtree, then we are done traversing its subtree. Let's say the given node is n. We'll need to pick up where we left off with n's parent, which we'll call q. 
+
+- If n was to the left of q, then the next node should be q. (left->current->right)
+- If n was to the right of q, then we have fully traversed q's subtree as well. We need to traverse upwards from q until we find a node x which we have not fully traversed. We know we hit this case when we move from a left node to its parent. The left node is fully traversed, but its parent is not.
+
+There is one corner case: if we are already on the far right of the tree, then there is no in-order successor. 
+
+```go
+func Successor(n *TreeNode) *TreeNode {
+	if n == nil {
+		return nil
+	}
+	if n.Right != nil {
+		// Find the leftmost node of n's right subtree
+		cur := n.Right
+		for ; cur != nil && cur.Left != nil; cur = cur.Left {
+		}
+		return cur
+	} else {
+		q := n
+		x := q.Parent
+		// Go up until we're on left instead of right.
+        // Here we also handle the corner case.
+		for x != nil && x.Left != q {
+			q = x
+			x = x.Parent
+		}
+		return x
+	}
+}
+```
+
+The worst case takes $$O(logn)$$ time. $$O(1)$$ space.
+
+## 7. Build Order
+
+You are given a list of products and a list of dependencies (which is a list of pairs of projects, where the second project is dependent on the first project). All of a project's dependencies must be built before the project is. Find a build order that will allow the projects to be built. If there is no valid build order, return an error. 
+
+```
+EXAMPLE
+Input: 
+	projects: a, b, c, d, e, f
+	dependencies: (a, b), (f, b), (b, d). (f, a), (d, c)
+Output: e, a, b, d, c
+```
+
+```go
+func BuildOrder(projects []rune, dependencies [][]rune) ([]rune, error) {
+	if len(projects) == 0 {
+		return nil, errors.New("invalid input")
+	}
+	// Construct a directed graph represented by adjacency list.
+	adj := make(map[rune][]rune, len(projects))
+	indegree := make(map[rune]int, len(projects))
+	for _, edge := range dependencies {
+		if _, ok := adj[edge[0]]; !ok {
+			adj[edge[0]] = make([]rune, 0)
+		}
+		adj[edge[0]] = append(adj[edge[0]], edge[1])
+		indegree[edge[1]]++
+	}
+	zeroIndegree := make([]rune, 0 ,len(projects)) // Vertices which have no dependency.
+	for _, n := range projects {
+		if indegree[n] == 0 {
+			zeroIndegree = append(zeroIndegree, n)
+		}
+	}
+	// Do topological sorting.
+	order := make([]rune, 0, len(projects)) // Resulting order.
+	for len(zeroIndegree) > 0 {
+		n := zeroIndegree[0]
+		order = append(order, n)
+		zeroIndegree = zeroIndegree[1:]
+		for _, t := range adj[n] {
+			if indegree[t]--; indegree[t] == 0 {
+				zeroIndegree = append(zeroIndegree, t)
+			}
+		}
+	}
+	if len(order) != len(projects) {
+		return nil, errors.New("can not order")
+	} else {
+		return order, nil
+	}
+}
+```
+
+This solution takes $$O(P + D)​$$ time, where P is the number of projects and D is the number of dependency pairs.
+
+## 8. First Common Ancestor 
+
+Design an algorithm and write code to find the first common ancestor of two nodes in a binary tree. Avoid storing additional nodes in data structure. NOTE: This is not necessarily a BST.
+
+Assume that each node only has links to its children. 
+
+if p and q are both on the left of the node, branch left to look for the common ancestor. If they are both on the right, branch right to look for the common ancestor. When p and q are no longer on the same side, we must have found the first common ancestor.
+
+```go
+func FirstCommonAncestor(root, p, q *TreeNode) *TreeNode {
+   if !covers(root, p) || !covers(root, q) {
+      return nil
+   }
+   return ancestorHelper(root, p, q)
+}
+
+func ancestorHelper(root, p, q *TreeNode) *TreeNode {
+   if root == nil || root == p || root == q {
+      return root
+   }
+   pIsOnLeft, qIsOnRight := covers(root.Left, p), covers(root.Left, q)
+   if pIsOnLeft != qIsOnRight {
+      return root
+   }
+   if pIsOnLeft {
+      return ancestorHelper(root.Left, p, q)
+   } else {
+      return ancestorHelper(root.Right, p, q)
+   }
+}
+
+func covers(root, p *TreeNode) bool {
+   if root == nil {
+      return false
+   }
+   if root == p {
+      return true
+   }
+   return covers(root.Left, p) || covers(root.Right, p)
+}
+```
+
+This algorithm runs in $$O(n)$$ time on a balanced tree.
+

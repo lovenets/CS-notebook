@@ -1,4 +1,4 @@
-# Core Data Structures, Algorithms and Concepts 
+# Core Data Structures, Algorithms and Concepts
 
 | Data Structure     | Algorithms    | Concepts                |
 | ------------------ | ------------- | ----------------------- |
@@ -109,17 +109,17 @@ Implement an algorithm to determine if a string has all unique characters. What 
 
 ```go
 func IsUnique(s string) bool {
-	if s == "" {
-		return false
-	}
-	chars := make(map[rune]bool)
-	for _, r := range s {
-		if chars[r] {
-			return false
-		}
-		chars[r] = true
-	}
-	return true
+    if s == "" {
+        return false
+    }
+    chars := make(map[rune]bool)
+    for _, r := range s {
+        if chars[r] {
+            return false
+        }
+        chars[r] = true
+    }
+    return true
 }
 ```
 
@@ -130,26 +130,26 @@ $$O(n)$$ time, $$O(n)$$ space.
 ```go
 // Assumes only letters a through z
 func IsUnique(s string) bool {
-	if l := len(s); l == 0 || l > 26 {
-		return false
-	}
+    if l := len(s); l == 0 || l > 26 {
+        return false
+    }
     // As long as the string has all unique characters
     // the one bit must be different
-	checker := 0
-	for i := range s {
-		if val := 1 << (s[i] - 'a'); (checker & val) > 0 {
-			return false
-		} else {
-			checker |= val
-		}
-	}
-	return true
+    checker := 0
+    for i := range s {
+        if val := 1 << (s[i] - 'a'); (checker & val) > 0 {
+            return false
+        } else {
+            checker |= val
+        }
+    }
+    return true
 }
 ```
 
 $$O(n)$$ time, $$O(1)$$ space.
 
-## 2. Check Permutation 
+## 2. Check Permutation
 
 Given two strings, write a method to decide if one is a permutation of the other.
 
@@ -157,23 +157,23 @@ Given two strings, write a method to decide if one is a permutation of the other
 
 ```go
 func CheckPermutation(a, b string) bool {
-	if len(a) != len(b) || a == b {
-		return false
-	}
-	// mapping a character to its frequency
-	charsOfA := make(map[byte]int)
-	for i := range a {
-		charsOfA[a[i]]++
-	}
-	for i := range b {
-		if _, ok := charsOfA[b[i]]; !ok {
-			return false
-		} else if charsOfA[b[i]]--; charsOfA[b[i]] < 0 {
-			return false
-		}
-	}
+    if len(a) != len(b) || a == b {
+        return false
+    }
+    // mapping a character to its frequency
+    charsOfA := make(map[byte]int)
+    for i := range a {
+        charsOfA[a[i]]++
+    }
+    for i := range b {
+        if _, ok := charsOfA[b[i]]; !ok {
+            return false
+        } else if charsOfA[b[i]]--; charsOfA[b[i]] < 0 {
+            return false
+        }
+    }
 
-	return true
+    return true
 }
 ```
 
@@ -183,23 +183,23 @@ $$O(n)$$ time, $$O(n)$$ space.
 
 ```go
 func CheckPermutation(a, b string) bool {
-	if len(a) != len(b) || a == b {
-		return false
-	}
-	return sortString(a) == sortString(b)
+    if len(a) != len(b) || a == b {
+        return false
+    }
+    return sortString(a) == sortString(b)
 }
 
 func sortString(s string) string {
-	ints := make([]int, len(s))
-	for _, r := range s {
-		ints = append(ints, int(r))
-	}
-	sort.Ints(ints)
-	var b strings.Builder
-	for i := range ints {
-		b.WriteRune(rune(ints[i]))
-	}
-	return b.String()
+    ints := make([]int, len(s))
+    for _, r := range s {
+        ints = append(ints, int(r))
+    }
+    sort.Ints(ints)
+    var b strings.Builder
+    for i := range ints {
+        b.WriteRune(rune(ints[i]))
+    }
+    return b.String()
 }
 ```
 
@@ -211,32 +211,32 @@ Write a method to replace all spaces in a string with '%20'. You may assume that
 
 ```go
 func Urlify(s []rune, length int) []rune {
-	// Count spaces.
-	spaceCount := 0
-	for i := 0; i < length; i++ {
-		if s[i] == ' ' {
-			spaceCount++
-		}
-	}
-	// i is initialized to point to the last character of old string
-	// j is initialized to point to the last character of new string
-	for i, j := length-1, length+2*spaceCount-1; i >= 0; i-- {
-		if s[i] == ' ' {
-			// Replace space.
-			s[j], s[j-1], s[j-2] = '0', '2', '%'
-			j = j - 3
-		} else {
-			// Move other characters back.
-			s[j], j = s[i], j-1
-		}
-	}
-	return s
+    // Count spaces.
+    spaceCount := 0
+    for i := 0; i < length; i++ {
+        if s[i] == ' ' {
+            spaceCount++
+        }
+    }
+    // i is initialized to point to the last character of old string
+    // j is initialized to point to the last character of new string
+    for i, j := length-1, length+2*spaceCount-1; i >= 0; i-- {
+        if s[i] == ' ' {
+            // Replace space.
+            s[j], s[j-1], s[j-2] = '0', '2', '%'
+            j = j - 3
+        } else {
+            // Move other characters back.
+            s[j], j = s[i], j-1
+        }
+    }
+    return s
 }
 ```
 
 $$O(n)$$ time, $$O(1)$$ space.
 
-## 4. Palindrome Permutation 
+## 4. Palindrome Permutation
 
 Given a string, write a function to check if it is a permutation of a palindrome. A palindrome is a word or phrase that is the same forwards and backwards. A permutation is a rearrangement of letters. The palindrome does not need to be limited to just dictionary word. 
 
@@ -248,32 +248,32 @@ Output: True (palindrome: "Rats live on no evil star")
 
 ```go
 func PalindromePermutation(s string) bool {
-	if s == "" {
-		return false
-	}
-	// Build character frequency table.
-	freq := make(map[rune]int)
-	for _, r := range s {
-		if unicode.IsLetter(r) {
-			freq[unicode.ToLower(r)]++
-		}
-	}
-	// If a string is palindrome,
-	// the number of letters occurring odd times
-	// must be odd.
-	count := 0
-	for r := range freq {
-		if freq[r]&1 == 1 {
+    if s == "" {
+        return false
+    }
+    // Build character frequency table.
+    freq := make(map[rune]int)
+    for _, r := range s {
+        if unicode.IsLetter(r) {
+            freq[unicode.ToLower(r)]++
+        }
+    }
+    // If a string is palindrome,
+    // the number of letters occurring odd times
+    // must be odd.
+    count := 0
+    for r := range freq {
+        if freq[r]&1 == 1 {
             count++
-		}
-	}
-	return count == 0 || count&1 == 1
+        }
+    }
+    return count == 0 || count&1 == 1
 }
 ```
 
 $$O(n)$$ time, $$O(n)$$ space.
 
- ## 5. One Away
+## 5. One Away
 
 There are three types of edits that can be performed on strings: insert a character, remove a character, or replace a character. Given two strings, write a function to check if they are one edit (or zero edit) away.
 
@@ -328,36 +328,36 @@ func OneAway(a, b string) bool {
 
 $$O(n)$$ time, $$O(1)$$ space.
 
-## 6. String Compression 
+## 6. String Compression
 
 Implement a method to perform basic string compression using the counts of repeated characters. For example, the string "aabcccccaaa" would become "a2b1c5a3", if the "compressed" string would not become smaller than the original string, your method should return the original string. You can assume the string has only uppercase and lowercase letters (a-z).
 
 ```go
 func StringCompression(origin string) string {
-	if origin == "" {
-		return ""
-	}
-	var compressed string
-	count := 0
-	for i, r := range origin {
-		count++
-		// If next character is different, 
-		// append it to result.
-		if i+1 >= len(origin) || origin[i] != origin[i+1] {
-			compressed += string(r) + strconv.Itoa(count)
-			count = 0
-		}
-	}
-	if len(compressed) >= len(origin) {
-		compressed = origin
-	}
-	return compressed
+    if origin == "" {
+        return ""
+    }
+    var compressed string
+    count := 0
+    for i, r := range origin {
+        count++
+        // If next character is different, 
+        // append it to result.
+        if i+1 >= len(origin) || origin[i] != origin[i+1] {
+            compressed += string(r) + strconv.Itoa(count)
+            count = 0
+        }
+    }
+    if len(compressed) >= len(origin) {
+        compressed = origin
+    }
+    return compressed
 }
 ```
 
 $$O(n)$$ time, $$O(1)$$ space.
 
-## 7. Rotate Matrix 
+## 7. Rotate Matrix
 
 Given an image represented by an N*N matrix, where each pixel in the image is 4 bytes, write a method to rotate the image by 90 degrees. Can you do this in place?
 
@@ -388,7 +388,7 @@ func RotateMatri(matrix [][]int) [][]int {
 
 $$O(N^2)$$ time, $$O(1)$$ space.
 
-## 8. Zero Matrix 
+## 8. Zero Matrix
 
 Write an algorithm such that if an element in an M*N matrix is 0, its entire row and column are set to 0.
 
@@ -440,7 +440,7 @@ func StringRotation(s1, s2 string) bool {
 }
 
 func isSubstring(str, sub string) bool {
-	return strings.Contains(str, sub)
+    return strings.Contains(str, sub)
 }
 ```
 
@@ -491,17 +491,17 @@ $$O(n)$$ time, $$O(n)$$ space.
 
 ```go
 func RemoveDups(head *ListNode) {
-	for cur := head; cur != nil; cur = cur.Next {
-		// Remove all future nodes that have the same value as current node.
-		runner := cur
-		for runner.Next != nil {
-			if runner.Next.Value == cur.Value {
-				runner.Next = runner.Next.Next
-			} else {
-				runner = runner.Next
-			}
-		}
-	}
+    for cur := head; cur != nil; cur = cur.Next {
+        // Remove all future nodes that have the same value as current node.
+        runner := cur
+        for runner.Next != nil {
+            if runner.Next.Value == cur.Value {
+                runner.Next = runner.Next.Next
+            } else {
+                runner = runner.Next
+            }
+        }
+    }
 }
 ```
 
@@ -515,20 +515,20 @@ Implement an algorithm to find the kth to last element of a singly linked list.
 
 ```go
 func ReturnKthToLast(head *ListNode, k int) *ListNode {
-	if head == nil || k <= 0 {
-		return nil
-	}
-	fast, i := head, 0
-	for ; fast != nil && i < k; fast, i = fast.Next, i+1 {
-	}
-	if i < k {
-		// The number of nodes is less than k.
-		return nil
-	}
-	slow := head
-	for ; fast != nil && slow != nil; slow, fast = slow.Next, fast.Next {
-	}
-	return slow
+    if head == nil || k <= 0 {
+        return nil
+    }
+    fast, i := head, 0
+    for ; fast != nil && i < k; fast, i = fast.Next, i+1 {
+    }
+    if i < k {
+        // The number of nodes is less than k.
+        return nil
+    }
+    slow := head
+    for ; fast != nil && slow != nil; slow, fast = slow.Next, fast.Next {
+    }
+    return slow
 }
 ```
 
@@ -571,22 +571,22 @@ Result: nothing is return, but the new linked list looks like a -> b -> d -> e -
 
 ```go
 func DeleteMiddleNode(middle *ListNode) {
-	if middle == nil || middle.Next == nil {
-		return
-	}
-	pre, cur, next := middle, middle, middle.Next
-	for ; next != nil; pre, cur, next = cur, cur.Next, next.Next {
-		// Overwrite current node's value with next node's.
-		cur.Value = next.Value
-	}
-	// Remove the last node.
-	pre.Next = nil
+    if middle == nil || middle.Next == nil {
+        return
+    }
+    pre, cur, next := middle, middle, middle.Next
+    for ; next != nil; pre, cur, next = cur, cur.Next, next.Next {
+        // Overwrite current node's value with next node's.
+        cur.Value = next.Value
+    }
+    // Remove the last node.
+    pre.Next = nil
 }
 ```
 
 $$O(n)$$ time, $$O(1)$$ space.
 
-## 4. Partition 
+## 4. Partition
 
 Write code to partition a linked list around a value x, such that all nodes less than x come before all nodes greater than or equal to x. If x is contained within the list, the value of x only need to be after the elements less than x. The partition element x can appear everywhere in the "right partition"; it doesn't need to appear between the left and right partitions.
 
@@ -718,28 +718,28 @@ Just reverse lists and do as above.
 
 ```go
 func SumListsInForwardOrder(a, b *ListNode) *ListNode {
-	reverse := func(head *ListNode) *ListNode {
-		if head == nil {
-			return nil
-		}
-		cur := head
-		var pre, next *ListNode
-		for cur != nil {
-			next = cur.Next
-			cur.Next = pre
-			pre = cur
-			cur = next
-		}
-		return pre
-	}
-	ra, rb := reverse(a), reverse(b)
-	return reverse(SumListsInReverseOrder(ra, rb))
+    reverse := func(head *ListNode) *ListNode {
+        if head == nil {
+            return nil
+        }
+        cur := head
+        var pre, next *ListNode
+        for cur != nil {
+            next = cur.Next
+            cur.Next = pre
+            pre = cur
+            cur = next
+        }
+        return pre
+    }
+    ra, rb := reverse(a), reverse(b)
+    return reverse(SumListsInReverseOrder(ra, rb))
 }
 ```
 
-$$O(n)​$$ time, $$O(1)​$$ space.
+$$O(n)$$ time, $$O(1)$$ space.
 
-## 6. Palindrome 
+## 6. Palindrome
 
 Implement a function to check if a linked list is a palindrome.
 
@@ -898,43 +898,43 @@ Just make each element contain a field called `min`which represents the *current
 
 ```go
 type NodeWithMin struct {
-	val int
-	min int
+    val int
+    min int
 }
 
 type StackWithMin struct {
-	nodes []NodeWithMin
+    nodes []NodeWithMin
 }
 
 func NewStackWithMin() *StackWithMin {
-	return &StackWithMin{make([]NodeWithMin, 0)}
+    return &StackWithMin{make([]NodeWithMin, 0)}
 }
 
 func (s *StackWithMin) Push(val int) {
-	curMin := math.MaxInt64
-	if len(s.nodes) > 0 {
-		curMin = s.nodes[len(s.nodes)-1].min
-	}
-	if curMin > val {
-		curMin = val
-	}
-	s.nodes = append(s.nodes, NodeWithMin{val, curMin})
+    curMin := math.MaxInt64
+    if len(s.nodes) > 0 {
+        curMin = s.nodes[len(s.nodes)-1].min
+    }
+    if curMin > val {
+        curMin = val
+    }
+    s.nodes = append(s.nodes, NodeWithMin{val, curMin})
 }
 
 func (s *StackWithMin) Pop() (int, error) {
-	if len(s.nodes) == 0 {
-		return 0, errors.New("empty stack")
-	}
-	top := s.nodes[len(s.nodes)-1]
-	s.nodes = s.nodes[:len(s.nodes)-1]
-	return top.val, nil
+    if len(s.nodes) == 0 {
+        return 0, errors.New("empty stack")
+    }
+    top := s.nodes[len(s.nodes)-1]
+    s.nodes = s.nodes[:len(s.nodes)-1]
+    return top.val, nil
 }
 
 func (s *StackWithMin) Min() (int, error) {
-	if len(s.nodes) == 0 {
-		return 0, errors.New("empty stack")
-	}
-	return s.nodes[len(s.nodes)-1].min, nil
+    if len(s.nodes) == 0 {
+        return 0, errors.New("empty stack")
+    }
+    return s.nodes[len(s.nodes)-1].min, nil
 }
 ```
 
@@ -1004,33 +1004,33 @@ Implement a MyQueue class which implements a queue using two stacks.
 
 ```go
 type MyQueue struct {
-	stack1 *Stack
-	stack2 *Stack
+    stack1 *Stack
+    stack2 *Stack
 }
 
 func NewMyQueue() *MyQueue {
-	return &MyQueue{NewStack(), NewStack()}
+    return &MyQueue{NewStack(), NewStack()}
 }
 
 func (mq *MyQueue) IsEmpty() bool {
-	return mq.stack1.IsEmpty()
+    return mq.stack1.IsEmpty()
 }
 
 func (mq *MyQueue) Add(val int) {
-	mq.stack1.Push(val)
+    mq.stack1.Push(val)
 }
 
 func (mq *MyQueue) Remove() (int, error) {
-	for mq.stack1.Size() > 1 {
-		val, _ := mq.stack1.Pop()
-		mq.stack2.Push(val)
-	}
-	peek, _ := mq.stack1.Pop()
-	for !mq.stack2.IsEmpty() {
-		val, _ := mq.stack2.Pop()
-		mq.stack1.Push(val)
-	}
-	return peek, nil
+    for mq.stack1.Size() > 1 {
+        val, _ := mq.stack1.Pop()
+        mq.stack2.Push(val)
+    }
+    peek, _ := mq.stack1.Pop()
+    for !mq.stack2.IsEmpty() {
+        val, _ := mq.stack2.Pop()
+        mq.stack1.Push(val)
+    }
+    return peek, nil
 }
 ```
 
@@ -1067,86 +1067,86 @@ func (s *Stack) Sort() {
 
 $$O(n^2)$$ time in the worst case?
 
-## 6. Animal Shelter 
+## 6. Animal Shelter
 
 An animal shelter, which holds only dogs and cats, operates on a strictly    "first in, first out" basis. People must adopt either the "oldest" (based on arrival time) of all animals at the shelter, or they can select whether they would prefer a dog or a cat (and will receive the oldest animal of that type). They cannot select which specific animal they would like. Create the data structure to maintain this system and implement operations such as `enqueue`, `dequeueAny`, `dequeueDog`, and `dequeueCat`. You may use the built-in linked list data structure.
 
 ```go
 type Animal struct {
-	Name string
-	Kind int // 1: dog, 2: cat
+    Name string
+    Kind int // 1: dog, 2: cat
 }
 
 type AnimalWrapper struct {
-	id     int
-	animal *Animal
+    id     int
+    animal *Animal
 }
 
 type AnimalShelter struct {
-	count int
-	dogs  []*AnimalWrapper
-	cats  []*AnimalWrapper
+    count int
+    dogs  []*AnimalWrapper
+    cats  []*AnimalWrapper
 }
 
 func NewAniamlShelter() *AnimalShelter {
-	return &AnimalShelter{0, make([]*AnimalWrapper, 0), make([]*AnimalWrapper, 0)}
+    return &AnimalShelter{0, make([]*AnimalWrapper, 0), make([]*AnimalWrapper, 0)}
 }
 
 func (as *AnimalShelter) Enqueue(a *Animal) {
-	as.count++
-	switch a.Kind {
-	case 1:
-		as.dogs = append(as.dogs, &AnimalWrapper{
-			id:     as.count,
-			animal: a,
-		})
-	case 2:
-		as.cats = append(as.cats, &AnimalWrapper{
-			id:     as.count,
-			animal: a,
-		})
-	}
+    as.count++
+    switch a.Kind {
+    case 1:
+        as.dogs = append(as.dogs, &AnimalWrapper{
+            id:     as.count,
+            animal: a,
+        })
+    case 2:
+        as.cats = append(as.cats, &AnimalWrapper{
+            id:     as.count,
+            animal: a,
+        })
+    }
 }
 
 func (as *AnimalShelter) DequeueAny() (*Animal, error) {
-	if len(as.cats) == 0 && len(as.dogs) == 0 {
-		return nil, errors.New("empty shelter")
-	}
-	var peek *Animal
-	if numOfCats, numOfDogs := len(as.cats), len(as.dogs); numOfCats > 0 && numOfDogs > 0 {
-		if as.cats[0].id < as.dogs[0].id {
-			peek = as.cats[0].animal
-			as.cats = as.cats[1:]
-		} else {
-			peek = as.dogs[0].animal
-			as.dogs = as.dogs[1:]
-		}
-	} else if numOfCats > 0 {
-		peek = as.cats[0].animal
-		as.cats = as.cats[1:]
-	} else {
-		peek = as.dogs[0].animal
-		as.dogs = as.dogs[1:]
-	}
-	return peek, nil
+    if len(as.cats) == 0 && len(as.dogs) == 0 {
+        return nil, errors.New("empty shelter")
+    }
+    var peek *Animal
+    if numOfCats, numOfDogs := len(as.cats), len(as.dogs); numOfCats > 0 && numOfDogs > 0 {
+        if as.cats[0].id < as.dogs[0].id {
+            peek = as.cats[0].animal
+            as.cats = as.cats[1:]
+        } else {
+            peek = as.dogs[0].animal
+            as.dogs = as.dogs[1:]
+        }
+    } else if numOfCats > 0 {
+        peek = as.cats[0].animal
+        as.cats = as.cats[1:]
+    } else {
+        peek = as.dogs[0].animal
+        as.dogs = as.dogs[1:]
+    }
+    return peek, nil
 }
 
 func (as *AnimalShelter) DequeueDog() (*Animal, error) {
-	if len(as.dogs) == 0 {
-		return nil, errors.New("no dog")
-	}
-	dog := as.dogs[0].animal
-	as.dogs = as.dogs[1:]
-	return dog, nil
+    if len(as.dogs) == 0 {
+        return nil, errors.New("no dog")
+    }
+    dog := as.dogs[0].animal
+    as.dogs = as.dogs[1:]
+    return dog, nil
 }
 
 func (as *AnimalShelter) DequeueCat() (*Animal, error) {
-	if len(as.cats) == 0 {
-		return nil, errors.New("no dog")
-	}
-	cat := as.cats[0].animal
-	as.cats = as.cats[1:]
-	return cat, nil
+    if len(as.cats) == 0 {
+        return nil, errors.New("no dog")
+    }
+    cat := as.cats[0].animal
+    as.cats = as.cats[1:]
+    return cat, nil
 }
 ```
 
@@ -1160,32 +1160,33 @@ Assuming a graph is represented by a adjacency matrix.
 
 ```go
 func RouteBetweenNodes(g [][]int, u int, v int) bool {
-	if maxIdx := len(g) - 1; maxIdx < 0 ||
-		u < 0 || u >= maxIdx ||
-		v < 0 || v >= maxIdx {
-		return false
-	}
-	visited := make([]bool, len(g))
-	// BFS
-	q := make([]int, 0)
-	q = append(q, u)
-	visited[u] = true
-	for len(q) > 0 {
-		vertex := q[0]
-		q = q[1:]
-		if vertex == v {
-			return true
-		}
-		for i := range g[vertex] {
-			if g[vertex][i] == 1 && !visited[i] {
-				q = append(q, i)
-				visited[i] = true
-			}
-		}
-	}
-	return false
+    if maxIdx := len(g) - 1; maxIdx < 0 ||
+        u < 0 || u >= maxIdx ||
+        v < 0 || v >= maxIdx {
+        return false
+    }
+    visited := make([]bool, len(g))
+    // BFS
+    q := make([]int, 0)
+    q = append(q, u)
+    visited[u] = true
+    for len(q) > 0 {
+        vertex := q[0]
+        q = q[1:]
+        if vertex == v {
+            return true
+        }
+        for i := range g[vertex] {
+            if g[vertex][i] == 1 && !visited[i] {
+                q = append(q, i)
+                visited[i] = true
+            }
+        }
+    }
+    return false
 }
 ```
+
 $$O(n^2)$$ time, $$O(n)$$ space.
 
 ```go
@@ -1200,22 +1201,23 @@ func RouteBetweenNodesDfs(g [][]int, u int, v int) bool {
 }
 
 func dfs(g *[][]int, u int, v int, visited *[]bool) bool {
-	if !(*visited)[u] {
-		(*visited)[u] = true
-		if u == v {
-			return true
-		}
-		for i := range (*g)[u] {
-			if (*g)[u][i] == 1 {
-				if dfs(g, i, v, visited) {
-					return true
-				}
-			}
-		}
-	}
-	return false
+    if !(*visited)[u] {
+        (*visited)[u] = true
+        if u == v {
+            return true
+        }
+        for i := range (*g)[u] {
+            if (*g)[u][i] == 1 {
+                if dfs(g, i, v, visited) {
+                    return true
+                }
+            }
+        }
+    }
+    return false
 }
 ```
+
 $$O(n^2)$$ time, $$O(n^2)$$ space.
 
 ## 2. Minimal Tree
@@ -1246,42 +1248,42 @@ Given a binary tree, design an algorithm which creates a linked list of all the 
 
 ```go
 func ListOfDepths(root *TreeNode) []*ListNode {
-	if root == nil {
-		return nil
-	}
-	// Level-order traversal
-	q := make([]*TreeNode, 0)
-	q = append(q, root)
-	numOfNodesAtCurLevel, numOfNodesAtNextLevel := 1, 0
-	nodesAtCurLevel := make([]int, 0)
-	lists := make([]*ListNode, 0)
-	for len(q) > 0 {
-		node := q[0]
-		q = q[1:]
-		if node.Left != nil {
-			q = append(q, node.Left)
-			numOfNodesAtNextLevel++
-		}
-		if node.Right != nil {
-			q = append(q, node.Right)
-			numOfNodesAtNextLevel++
-		}
-		nodesAtCurLevel = append(nodesAtCurLevel, node.Val)
-		if numOfNodesAtCurLevel--; numOfNodesAtCurLevel == 0 {
-			// Build a list
-			head := &ListNode{Value: nodesAtCurLevel[0]}
-			cur := head
-			for _, v := range nodesAtCurLevel[1:] {
-				cur.Next = &ListNode{Value: v}
-				cur = cur.Next
-			}
-			lists = append(lists, head)
-			numOfNodesAtCurLevel = numOfNodesAtNextLevel
-			numOfNodesAtNextLevel = 0
-			nodesAtCurLevel = nodesAtCurLevel[:0]
-		}
-	}
-	return lists
+    if root == nil {
+        return nil
+    }
+    // Level-order traversal
+    q := make([]*TreeNode, 0)
+    q = append(q, root)
+    numOfNodesAtCurLevel, numOfNodesAtNextLevel := 1, 0
+    nodesAtCurLevel := make([]int, 0)
+    lists := make([]*ListNode, 0)
+    for len(q) > 0 {
+        node := q[0]
+        q = q[1:]
+        if node.Left != nil {
+            q = append(q, node.Left)
+            numOfNodesAtNextLevel++
+        }
+        if node.Right != nil {
+            q = append(q, node.Right)
+            numOfNodesAtNextLevel++
+        }
+        nodesAtCurLevel = append(nodesAtCurLevel, node.Val)
+        if numOfNodesAtCurLevel--; numOfNodesAtCurLevel == 0 {
+            // Build a list
+            head := &ListNode{Value: nodesAtCurLevel[0]}
+            cur := head
+            for _, v := range nodesAtCurLevel[1:] {
+                cur.Next = &ListNode{Value: v}
+                cur = cur.Next
+            }
+            lists = append(lists, head)
+            numOfNodesAtCurLevel = numOfNodesAtNextLevel
+            numOfNodesAtNextLevel = 0
+            nodesAtCurLevel = nodesAtCurLevel[:0]
+        }
+    }
+    return lists
 }
 ```
 
@@ -1293,25 +1295,25 @@ Implement a function to check if a binary tree is balanced. For the purposes of 
 
 ```go
 func CheckBalanced(root *BinaryTreeNode) bool {
-	depth := 0
-	return postorder(root, &depth)
+    depth := 0
+    return postorder(root, &depth)
 }
 
 func postorder(root *BinaryTreeNode, depth *int) bool {
-	if root == nil {
-		*depth = 0
-		return true
-	}
-	dl, dr := 0, 0 // depths of two subtrees
-	l, r := postorder(root.Left, &dl), postorder(root.Right, &dr)
-	if l && r {
-		if math.Abs(float64(dl)-float64(dr)) <= 1.0 {
+    if root == nil {
+        *depth = 0
+        return true
+    }
+    dl, dr := 0, 0 // depths of two subtrees
+    l, r := postorder(root.Left, &dl), postorder(root.Right, &dr)
+    if l && r {
+        if math.Abs(float64(dl)-float64(dr)) <= 1.0 {
              // If this subtree is balanced, then propagate the result and its height
-			*depth = int(math.Max(float64(dl), float64(dr))) + 1
-			return true
-		}
-	}
-	return false
+            *depth = int(math.Max(float64(dl), float64(dr))) + 1
+            return true
+        }
+    }
+    return false
 }
 ```
 
@@ -1325,30 +1327,30 @@ Do inorder-traversal iteratively.
 
 ```go
 func ValidateBST(root *TreeNode) bool {
-	if root == nil {
-		return true
-	}
-	stack := make([]*TreeNode, 0)
-	var pre *TreeNode
-	for cur := root; cur != nil || len(stack) > 0; {
-		for cur != nil {
-			stack = append(stack, cur)
-			cur = cur.Left
-		}
-		top := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-		if pre != nil && pre.Val >= top.Val {
-			return false
-		}
-		pre, cur = top, top.Right
-	}
-	return true
+    if root == nil {
+        return true
+    }
+    stack := make([]*TreeNode, 0)
+    var pre *TreeNode
+    for cur := root; cur != nil || len(stack) > 0; {
+        for cur != nil {
+            stack = append(stack, cur)
+            cur = cur.Left
+        }
+        top := stack[len(stack)-1]
+        stack = stack[:len(stack)-1]
+        if pre != nil && pre.Val >= top.Val {
+            return false
+        }
+        pre, cur = top, top.Right
+    }
+    return true
 }
 ```
 
 $$O(n)$$ time, $$O(n)$$ space.
 
-## 6. Successor 
+## 6. Successor
 
 Write an algorithm to find the "next" node (i.e., in-order successor) of a given node in a binary search tree. You may assume that each node has a link to its parent. 
 
@@ -1363,26 +1365,26 @@ There is one corner case: if we are already on the far right of the tree, then t
 
 ```go
 func Successor(n *TreeNode) *TreeNode {
-	if n == nil {
-		return nil
-	}
-	if n.Right != nil {
-		// Find the leftmost node of n's right subtree
-		cur := n.Right
-		for ; cur != nil && cur.Left != nil; cur = cur.Left {
-		}
-		return cur
-	} else {
-		q := n
-		x := q.Parent
-		// Go up until we're on left instead of right.
+    if n == nil {
+        return nil
+    }
+    if n.Right != nil {
+        // Find the leftmost node of n's right subtree
+        cur := n.Right
+        for ; cur != nil && cur.Left != nil; cur = cur.Left {
+        }
+        return cur
+    } else {
+        q := n
+        x := q.Parent
+        // Go up until we're on left instead of right.
         // Here we also handle the corner case.
-		for x != nil && x.Left != q {
-			q = x
-			x = x.Parent
-		}
-		return x
-	}
+        for x != nil && x.Left != q {
+            q = x
+            x = x.Parent
+        }
+        return x
+    }
 }
 ```
 
@@ -1395,55 +1397,55 @@ You are given a list of products and a list of dependencies (which is a list of 
 ```
 EXAMPLE
 Input: 
-	projects: a, b, c, d, e, f
-	dependencies: (a, b), (f, b), (b, d). (f, a), (d, c)
+    projects: a, b, c, d, e, f
+    dependencies: (a, b), (f, b), (b, d). (f, a), (d, c)
 Output: e, a, b, d, c
 ```
 
 ```go
 func BuildOrder(projects []rune, dependencies [][]rune) ([]rune, error) {
-	if len(projects) == 0 {
-		return nil, errors.New("invalid input")
-	}
-	// Construct a directed graph represented by adjacency list.
-	adj := make(map[rune][]rune, len(projects))
-	indegree := make(map[rune]int, len(projects))
-	for _, edge := range dependencies {
-		if _, ok := adj[edge[0]]; !ok {
-			adj[edge[0]] = make([]rune, 0)
-		}
-		adj[edge[0]] = append(adj[edge[0]], edge[1])
-		indegree[edge[1]]++
-	}
-	zeroIndegree := make([]rune, 0 ,len(projects)) // Vertices which have no dependency.
-	for _, n := range projects {
-		if indegree[n] == 0 {
-			zeroIndegree = append(zeroIndegree, n)
-		}
-	}
-	// Do topological sorting.
-	order := make([]rune, 0, len(projects)) // Resulting order.
-	for len(zeroIndegree) > 0 {
-		n := zeroIndegree[0]
-		order = append(order, n)
-		zeroIndegree = zeroIndegree[1:]
-		for _, t := range adj[n] {
-			if indegree[t]--; indegree[t] == 0 {
-				zeroIndegree = append(zeroIndegree, t)
-			}
-		}
-	}
-	if len(order) != len(projects) {
-		return nil, errors.New("can not order")
-	} else {
-		return order, nil
-	}
+    if len(projects) == 0 {
+        return nil, errors.New("invalid input")
+    }
+    // Construct a directed graph represented by adjacency list.
+    adj := make(map[rune][]rune, len(projects))
+    indegree := make(map[rune]int, len(projects))
+    for _, edge := range dependencies {
+        if _, ok := adj[edge[0]]; !ok {
+            adj[edge[0]] = make([]rune, 0)
+        }
+        adj[edge[0]] = append(adj[edge[0]], edge[1])
+        indegree[edge[1]]++
+    }
+    zeroIndegree := make([]rune, 0 ,len(projects)) // Vertices which have no dependency.
+    for _, n := range projects {
+        if indegree[n] == 0 {
+            zeroIndegree = append(zeroIndegree, n)
+        }
+    }
+    // Do topological sorting.
+    order := make([]rune, 0, len(projects)) // Resulting order.
+    for len(zeroIndegree) > 0 {
+        n := zeroIndegree[0]
+        order = append(order, n)
+        zeroIndegree = zeroIndegree[1:]
+        for _, t := range adj[n] {
+            if indegree[t]--; indegree[t] == 0 {
+                zeroIndegree = append(zeroIndegree, t)
+            }
+        }
+    }
+    if len(order) != len(projects) {
+        return nil, errors.New("can not order")
+    } else {
+        return order, nil
+    }
 }
 ```
 
-This solution takes $$O(P + D)​$$ time, where P is the number of projects and D is the number of dependency pairs.
+This solution takes $$O(P + D)$$ time, where P is the number of projects and D is the number of dependency pairs.
 
-## 8. First Common Ancestor 
+## 8. First Common Ancestor
 
 Design an algorithm and write code to find the first common ancestor of two nodes in a binary tree. Avoid storing additional nodes in data structure. NOTE: This is not necessarily a BST.
 
@@ -1486,4 +1488,331 @@ func covers(root, p *TreeNode) bool {
 ```
 
 This algorithm runs in $$O(n)$$ time on a balanced tree.
+
+## 9. BST Sequences
+
+A binary search tree was created by traversing through an array from left to right and inserting each element. Given a binary search tree with distinct elements, print all possible arrays that could have led to this tree.
+
+```
+EXAMPLE
+Input: 
+    2
+   /  \
+  1    3
+Output: {2, 1, 3}, {2, 3, 1}
+```
+
+In the example above, the very first element in our array must be a 2 in order to create the above tree. 
+
+Let's think about this problem recursively. If we had all arrays that could have created the subtree rooted at 1 (call this `arrays1`) and all arrays that could have created that subtree rooted at 3 (call this `arrays3`), we could just weave each array from `arrays1`with each array from `array3`and then prepend array with a 2.
+
+Weaving means we are merging two arrays in all possible ways, while keeping elements within each array in the same relative order.
+
+```
+array1: [1, 2]
+array2: [3, 4]
+weaved: [1, 2, 3, 4], [1, 3, 2, 4], [1, 3, 4, 2], [3, 1, 2, 4], [3, 1, 4, 2], [3, 4, 1, 2]
+```
+
+Note that, as long as there aren't any duplicates in the original array sets, we won't have to worry that weaving will create duplicates.
+
+How does weaving work? Let's say, we want to weave [1, 2] and [3, 4] and the subproblems are:
+
+```
+- prepend 1 to all weaves of [2] and [3, 4]
+- prepend 3 to all weaves of [1, 2] and [4]
+```
+
+To implement this, we'll store each as linked lists. This will make it easy to add and remove elements. When we recurse, we'll push the prefixed elements down the recursion. When first or second are empty, we add the remainder to prefix and store the result.
+
+```
+weave(first, second, prefix)
+    weave([1, 2], [3, 4], [])
+        weave([2], [3, 4], [1])
+            weave([], [3, 4], [1, 2])
+                [1, 2, 3, 4]
+            weave([2], [4], [1, 3])
+                weave([], [4], [1, 3, 2])
+                    [1, 3, 2 ,4]
+                weave([2], [], [1, 3 ,4])
+                    [1, 3, 4, 2]
+        weave([1, 2], [4], [3])
+            weave([2], [4], [3, 1])
+                weave([], [4], [3, 1, 2])
+                    [3, 1, 2, 4]
+                weave([2], [], [3, 1, 4])
+                    [3, 1, 4, 2]
+            weave([1, 2], [], [3, 4])
+                [3, 4, 1, 2]    
+```
+
+```go
+func BSTSequences(root *TreeNode) [][]int {
+   res := make([][]int, 0)
+   if root == nil {
+      // Append [] so that the nested for loop will still execute
+      res = append(res, []int{})
+      return res
+   }
+   // prefix will always be the root of subtrees.
+   prefix := []int{root.Val}
+   leftSeq, rightSeq := BSTSequences(root.Left), BSTSequences(root.Right)
+   for i := range leftSeq {
+      for j := range rightSeq {
+         weaved := make([][]int, 0)
+         weave(leftSeq[i], rightSeq[j], &weaved, prefix)
+         res = append(res, weaved...)
+      }
+   }
+   return res
+}
+
+func weave(first []int, second []int, res *[][]int, prefix []int) {
+   if len(first) == 0 || len(second) == 0 {
+      // Assure that tmp is a copy.
+      tmp := make([]int, len(prefix))
+      copy(tmp, prefix)
+      tmp = append(tmp, first...)
+      tmp = append(tmp, second...)
+      *res = append(*res, tmp)
+      return
+   }
+
+   headOfFirst := first[0]
+   first = first[1:]
+   prefix = append(prefix, headOfFirst)
+   weave(first, second, res, prefix)
+   // Exit when fist is empty.
+   // Reset prefix for the second recursion below.
+   prefix = prefix[:len(prefix)-1]
+   first = append([]int{headOfFirst}, first...)
+
+   headOfSecond := second[0]
+   second = second[1:]
+   prefix = append(prefix, headOfSecond)
+   weave(first, second, res, prefix)
+   prefix = prefix[:len(prefix)-1]
+   second = append([]int{headOfSecond}, second...)
+}
+```
+
+## 10. Check Subtrees
+
+T1 and T2 are two very large binary trees, with T1 much bigger than T2. Create an algorithm to determine if T2 is a subtree of T1.
+
+A tree T2 is a subtree of T1 if there exists a node n in T1 such that the subtree of n is identical to T2. That is, if you cut off the tree at node n, the two trees would be identical.
+
+(1) Transform trees into strings.
+
+In this smaller, simpler problem, we could consider comparing string representations of traversals of each tree. If T2 is a subtree of T1, then T2's traversal should be a substring of T1.
+
+An in-order traversal will definitely not work. After all, consider a scenario in which we were using binary search trees. A binary search tree's in-order traversal always prints out the values in sorted order. Therefore, two binary search trees with the same values will always have the same in-order traversals, even if their structure is different.
+
+An pre-order traversal, with null nodes represented properly, can work. As long as we represent the NULL nodes, the pre-order traversal of a tree is unique. That is, if two trees have the same pre order traversal, then we know they are identical trees in values and structure. 
+
+```go
+func CheckSubtrees(t1, t2 *TreeNode) bool {
+   var tStr1 string
+   traverseTree(t1, &tStr1)
+   var tStr2 string
+   traverseTree(t2, &tStr2)
+   return strings.Contains(tStr1, tStr2)
+}
+
+func traverseTree(root *TreeNode, s *string) {
+   if root == nil {
+      *s += "#"
+      return
+   }
+   *s += strconv.Itoa(root.Val)
+   traverseTree(root.Left, s)
+   traverseTree(root.Right, s)
+}
+```
+
+$$O(n+m)$$ time and $$O(n+m)$$ space where n and m are the number of nodes in T1 and T2 respectively.
+
+(2) Search and compare.
+
+Search through the larger tree T1. Each time a node in Tl matches the root of T2, call `matchTree`. The `matchTree` method will compare the two subtrees to see if they are identical.
+
+```go
+func CheckSubtrees(t1, t2 *TreeNode) bool {
+	if t2 == nil {
+		// An empty tree is always a subtree.
+		return true
+	} 
+	return subtree(t1, t2)
+}
+
+func subtree(t1 *TreeNode, t2 *TreeNode) bool {
+	if t1 == nil {
+		return false
+	} else if t1.Val == t2.Val && matchTree(t1, t2) {
+		return true
+	}
+	return subtree(t1.Left, t2) || subtree(t1.Right, t2)
+}
+
+func matchTree(t1, t2 *TreeNode) bool {
+	if t1 == nil && t2 == nil {
+		return true
+	} else if t1 == nil || t2 == nil {
+		return false
+	} else if t1.Val != t2.Val {
+		return false
+	} else {
+		return matchTree(t1.Left, t2.Left) && matchTree(t1.Right, t2.Right)
+	}
+}
+```
+
+## 11. Random Node
+
+You are implementing a binary search tree class from scratch, which, in addition to insert, find and delete, has a method `getRandomNode()`which returns a random node from the tree. All nodes should be equally likely to be chosen. Design and implement an algorithm for `getRandomNode`, and explain how you would implement the rest of the methods.
+
+We can start with the root. With what probability should we return the root? Since we have N nodes, we must return the root node with $$1/n$$ probability.
+
+With what probability should we traverse left versus right? It's not 50/50. Even in a balanced tree, the number of nodes on each side might not be equal. If we have more nodes on the left than the right, then we need to go left more often.
+
+The odds of picking something from the left must have probability $$LEFTSIZE * 1/n$$ .This should therefore be the odds of going left. Likewise, the odds of going right should be $$RIGHTSIZE * 1/n$$.
+
+This means that each node must know the size of the nodes on the left and the size of the nodes on the right. Fortunately, our interviewer has told us that we're building this tree class from scratch. It's easy to keep track of this size information on inserts and deletes. We can just store a `size` variable in each node. Increment`size`on inserts and decrement it on deletes.
+
+```go
+type TreeNode struct {
+   Val   int
+   Left  *TreeNode
+   Right *TreeNode
+   size  int
+}
+
+func NewTreeNode(val int) *TreeNode {
+   return &TreeNode{
+      Val:   val,
+      Left:  nil,
+      Right: nil,
+      size:  1,
+   }
+}
+
+func insert(root *TreeNode, val int) {
+   if val <= root.Val {
+      if root.Left == nil {
+         root.Left = NewTreeNode(val)
+      } else {
+         insert(root.Left, val)
+      }
+   } else {
+      if root.Right == nil {
+         root.Right = NewTreeNode(val)
+      } else {
+         insert(root.Right, val)
+      }
+   }
+   root.size++
+}
+
+func GetRandomNode(root *TreeNode) *TreeNode {
+   var leftSize int
+   if root.Left == nil {
+      leftSize = 0
+   } else {
+      leftSize = root.Left.size
+   }
+   if idx := rand.Intn(root.size); idx < leftSize {
+      return GetRandomNode(root.Left)
+   } else if idx == leftSize {
+      return root
+   } else {
+      return GetRandomNode(root.Right)
+   }
+}
+```
+
+$$O(D)$$ time, where D is the max depth. 
+
+## 12. Paths with Sums
+
+You are given a binary tree in which each node contains an integer value (which might be positive or negative). Design an algorithm to count the number of paths that sum to a given value. The path does not need to start or end at the root or a leaf, but it must go downwards (traveling only from parent nodes to child nodes).
+
+(1) Brute Force
+
+We traverse to each node. At each node, we recursively try all paths downwards, tracking the sum as we go. As soon as we hit our target sum, we increment the total.
+
+```go
+func PathsWithSums(root *TreeNode, target int) int {
+   if root == nil {
+      return 0
+   }
+   return pathsWithSumsFromNode(root, target, 0) +
+      PathsWithSums(root.Left, target) +
+      PathsWithSums(root.Right, target)
+}
+
+func pathsWithSumsFromNode(node *TreeNode, target int, current int) int {
+   if node == nil {
+      return 0
+   }
+   current += node.Val
+   total := 0
+   if current == target {
+      total++
+   }
+   return total +
+      pathsWithSumsFromNode(node.Left, target, current) +
+      pathsWithSumsFromNode(node.Right, target, current)
+}
+```
+
+In a balanced binary tree, d will be no more than approximately $$logN$$. Therefore, we know that with N nodes in the tree, `pathsWithSumsFromNode`be called $$O(NlogN)$$ times. The runtime is $$O(NlogN)$$.
+
+In an unbalanced tree, the runtime could be much worse. Consider a tree that is just a straight line down. At the root, we traverse to $$N - 1$$ nodes. At the next level (with just a single node), we traverse to $$N - 2$$ nodes. At the third level, we traverse to $$N - 3$$ nodes, and so on. This  leads us to the sum of numbers between 1 and N, which is $$O(N^2)$$.
+
+(2) 
+
+In analyzing the last solution, we may realize that we repeat some work.
+
+If we treat a path as an array, the problem will be: How many contiguous subsequences in this array sum to a target sum. Since we're just looking for the number of paths, we can use a hash table. As we iterate through the array, build a hash table that maps from a `current` to the number of times we've seen that sum.Then, for each y, look up `current-target` in the hash table. The value in the hash table will tell you the number of paths with sum `target`that end at y.
+
+```go
+func PathsWithSums(root *TreeNode, target int) int {
+   return pathsWithSumsFromNode(root, target, 0, map[int]int{})
+}
+
+func pathsWithSumsFromNode(node *TreeNode, target int, current int, pathCount map[int]int) int {
+   if node == nil {
+      return 0
+   }
+   // Count path with sum ending at the current node.
+   current += node.Val
+   sum := current - target
+   total := pathCount[sum]
+   if current == target {
+      // One additional path starts at current node.
+      total++
+   }
+   modifyMap(pathCount, current, 1)
+   total += pathsWithSumsFromNode(node.Left, target, current, pathCount) +
+      pathsWithSumsFromNode(node.Right, target, current, pathCount)
+   // Reverse the changes to the map so that 
+   // other nodes won't use it.
+   modifyMap(pathCount, current, -1)
+   return total
+}
+
+func modifyMap(pathCount map[int]int, key int, delta int) {
+   if newCount := pathCount[key] + delta; newCount == 0 {
+      // Remove key-value pair when zero
+      // in order to reduce space usage
+      delete(pathCount, key)
+   } else {
+      pathCount[key] = newCount
+   }
+}
+```
+
+The runtime for this algorithm is $$O(N)$$, where N is the number of nodes in the tree because we travel to each node just once, doing $$O(1)$$ work each time. In a balanced tree, the space complexity is $$O(NlogN)$$ due to the hash table. The space complexity can grow to $$O(N)$$ in an unbalanced.
+
+
 

@@ -950,3 +950,294 @@ void Sem_post(sem_t *s) {
 ```
 
 One subtle difference between our semaphores pure semaphores as defined by Dijkstra is that we don’t maintain the invariant that the value of the semaphore, when negative, reflects the number of waiting threads; indeed, the value will never be lower than zero. This behavior is easier to implement and matches the current Linux implementation.
+
+## Common Concurrent Problems
+
+### Non-Deadlock Bugs
+
+#### Atomicity-Violation Bugs
+
+The desired serializability among multiple memory accesses is violated (i.e. a code region is intended to be atomic, but the atomicity is not enforced during execution).
+
+**Serializability** is the classical concurrency scheme. It ensures that a schedule for executing concurrent transactions is equivalent to one that executes the transactions serially in some order.
+
+```pseudocode
+Thread 1::
+if (thd->proc_info) {
+	do something with thd->proc_info
+}
+
+Thread 2::
+thd->proc_info = NULL;
+```
+
+In the example, two different threads access the field proc info in the structure `thd`. The first thread checks if the value is non-NULL and then prints its value; the second thread sets it to NULL. Clearly, if the first thread performs the check but then is interrupted before doing something with `thd->proc_info`, the second thread could run in-between, thus setting the pointer to NULL; when the first thread resumes, it will crash.
+
+Finding a fix for this type of problem is often (but not always) straightforward.
+
+```pseudocode
+Thread 1::
+lock
+if (thd->proc_info) {
+	do something with thd->proc_info
+}
+unlock
+
+Thread 2::
+// lock
+thd->proc_info = NULL;
+// unlock
+```
+
+#### Order-Violation Bugs
+
+The desired order between two (groups of) memory accesses is flipped (i.e., A should always be executed before B, but the order is not enforced during execution).
+
+```c++
+Thread 1::
+void init() {
+    // ...
+    mThread = PR_CreateThread(mMain, ...);
+    // ...
+}
+
+Thread 2::
+void mMain() {
+    // ...
+    mState = mThread->State;
+    // ...
+}
+```
+
+Thread 2 seems to assume that the variable `mThread` has already been initialized (and is not NULL); however, if Thread 2 runs immediately once created, the value of `mThread` will not be set when it is accessed within `mMain()` in Thread 2, and will likely crash with a NULL-pointer deference. 
+
+The fix to this type of bug is generally to enforce ordering. As we discussed in detail previously, using **condition variables** is an easy and robust way to add this style of synchronization into modern code bases.
+
+```c++
+pthread_mutex_t mtLock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t mtCond = PTHREAD_COND_INITIALIZER;
+int mtInit = 0;
+
+Thread 1::
+void init() {
+    // ...
+    mThread = PR_CreateThread(mMain, ...);
+    
+    // signal that the thread has been created
+    pthread_mutex_lock(&mtLock);
+    mtInit = 1;
+    pthread_cond_signal(&mtCond);
+    pthread_mutex_unlock(&mtLock);
+    
+    // ...
+}
+
+Thread 2::
+void mMain(...) {
+    // ...
+    // wait for the thread to be initialized
+    pthread_mutex_lock(&mtLock);
+    while (mtInit == 0) {
+        pthread_cond_wait(&mtCond, &mtLock);
+    }
+    pthread_mutex_unlock(&mtLock);
+    
+    mState = mThread->State;
+    
+    // ... 
+}
+```
+
+### Deadlock Bugs
+
+#### Conditions for Deadlock
+
+- Mutual exclusion: Threads claim exclusive control of resources that they require (e.g., a thread grabs a lock).
+- Hold-and-wait: Threads hold resources allocated to them(e.g., locks that they have already acquired) while waiting for additional resources (e.g., locks that they wish to acquire).
+- No preemption: Resources (e.g., locks) cannot be forcibly removed from threads that are holding them.
+- Circular wait: There exists a circular chain of threads such that each thread holds one or more resources (e.g., locks) that are being requested by the next thread in the chain.
+
+If any of these four conditions are not met, deadlock cannot occur.
+
+#### Prevention
+
+1.Circular Wait
+
+(1) total ordering
+
+The most straightforward way to do that is to provide a total ordering on lock acquisition. For example, if there are only two locks in the system (L1 and L2), you can prevent deadlock by always acquiring L1 before L2. Such strict ordering ensures that no cyclical wait arises; hence, no deadlock.
+
+(2) partial ordering
+
+An excellent real example of partial lock ordering can be seen in the memory mapping code in Linux [T+94]; the comment at the top of the source code reveals ten different groups of lock acquisition orders, including simple ones such as “i_mutex before i_mmap mutex” and more complex orders such as “i_mmap_mutex before private_lock before swap_lock before mapping->tree_lock”.
+
+Imagine a function that is called as follows: `do_something(mutex t *m1, mutex t *m2)`. The clever programmer can use the address of each lock as a way of ordering lock acquisition. By acquiring locks in either high to-low or low-to-high address order, `do_something()` can guarantee that it always acquires locks in the same order, regardless of which order they are passed in.
+
+```c
+if (m1 > m2) {
+    pthread_mutex_lock(m1);
+    pthread_mutex_lock(m2);
+} else {
+    pthread_mutex_lock(m2);
+    pthread_mutex_lock(m1);
+}
+```
+
+2.Hold-and-wait
+
+The hold-and-wait requirement for deadlock can be avoided by acquiring all locks at once, atomically. In practice, this could be achieved as follows:
+
+```c
+pthread_mutex_lock(prevention); // begin lock acquisition
+pthread_mutex_lock(L1);
+pthread_mutex_lock(L2);
+// ...
+pthread_mutex_unlock(prevention); // end
+```
+
+Note that the solution is problematic for a number of reasons. As before, encapsulation works against us: when calling a routine, this approach requires us to know exactly which locks must be held and to acquire them ahead of time. This technique also is likely to decrease concurrency as all locks must be acquired early on (at once) instead of when they are truly needed.
+
+3.No Peremption
+
+Specifically, the routine `pthread_mutex_trylock()` either grabs the lock (if it is available) and returns success or returns an error code indicating the lock is held; in the latter case, you can try again later if you want to grab that lock. Such an interface could be used as follows to build a deadlock-free, ordering-robust lock acquisition protocol:
+
+```c
+top:
+	pthread_mutex_lock(L1);
+	if (pthread_mutex_lock(L2) != 0) {
+        pthread_mutex_unlock(L1);
+        goto top;
+    }
+```
+
+Note that another thread could follow the same protocol but grab the locks in the other order (L2 then L1) and the program would still be deadlock free.
+
+One new problem does arise, however: **livelock**. It is possible (though perhaps unlikely) that two threads could both be repeatedly attempting this sequence and repeatedly failing to acquire both locks. In this case, both systems are running through this code sequence over and over again (and thus it is not a deadlock), but progress is not being made, hence the name livelock.
+
+4.Mutual Exclusion
+
+The final prevention technique would be to avoid the need for mutual exclusion at all. In general, we know this is difficult, because the code we wish to run does indeed have critical sections.
+
+The idea behind these lock-free (and related wait-free) approaches here is simple: using powerful hardware instructions, you can build data structures in a manner that does not require explicit locking.
+
+Recall compare-and-swap primitive:
+
+```c
+int CompareAndSwap(int *address, int expected, int new) {
+    if (*address == expected) {
+        *address = new;
+        return 1; // success
+    } else {
+        return 0; // failure
+    }
+}
+```
+
+Here is code that inserts at the head of a list:
+
+```c
+void insert(int value) {
+    node_t *n = malloc(sizeof(node_t));
+    assert(n != NULL);
+    n->value = value;
+    n->next = head;
+    head = n;
+}
+```
+
+we could solve possible race condition by surrounding this code with a lock acquire and release:
+
+```c
+void insert(int value) {
+    node_t *n = malloc(sizeof(node_t));
+    assert(n != NULL);
+    n->value = value;
+    pthread_mutex_lock(listlock); // begin critical secion
+    n->next = head;
+    head = n;
+    pthread_mutex_unlock(listlock);
+}
+```
+
+Instead, let us try to perform this insertion in a lock-free manner simply using the compare-and-swap instruction. Here is one possible approach:
+
+```c
+void insert(int value) {
+    node_t *n = malloc(sizeof(node_t));
+    assert(n != NULL);
+    n->value = value;
+    do {
+        n->next = head;
+    } while(CompareAndSwap(&head, n->next, n) == 0);
+}
+```
+
+#### Deadlock Avoidance via Scheduling
+
+Avoidance requires some global knowledge of which locks various threads might grab during their execution, and subsequently schedules said threads in a way as to guarantee no deadlock can occur.
+
+|      | T1   | T2   | T3   | T4   |
+| ---- | ---- | ---- | ---- | ---- |
+| L1   | yes  | yes  | yes  | no   |
+| L1   | yes  | yes  | yes  | no   |
+
+A smart scheduler could thus compute that as long as T1, T2 and T3 are not run at the same time, no deadlock could ever arise.
+
+![static scheduling](img/static scheduling.jpg)
+
+As you can see, static scheduling leads to a conservative approach where T1, T2, and T3 are all run on the same processor, and thus the total time to complete the jobs is lengthened considerably. Though it may have been possible to run these tasks concurrently, the fear of deadlock prevents us from doing so, and the cost is performance.
+
+#### Detect and Recover
+
+One final general strategy is to allow deadlocks to occasionally occur, and then take some action once such a deadlock has been detected.
+
+Many database systems employ deadlock detection and recovery techniques. A deadlock detector runs periodically, building a resource graph and checking it for cycles. In the event of a cycle (deadlock), the system needs to be restarted. If more intricate repair of data structures is first required, a human being may be involved to ease the process.
+
+## Event-based Concurrency 
+
+How can we build a concurrent server without using threads, and thus retain control over concurrency as well as avoid some of the problems that seem to plague multi-threaded applications?
+
+### The Basic Idea: An Event Loop
+
+The approach is quite simple: you simply wait for something (i.e., an “event”) to occur; when it does, you check what type of event it is and do the small amount of work it requires (which may include issuing I/O requests, or scheduling other events for future handling, etc.).
+
+The code that processes each event is known as an event handler. Importantly, when a handler processes an event, it is the only activity taking place in the system; thus, deciding which event to handle next is equivalent to scheduling. This explicit control over scheduling is one of the fundamental advantages of the event based approach.
+
+### An Important API: `select()` (or `poll()`)
+
+What these interfaces enable a program to do is simple: check whether there is any incoming I/O that should be attended to. For example, imagine that a network application (such as a web server) wishes to check whether any network packets have arrived, in order to service them. These system calls let you do exactly that.
+
+These basic primitives give us away to build a non-blocking event loop,which simply checks for incoming packets, reads from sockets with messages upon them, replies as needed and so on.
+
+### No Locks Needed
+
+With a single CPU and an event-based application, the problems found in concurrent programs are no longer present. Specifically, because only one event is being handled at a time, there is no need to acquire or release locks; the event-based server cannot be interrupted by another thread because it is decidedly single threaded. Thus, concurrency bugs common in threaded programs do not manifest in the basic event-based approach.
+
+### A Problem: Blocking System Calls
+
+With an event-based approach, however, there are no other threads to run: just the main event loop. And this implies that if an event handler issues a call that blocks, the *entire* server will do just that: block until the call completes. When the event loop blocks, the system sits idle, and thus is a huge potential waste of resources. We thus have a rule that must be obeyed in event-based systems: no blocking calls are allowed.
+
+### Asynchronous I/O
+
+To overcome this limit, many modern operating systems have introduced new ways to issue I/O requests to the disk system, referred to generically as asynchronous I/O. These interfaces enable an application to issue an I/O request and return control immediately to the caller, before the I/O has completed; additional interfaces enable an application to determine whether various I/Os have completed.
+
+### State Management
+
+When an event handler issues an asynchronous I/O, it must package up some program state for the next event handler to use when the I/O finally completes; this additional work is not needed in thread-based programs, as the state the program needs is on the stack of the thread.
+
+The solution is to use an old programming language construct known as a **continuation**. Basically, record the needed information to finish processing this event in some data structure; when the event happens (i.e., when the disk I/O completes), look up the needed information and process the event.
+
+### Other Problems
+
+1.multiple CPUs
+
+In order to utilize more than one CPU, the event server has to run multiple event handlers in parallel; when doing so, the usual synchronization problems (e.g., critical sections) arise, and the usual solutions (e.g., locks) must be employed. Thus, on modern multicore systems, simple event handling without locks is no longer possible.
+
+2.integration
+
+It does not integrate well with certain kinds of systems activity, such as paging. For example, if an event-handler page faults, it will block, and thus the server will not make progress until the page fault completes. Even though the server has been structured to avoid explicit blocking, this type of *implicit* blocking due to page faults is hard to avoid and thus can lead to large performance problems when prevalent.
+
+3.hard to manage 
+
+For example, if a routine changes from non-blocking to blocking, the event handler that calls that routine must also change to accommodate its new nature, by ripping itself into two pieces. Because blocking is so disastrous for event-based servers, a programmer must always be on the lookout for such changes in the semantics of the APIs each event uses.
+

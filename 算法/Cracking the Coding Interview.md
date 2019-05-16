@@ -1814,5 +1814,177 @@ func modifyMap(pathCount map[int]int, key int, delta int) {
 
 The runtime for this algorithm is $$O(N)$$, where N is the number of nodes in the tree because we travel to each node just once, doing $$O(1)$$ work each time. In a balanced tree, the space complexity is $$O(NlogN)$$ due to the hash table. The space complexity can grow to $$O(N)$$ in an unbalanced.
 
+# Bit Manipulation
+
+**Two's Complement and Negative Numbers**
+
+The two's complement of an N-bit number (where N is the number of bits used for the number *excluding* the sign bit) is the complement of the number with $$2^N$$.
+
+Let's look at the 4-bit integer -3 as an example. If it's a 4-bit number, we have one bit for the sign and three bits for the value. We want the complement with respect to $$2^3$$, which is 8. The complement of 3 (the absolute value of -3) with respect to 8 is 5. 5 in binary is 101. Therefore, -3 in binary as a 4-bit number is 1101, with the first bit being the sign bit. In other words, the binary representation of -K (negative K) as a N-bit number is concat(1, $$2^{N-1}-K$$).
+
+Another way to look at this is that we invert the bits in the positive representation and then add 1, 3 is 011 in binary. Flip the bits to get 100, add 1 to get 101, then prepend the sign bit (1) to get 1101. 
+
+**Arithmetic vs. Logical Right Shift**
+
+The arithmetic right shift essentially divides by two. The logical right shift does what we would visually see as shifting the bits. This is best seen on a negative number. 
+
+**Common Bit Tasks: Getting And Setting**
+
+1.Get Bit
+
+This method shifts 1 over by `i` bits, creating a value that looks like 00010000. By performing an AND with it, we clear all bits other than the bit at bit `i`. Finally, we compare that to 0. If that new value is not zero, then bit `i` must have a 1. Otherwise, bit `i` is a 0. 
+
+2.Set Bit
+
+Shift 1 over by `i` bits, creating a value like 00910000, By performing an OR with `num`, only the value at bit `i` will change. All other bits of the mask are zero and will not affect `num`.  
+
+3.Clear Bit
+
+First, we create a number like 11101111 by creating the reverse of it (00010000) and negating it. Then, we perform an AND with `num`. This will clear the it h bit and leave the remainder unchanged.
+
+4.Update Bit
+
+To set the ith bit to a value v, we first clear the bit at position `i` by using a mask that looks like 11101111. Then, we shift the intended  value, v, left by `i` bits. This will create a number with bit `i` equal to v and all other bits equal to 0. Finally, we OR these two numbers, updating the it h bit if v is 1 and leaving it as 0 otherwise. 
+
+## 1. Insertion
+
+You are given two 32-bit numbers, N and M, and two bit positions, i and j. Write a method to insert M into N such that M starts at bit j and ends at bit i. You can assume that the bits through i have enough space to fit all of M. That is, if M = 10011, you can assume that there are at least 5 bits between j and i. You would not, for example, have j = 3 and i = 2, because M could not fully fit between 3 and bit 2.
+
+```
+EXAMPLE
+Input: N = 10000000000, M = 10011, i = 2, j = 6
+Output: N = 10001001100
+```
+
+This problem can be approached in three key steps:
+1. Clear the bits j through i in N
+2. Shift M so that it lines up with bits j through i
+3. Merge M and N.
+
+```go
+func Insert(n int32, m int32, i int, j int) int32 {
+	// Create a mask to clear bits i through j in N. 
+	// For example, i = 2, j = 4, the mask should be 11100011
+	allOnes := ^0
+
+	// 1s before position j, left = 11100000
+	left := allOnes << uint(j+1)
+	// 1s after position i, right = 00000011
+	// We can get 011 by subtracting 1 from 100
+	right := 1<<uint(i) - 1
+	// Then the mask is 11100011
+	mask := left | right
+
+	// Clear bits i through j in N
+	nCleared := n & int32(mask)
+	return nCleared | (m << uint(i))
+}
+```
+
+$$O(i+j)$$ time, $$O(1)$$ space.
+
+## 2. Binary to String
+
+Given a real number between 0 and 1 (e.g., 0.72) that is passed in as a double, print the binary representation. If the number cannot be represented accurately in binary with at most 32 characters, print "ERROR".
+
+(1) 
+
+For example, convert 0.6875 to binary:
+
+![decimal to binary fixed point](img/decimal to binary fixed point.jpg)
+
+```go
+func BinaryToString(num float64) string {
+   if num >= 1 || num < 0 {
+      return "ERROR"
+   }
+   var b strings.Builder
+   for num > 0 {
+      if b.Len() > 32 {
+         return "ERROR"
+      }
+      if tmp := num * 2; tmp >= 1 {
+         b.WriteString("1")
+         num = tmp - 1.0
+      } else {
+         b.WriteString("0")
+         num = tmp
+      }
+   }
+   return b.String()
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ space.
+
+(2) 
+
+Alternatively, rather than multiplying the number by two and comparing it to 1, we can compare the number to .5, then .25, and so on.
+
+```go
+func BinaryToString(num float64) string {
+	if num >= 1 || num < 0 {
+		return "ERROR"
+	}
+	var b strings.Builder
+	frac := 0.5
+	for num > 0 {
+		if b.Len() > 32 {
+			return "ERROR"
+		}
+		if num >= frac {
+			b.WriteString("1")
+			num -= frac
+		} else {
+			b.WriteString("0")
+		}
+		frac /= 2.0
+	}
+	return b.String()
+}
+```
+
+## 3. Fit Bit to Win
+
+You have an integer and you can flip exactly one bit from a 0 to a 1. Write code to find the length of the longest sequence of 1s you could create. 
+
+```
+EXAMPLE
+Input: 1775 (or: 11011101111)
+Output: 8
+```
 
 
+```go
+func FitBitToWin(num int) int {
+   if ^num == 0 {
+      // All bits are 1.
+      return int(reflect.TypeOf(num).Size() * 8)
+   }
+   cur, pre, max := 0, 0, 0
+   for num != 0 {
+      if num&1 == 1 {
+         cur++
+      } else {
+         // If current bit is 0 then check the next (left) bit. 
+         if next := num & 2; next == 1 {
+            pre = cur
+         } else {
+            // If next bit is 0, then the sequence we've found can not 
+            // merge with the next sequence we will find.
+            pre = 0
+         }
+         cur = 0
+      }
+      if tmp := cur + pre; tmp > max {
+         max = tmp
+      }
+      num >>= 1
+   }
+   // We can always have a sequence of
+   // at least one 1, this is flipped bit
+   return max + 1
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ time.

@@ -1241,3 +1241,170 @@ It does not integrate well with certain kinds of systems activity, such as pagin
 
 For example, if a routine changes from non-blocking to blocking, the event handler that calls that routine must also change to accommodate its new nature, by ripping itself into two pieces. Because blocking is so disastrous for event-based servers, a programmer must always be on the lookout for such changes in the semantics of the APIs each event uses.
 
+# Persistence
+
+## I/O Devices
+
+### System Architecture
+
+![system architecture](img/system architecture.jpg)
+
+Some devices are connected to the system via a general **I/O bus**, which in many modern systems would be **PCI** (or one of its many derivatives); graphics and some other higher-performance I/O devices might be found here. Finally, even lower down are one or more of what  we call a **peripheral bus**, such as **SCSI**, **SATA**, or **USB**.
+
+The reason for such a hierarchical structure is physics and cost. The faster a bus is, the shorter it must be. In addition, engineering a bus for high performance is quite costly. Thus, system designers have adopted this hierarchical approach, where components that demand high performance (such as the graphics card) are nearer the CPU.
+
+###  A Canonical Device
+
+![a canonical device](img/a canonical device.jpg)
+
+1.interface
+
+Just like a piece of software, hardware must also present some kind of interface that allows the system software to control its operation.
+
+The simplified device interface is comprised of 3 registers: a status register:
+
+- a status register, which can be read to see the current status
+  of the device;
+- a command register, to tell the device to perform a certain
+  task;
+- a data register to pass data to the device, or get data from
+  the device.
+
+By reading and writing these registers, the operating system can control device behavior.
+
+2.internal structure
+
+This part of the device is implementation specific and is responsible for implementing the abstraction the device presents to the system.
+
+### Lowering CPU Overhead With Interrupts
+
+Instead of polling the device repeatedly, the OS can issue a request, put the calling process to sleep, and context switch to another task. When the device is finally finished with the operation, it will raise a hardware interrupt, causing the CPU to jump into the OS at a pre determined **interrupt service routine** (ISR) or more simply an **interrupt handler**. Interrupts thus allow for **overlap** of computation and I/O, which is key for improved utilization.
+
+Note that using interrupts is not always the best solution. For example, imagine a device that performs its tasks very quickly: the first poll usually finds the device to be done with task. Using an interrupt in this case will actually slow down the system: switching to another process, handling the interrupt, and switching back to the issuing process is expensive. Thus, if a device is fast, it may be best to poll; if it is slow, interrupts, which allow overlap, are best. If the speed of the device is not known, or sometimes fast and sometimes slow, it may be best to use a **hybrid** that polls for a little while and then, if the device is not yet finished, uses interrupts. This two-phased approach may achieve the best of both worlds.
+
+Another reason not to use interrupts arises in networks [MR96]. When a huge stream of incoming packets each generate an interrupt, it is possible for the OS to **livelock**.
+
+### DMA
+
+In the timeline, Process 1 is running and then wishes to write some data to the disk. It then initiates the I/O,which must copy the data from memory to the device explicitly, one word at a time (marked c in the diagram). When the copy is complete, the I/O begins on the disk and the CPU can finally be used for something else. 
+
+![dma1](img/dma1.jpg)
+
+When using programmed I/O (PIO) to transfer a large chunk of data to a device, the CPU is once again overburdened with a rather trivial task, and thus wastes a lot of time and effort that could better be spent running other processes.
+
+The solution is **Direct Memory Access (DMA)**. A DMA engine is essentially a very specific device within a system that can orchestrate transfers between devices and main memory without much CPU intervention.
+
+![dma2](img/dma2.jpg)
+
+### Methods Of Device Interaction
+
+How should the hardware communicate with a device?
+
+1.I/O instructions 
+
+These instructions specify a way for the OS to send data to specific device registers and thus allow the construction of the protocols described above.
+
+Such instructions are usually privileged. The OS controls devices, and the OS thus is the only entity allowed to directly communicate with them.
+
+2.memory mapped I/O
+
+With this approach, the hardware makes device registers available as if they were memory locations. To access a particular register, the OS issues a load (to read) or store (to write) the address; the hardware then routes the load/store to the device instead of main memory.
+
+### Fitting Into The OS: The Device Driver
+
+At the lowest level, a piece of software in the OS must know in detail how a device works. We call this piece of software a **device driver**, and any specifics of device interaction are encapsulated within.
+
+For example in Linux, a file system (and certainly, an application
+above) is completely oblivious to the specifics of which disk class
+it is using; it simply issues block read and write requests to the generic
+block layer, which routes them to the appropriate device driver, which
+handles the details of issuing the specific request.
+
+![linux file system stack](img/linux file system stack.jpg)
+
+## Hard Disk Drives
+
+### The Interface
+
+The drive consists of a large number of sectors (**512**-byte blocks), each of which can be read or written. The sectors are numbered from 0 to n − 1 on a disk with n sectors. Thus, we can view the disk as an array of sectors; 0 to n − 1 is thus the **address space** of the drive.
+
+Multi-sector operations are possible; indeed, many file systems will read or write 4KB at a time (or more). However, when updating the disk, the only guarantee drive manufactures make is that a single 512-byte write is atomic.
+
+One can usually assume that accessing two blocks that are near one another within the drive’s address space will be faster than accessing two blocks that are far apart. One can also usually assume that accessing blocks in a contiguous chunk (i.e., a sequential read or write) is the fastest access mode, and usually much faster than any more random access pattern.
+
+### Basic Geometry
+
+1.platter
+
+A platter is a circular hard surface on which data is stored persistently by inducing magnetic changes to it. A disk may have one or more platters; each platter has 2 sides, each of which is called a surface. These platters are usually made of some hard material (such as aluminum), and then coated with a thin magnetic layer that enables the drive to persistently store bits even when the drive is powered off.
+
+2.spindle
+
+The platters are all bound together around the spindle, which is connected to a motor that spins the platters around (while the drive is powered on) at a constant (fixed) rate.
+
+3.track
+
+Data is encoded on each surface in concentric circles of sectors; we call one such concentric circle a track. A single surface contains many thousands and thousands of tracks.
+
+4.disk head & disk arm
+
+To read and write from the surface, we need a mechanism that allows us to either sense (i.e., read) the magnetic patterns on the disk or to induce a change in (i.e., write) them. This process of reading and writing is accomplished by the disk head; there is one such head per surface of the drive. The disk head is attached to a single disk arm, which moves across the surface to position the head over the desired track.
+
+### A Simple Disk Drive
+
+1.Single-track Latency: The Rotational Delay
+
+In a simple one-track disk, the disk doesn’t have to do much in order to read a specific block. In particular, it must just wait for the desired sector to rotate under the disk head. This wait happens often enough in modern drives, and is an important enough component of I/O service time, that it has a special name: **rotational delay** (sometimes rotation delay, though that sounds weird).
+
+However, modern disks of course have many millions of tracks. 
+
+2.Multiple Tracks: Seek Time
+
+![rotation and seek](img/rotation and seek.jpg)
+
+We now trace what would happen on a request to a distant sector, e.g., a read to sector 11. To service this read, the drive has to first move the disk arm to the correct track (in this case, the outermost one), in a process known as a **seek**. Seeks, along with rotations, are one of the most costly disk operations.
+
+The seek, it should be noted, has many phases: first an acceleration phase as the disk arm gets moving; then coasting as the arm is moving at full speed, then deceleration as the arm slows down; finally settling as the head is carefully positioned over the correct track. The settling time is often quite significant, e.g., 0.5 to 2 ms, as the drive must be certain to find the right track.
+
+When sector 11 passes under the disk head, the final phase of I/O will take place, known as the **transfer**, where data is either read from or written to the surface. And thus, we have a complete picture of I/O time: first a seek, then waiting for the rotational delay, and finally the transfer.
+
+### I/O Time
+
+$$T_{I/O}=T_{seek}+T_{rotation}+T_{transfer}$$
+
+1. There is a huge gap in drive performance between random and sequential workloads. When at all possible, transfer data to and from disks in a sequential manner. If sequential is not possible, at least think about transferring data in large chunks.
+2. There is a large difference in performance between high-end “performance” drives and low-end “capacity” drives. For this reason (and others), people are often willing to pay top dollar for the former while trying to get the latter as cheaply as possible.
+
+### Disk Scheduling
+
+Given a set of I/O requests, the disk scheduler examines the requests and decides which one to schedule next.
+
+#### SSTF: Shortest Seek Time First
+
+Unlike job scheduling, where the length of each job is usually unknown, with disk scheduling, we can make a good guess at how long a disk request will take. By estimating the seek and possible rotational delay of a request, the disk scheduler can know how long each request will take, and thus (greedily) pick the one that will take the least time to service first. 
+
+SSTF orders the queue of I/O requests by track, picking requests on the nearest track to complete first.
+
+*Problems*
+
+1. The drive geometry is not available to the host OS; rather, it sees an array of blocks. Fortunately, this problem is rather easily fixed. Instead of SSTF, an OS can simply implement **nearest-block-first** (NBF), which schedules the request with the nearest block address next.
+2. Imagine in our example above if there were a steady stream of requests to the inner track, where the head currently is positioned. Requests to any other tracks would then be ignored completely by a pure SSTF approach.
+
+How can we implement SSTF-like scheduling but avoid starvation?
+
+#### Elevator (aka SCAN or C-SCAN)
+
+The algorithm, originally called **SCAN**, simply moves back and forth across the disk servicing requests in order across the tracks. Let’s call a single pass across the disk (from outer to inner tracks, or inner to outer) a sweep. Thus, if a request comes for a block on a track that has already been serviced on this sweep of the disk, it is not handled immediately, but rather queued until the next sweep (in the other direction).
+
+**C-SCAN** is another common variant, short for Circular SCAN. Instead of sweeping in both directions across the disk, the algorithm only sweeps from outer-to-inner, and then resets at the outer track to begin again. Doing so is a bit more fair to inner and outer tracks, as pure back-and- forth SCAN favors the middle tracks, i.e., after servicing the outer track, SCAN passes through the middle twice before coming back to the outer track again.
+
+The SCAN algorithm (and its cousins) is sometimes referred to as the elevator algorithm, because it behaves like an elevator which is either going up or down and not just servicing requests to floors based on which floor is closer.
+
+*Problem*
+
+SCAN(or SSTF even) do not actually adhere as closely to the principle of SJF as they could. In particular, they ignore rotation.
+
+#### SPTF: Shortest Positioning Time First
+
+On modern drives both seek and rotation are roughly equivalent (depending, of course, on the exact requests), and thus SPTF is useful and improves performance. However, it is even more difficult to implement in an OS, which generally does not have a good idea where track boundaries are or where the disk head currently is (in a rotational sense).
+

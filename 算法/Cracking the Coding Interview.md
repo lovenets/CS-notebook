@@ -1988,3 +1988,67 @@ func FitBitToWin(num int) int {
 ```
 
 $$O(n)$$ time, $$O(1)$$ time.
+
+## 4. Next Number
+
+Given a positive integer, print the previous largest and the next smallest number that have the same number of 1 bits in their binary representation.
+
+```go
+func NextNumber(n int) (int, int) {
+   return next(n), prev(n)
+}
+
+func prev(n int) int {
+   c := n
+   // c1 is the number of trailing ones
+   // c0 is the size of block of zeros to the left of trailing ones
+   c0, c1 := 0, 0
+   for c&1 == 1 {
+      c1, c = c1+1, c>>1
+   }
+   // If n is a sequence of 0s following by 1s,
+   // then it's the smallest number with c1 ones.
+   if c == 0 {
+      return -1
+   }
+   for (c&1) == 0 && c != 0 {
+      c0, c = c0+1, c>>1
+   }
+   // p is the position of rightmost ono-trailing one
+   p := uint(c0 + c1)
+   // Clear bits from position 0 to p.
+   n &= (^0) << (p + 1)
+   // Create a sequence of c1+1 ones from position 0 to c1.
+   mask := (1 << (p + 1)) - 1
+   // Move the ones to be right up next to bit p.
+   n |= mask << uint(c0 - 1)
+   return n
+}
+
+func next(n int) int {
+   c := n
+   c0, c1 := 0, 0
+   for (c&1 == 0) && (c != 0) {
+      c0, c = c0+1, c>>1
+   }
+   for c&1 == 1 {
+      c1, c = c1+1, c>>1
+   }
+   // If n is a sequence of 1s following by 0s,
+   // then it's the largest number with c1 ones
+   if total := c0 + c1; total == int(unsafe.Sizeof(n))*8 || total == 0 {
+      return -1
+   }
+   // p is the position of rightmost non-trailing zero
+   p := uint(c0 + c1)
+   // Flip 0 to 1 at position p
+   n |= 1 << p
+   // Clear all bits on the right of p.
+   n &= ^((1 << p) - 1)
+   // Put (c1-1) ones on the right of p.
+   n |= (1 << uint(c1-1)) - 1
+   return n
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ space.

@@ -1,5 +1,3 @@
-
-
 # Concurrency
 
 ## Introduction
@@ -1407,4 +1405,304 @@ SCAN(or SSTF even) do not actually adhere as closely to the principle of SJF as 
 #### SPTF: Shortest Positioning Time First
 
 On modern drives both seek and rotation are roughly equivalent (depending, of course, on the exact requests), and thus SPTF is useful and improves performance. However, it is even more difficult to implement in an OS, which generally does not have a good idea where track boundaries are or where the disk head currently is (in a rotational sense).
+
+## Redundant Arrays of Inexpensive Disks (RAIDs)
+
+RAIDs offer a number of advantages over a single disk. One advantage is *performance*. Using multiple disks in parallel can greatly speed up I/O times. Another benefit is *capacity*. Large data sets demand large disks. Finally, RAIDs can improve *reliability*; spreading data across multiple disks (without RAID techniques) makes the data vulnerable to the loss of a single disk; with some form of **redundancy**, RAIDs can tolerate the loss of a disk and keep operating as if nothing were wrong.
+
+RAIDs provide these advantages **transparently** to systems that use them, i.e., a RAID just looks like a big disk to the host system. In this manner, transparency greatly improves the deployability of RAID, enabling users and administrators to put a RAID to use without worries of software compatibility.
+
+### Interface And RAID Internals
+
+A RAID system is often built as a separate hardware box, with a standard connection (e.g., SCSI, or SATA) to a host.
+
+When a file system issues a logical I/O request to the RAID, the RAID internally must calculate which disk (or disks) to access in order to complete the request, and then issue one or more physical I/Os to do so.
+
+### How To Evaluate A RAID
+
+1.capacity
+
+Given a set of N disks each with B blocks, without redundancy, the answer is $$N*B$$; in contrast, if we have a system that keeps two copies of each block (called **mirroring**), we obtain a useful capacity of $$(N · B)/2$$.
+
+2.reliability
+
+How many disk faults can the given design tolerate?
+
+3.performance
+
+It depends heavily on the workload presented to the disk array.
+
+In analyzing RAID performance, one can consider two different performance metrics. The first is *single-request* latency. Understanding the latency of a single I/O request to a RAID is useful as it reveals how much parallelism can exist during a single logical I/O operation. The second is *steady-state throughput* of the RAID, i.e., the total bandwidth of many concurrent requests. Because RAIDs are often used in high performance environments, the steady-state bandwidth is critical, and thus will be the main focus of our analyses.
+
+### RAID Level 0: Striping
+
+RAID level 0, serves as an excellent upper-bound on performance and capacity. Actually, it's not a RAID at all.
+
+The simplest form of striping will stripe blocks across the disks of the system as follows (assume here a 4-disk array):
+
+![RAID 0](img/RAID 0.jpg)
+
+This approach, which spreads the blocks of the array across the disks in a round-robin fashion, is designed to extract the most parallelism from the array when requests are made for contiguous chunks of the array (as in a large, sequential read, for example). We call the blocks in the same row a **stripe**.
+
+*Analysis*
+
+1.capacity
+
+Given N disks each of size B blocks, striping delivers $$N·B$$ blocks of useful capacity.
+
+2.reliability
+
+Striping is also perfect, but in the bad way: any disk failure will lead to data loss.
+
+3.performance
+
+All disks are utilized, often in parallel, to service user I/O requests.
+
+(1) single-block latency
+
+The latency of a single-block request should be just about identical to that of a single disk; after all, RAID-0 will simply redirect that request to one of its disks.
+
+(2) steady-state throughput
+
+Throughput equals N (the number of disks) multiplied by S (the sequential bandwidth of a single disk). For a large number of random I/Os, we can again use all of the disks, and thus obtain N · R MB/s.
+
+### RAID Level 1: Mirroring
+
+In a typical mirrored system, we will assume that for each logical block, the RAID keeps two physical copies of it. Here is an example:
+
+![RAID LEVEL1](img/RAID LEVEL1.jpg)
+
+When reading a block from a mirrored array, the RAID has a choice: it can read either copy. Do note, though, that these writes can take place in parallel; for example, a write to logical block 5 could proceed to disks 2 and 3 at the same time.
+
+*Analysis*
+
+1.capacity
+
+RAID-1 is expensive; with the mirroring level = 2, we only obtain half of our peak useful capacity. With N disks of B blocks, RAID-1 useful capacity is $$(N · B)/2$$.
+
+2.reliability
+
+It can tolerate the failure of any one disk. You may also notice RAID-1 can actually do better than this, with a little luck. Imagine, in the figure above, that disk 0 and disk 2 both failed. In such a situation, there is no data loss! More generally, a mirrored system (with mirroring level of 2) can tolerate 1 disk failure for certain, and up to N/2 failures depending on which disks fail.
+
+3.performance
+
+(1) single-block latency
+
+It is the same as the latency on a single disk; all the RAID-1 does is direct the read to one of its copies. 
+
+A write is a little different: it requires two physical writes to complete before it is done. These two writes happen in parallel, and thus the time will be roughly equivalent to the time of a single write; however, because the logical write must wait for both physical writes to complete, it suffers the worst-case seek and rotational delay of the two requests, and thus (on average) will be slightly higher than a write to a single disk.
+
+(2) steady-state throughput
+
+### RAID Level 4: Saving Space With Parity
+
+Parity-based approaches attempt to use less capacity and thus overcome the huge space penalty paid by mirrored systems. They do so at a cost, however: performance. For each stripe of data, we have added a single parity block that stores the redundant information for that stripe of blocks. For example, parity block P1 has redundant information that it calculated from blocks 4, 5, 6, and 7.
+
+![RAID 4](img/RAID 4.jpg)
+
+It turns out the simple function XOR does the trick quite nicely. For a given set of bits, the XOR of all of those bits returns a 0 if there are an even number of 1’s in the bits, and a 1 if there are an odd number of 1’s. You can remember this in a simple way: that the number of 1s in any row must be an even (not odd)number; that is the **invariant** that the RAID must maintain in order for parity to be correct. We just XOR the data bits and the parity bits together, in the same way that we calculated the parity in the first place.
+
+| C0   | C1   | C2   | C3   | P    |
+| ---- | ---- | ---- | ---- | ---- |
+| 0    | 0    | 1    | 1    | 0    |
+| 0    | 1    | 0    | 0    | 1    |
+
+Imagine the column labeled C2 is lost. By reading the other values in that row (0 from C0, 0 from C1, 1 from C3, and 0 from the parity column P), we get the values 0, 0, 1, and 0. Because we know that XOR keeps an even number of 1’s in each row, we know what the missing data must be: a 1.
+
+*Analysis*
+
+1.capacity
+
+RAID-4 uses 1 disk for parity information for every group of disks it is protecting. Thus, our useful capacity for a RAID group is $$(N − 1) · B$$.
+
+2.reliability
+
+RAID-4 tolerates 1 disk failure and no more. If more than one disk is lost, there is simply no way to reconstruct the lost data.
+
+3.performance
+
+A single read (assuming no failure) is just mapped to a single disk, and thus its latency is equivalent to the latency of a single disk request. The latency of a single write requires two reads and then two writes; the reads can happen in parallel, as can the writes, and thus total latency is about twice that of a single disk.
+
+### RAID Level 5: Rotating Parity
+
+RAID-5 works almost identically to RAID-4, except that it rotates the parity block across drives. The parity block for each stripe is now rotated across the disks, in order to remove the parity-disk bottleneck for RAID-4.
+
+![RAID 5](img/RAID 5.jpg)
+
+*Analysis*
+
+The effective capacity and failure tolerance of the two levels are the same as RAID-4. The latency of a single request (whether a read or a write) is also the same as RAID-4. Random read performance is a little better, because we can now utilize all disks. Finally, random write performance improves noticeably over RAID-4, as it allows for parallelism across requests.
+
+## Files And Directories
+
+A **persistent-storage** device, such as a classic **hard disk drive** or a more modern **solid-state storage device**, stores information permanently (or at least, for a long time). Unlike memory, whose contents are lost when there is a power loss, a persistent-storage device keeps such data intact. 
+
+### Files and Directories
+
+Two key abstractions have developed over time in the virtualization of storage. The first is the file. The second abstraction is that of a directory.
+
+1.File
+
+A file is simply a linear array of bytes, each of which you can read or write. Each file has some kind of **low level name**. For historical reasons, the low-level name of a file is often referred to as its inode number.
+
+The responsibility of the file system is simply to store such data persistently on disk and make sure that when you request the data again, you get what you put there in the first place.
+
+2.Directory
+
+A directory, like a file, also has a low-level name (i.e., an inode number), but its contents are quite specific: it contains a list of (user readable name, low-level name) pairs.
+
+Each entry in a directory refers to either files or other directories. By placing directories within other directories, users are able to build an arbitrary **directory tree** (or directory hierarchy), under which all files and directories are stored.
+
+*Directory Tree*
+
+The directory hierarchy starts at a root directory (in UNIX-based systems, the root directory is simply referred to as /) and uses some kind of separator to name subsequent sub-directories until the desired file or directory is named.
+
+### Hard Links
+
+The `link()` system call takes two arguments, an old pathname and a new one; when you “link” a new file name to an old one, you essentially create another way to refer to the same file. After creating a hard link to a file, to the file system, there is no difference between the original file name (file) and the newly created file name (file2); indeed, they are both just links to the underlying metadata about the file.
+
+To remove a file from the file system, we call `unlink()`. The reason this works is because when the file system unlinks file, it checks a **reference count** within the inode number. This reference count allows the file system to track how many different file names have been linked to this particular inode. When unlink() is called, it removes the “link” between the human-readable name (the file that is being deleted) to the given inode number, and decrements the reference count; only when the reference count reaches zero does the file system also free the inode and related data blocks, and thus truly “delete” the file.
+
+### Symbolic Links/Soft Links
+
+Hard links are somewhat limited: you can’t create one to a directory (for fear that you will create a cycle in the directory tree); you can’t hard link to files in other disk partitions (because inode numbers are only unique within a particular file system, not across file systems); etc.
+
+```bash
+prompt> echo hello > file
+prompt> ln -s file file2
+prompt> cat file2
+hello
+```
+
+A symbolic link is actually a file itself, of a different type. We’ve already talked about regular files and directories; symbolic links are a third type the file system knows about.
+
+```bash
+prompt> ls -al
+drwxr-x--- 2 remzi remzi 29 May 3 19:10 ./
+drwxr-x--- 27 remzi remzi 4096 May 3 15:14 ../
+-rw-r----- 1 remzi remzi 6 May 3 19:10 file
+lrwxrwxrwx 1 remzi remzi 4 May 3 19:10 file2 -> file
+```
+
+Because of the way symbolic links are created, they leave the possibility for what is known as a **dangling reference**. Quite unlike hard links, removing the original file named file causes the link to point to a pathname that no longer exists.
+
+```bash
+prompt> echo hello > file
+prompt> ln -s file file2
+prompt> cat file2
+hello
+prompt> rm file
+prompt> cat file2
+cat: file2: No such file or directory
+```
+
+### Making and Mounting a File System
+
+1.making
+
+To make a file system, most file systems provide a tool, usually referred to as `mkfs` (pronounced “make fs”), that performs exactly this task. The idea is as follows: give the tool, as input, a device (such as a disk partition, e.g., /dev/sda1) a file system type (e.g., ext3), and it simply writes an empty file system, starting with a root directory, onto that disk partition.
+
+2.mounting
+
+Once such a file system is created, it needs to be made accessible within the uniform file-system tree. This task is achieved via the `mount` program(which makes the underlying system call `mount()` to do the real work). What mount does, quite simply is take an existing directory as a target mount point and essentially paste a new file system onto the directory tree at that point.
+
+```shell
+prompt> mount -t ext3 /dev/sda1 /home/users
+```
+
+The new file system is now accessed by accessing the root directory `/home/users`. And thus the beauty of mount: instead of having a number of separate file systems, mount unifies all file systems into one tree, making naming uniform and convenient.
+
+## File System Implementation
+
+### Overall Organization
+
+We now develop the overall on-disk organization of the data structures of the **vsfs** (Very Simple File System) file system. The first thing we’ll need to do is divide the disk into blocks.
+
+1.data region 
+
+Most of the space in any file system of course should be user data. This partition of disk is called *data region*.
+
+2.inode table
+
+Also, the file system has to track information about each file. This information is a key piece of metadata, and tracks things like which data blocks (in the data region) comprise a file, the size of the file, its owner and access rights, access and modify times, and other similar kinds of information. To store this information, file systems usually have a structure called an **inode**. The partition of disk stores inode is called *inode table*, which simply holds an array of on-disk inodes. 
+
+3.bitmap
+
+One primary component that is still needed to track whether inodes or data blocks are free or allocated. Such **allocation structures** are thus a requisite element in any file system. Many allocation-tracking methods are possible, of course. A simple and popular method is called *bitmap*, one for the data region (the data bitmap), and one for the inode table (the inode bitmap). A bitmap is a simple structure: each bit is used to indicate whether the corresponding object/block is free (0) or in-use (1).
+
+4.superblock
+
+The *superblock* contains information about this particular file system. Thus, when mounting a file system, the operating system will read the superblock first, to initialize various parameters, and then attach the volume to the file-system tree.
+
+![simplified file system organization](img/simplified file system organization.jpg)
+
+### File Organization: The Inode
+
+One of the most important on-disk structures of a file system is the inode; virtually all file systems have a structure similar to this. The name inode is short for **index node**. 
+
+Each inode is implicitly referred to by a number (called the inumber), which we’ve earlier called the low-level name of the file. In vsfs (and other simple file systems), given an i-number, you should directly be able to calculate where on the disk the corresponding inode is located.
+
+*The Multi-Level Index*
+
+One of the most important decisions in the design of the inode is how it refers to where data blocks are. To support bigger files, one common idea is to have a special pointer known as an **indirect pointer**.  
+
+Instead of pointing to a block that contains user data, it points to a block that contains more pointers, each of which point to user data. If a file grows large enough, an indirect block is allocated (from the data block region of the disk), and the inode’s slot for an indirect pointer is set to point to it. Assuming 4-KB blocks and 4-byte disk addresses, that adds another 1024 pointers; the file can grow to be $$(12 + 1024) · 4K$$ or 4144KB. Of course, there may be multi indirect pointer too. 
+
+Overall, this imbalanced tree is referred to as the **multi-level index** approach to pointing to file blocks.
+
+Of course, in the space of inode design, many other possibilities exist; after all, the inode is just a data structure, and any data structure that stores the relevant information, and can query it effectively, is sufficient.
+
+### Directory Organization
+
+In vsfs (as in many file systems), directories have a simple organization; a directory basically just contains a list of (entry name, inode number) pairs.
+
+| inum | reclen | strlen | name |
+| ---- | ------ | ------ | ---- |
+| 5    | 4      | 2      | .    |
+| 2    | 4      | 3      | ..   |
+| 12   | 4      | 4      | foo  |
+
+In this example, each entry has an inode number, record length (the total bytes for the name plus any left over space), string length (the actual length of the name), and finally the name of the entry. Note that each directory has two extra entries, . “dot” and .. “dot-dot”; the dot directory is just the current directory, whereas dot dot is the parent directory.
+
+Deleting a file can leave an empty space in the middle of the directory, and hence there should be some way to mark that as well (e.g., with a reserved inode number such as zero). Such a delete is one reason the record length is used: a new entry may reuse an old, bigger entry and thus have extra space within.
+
+Often, file systems treat directories as a special type of file. Thus, a directory has an inode, somewhere in the inode table (with the type field of the inode marked as “directory” instead of “regular file”). The directory has data blocks pointed to by the inode (and perhaps, indirect blocks); these data blocks live in the data block region of our simple file system.
+
+We should also note again that this simple linear list of directory entries is not the only way to store such information. As before, any data structure is possible.
+
+### Free Space Management
+
+A file system must track which inodes and data blocks are free, and which are not, so that when a new file or directory is allocated, it can find space for it.
+
+For example, when we create a file, we will have to allocate an inode for that file. The file system will thus search through the bitmap for an inode that is free, and allocate it to the file; the file system will have to mark the inode as used (with a 1) and eventually update the on-disk bitmap with the correct information. A similar set of activities take place when a data block is allocated.
+
+### Access Paths: Reading and Writing
+
+#### Reading A File From Disk
+
+In this simple example, let us first assume that you want to simply open a file (e.g., /foo/bar), read it, and then close it. 
+
+The file system must firstly traverse the pathname and thus locate the desired inode. All traversals begin at the root of the file system, in the root directory which is simply called /. Thus, the first thing the FS will read from disk is the inode of the root directory. The root inode number must be “well known”; the FS must know what it is when the file system is mounted.
+
+Once the inode is read in, the FS can look inside of it to find pointers to data blocks, which contain the contents of the root directory. The FS will thus use these on-disk pointers to read through the directory, in this case looking for an entry for foo. By reading in one or more directory data blocks, it will find the entry for foo; once found, the FS will also have found the inode number of foo which it will need next.
+
+The next step is to recursively traverse the pathname until the desired inode is found. In this example, the FS reads the block containing the inode of foo and then its directory data, finally finding the inode number of bar. The final step of `open()` is to read bar’s inode into memory; the FS then does a final permissions check, allocates a file descriptor for this process in the per-process open-file table, and returns it to the user.
+
+Once open, the program can then issue a `read()` system call to read from the file. The first read (at offset 0 unless `lseek()` has been called) will thus read in the first block of the file, consulting the inode to find the location of such a block; it may also update the inode with a new last accessed time. The read will further update the in-memory open file table for this file descriptor, updating the file offset such that the next read will read the second file block, etc.
+
+#### Writing to Disk
+
+Unlike reading, writing to the file may also allocate a block (unless the block is being overwritten, for example). When writing out a new file, each write not only has to write data to disk but has to first decide which block to allocate to the file and thus update other structures of the disk accordingly (e.g., the data bitmap and inode). Thus, each write to a file logically generates five I/Os: one to read the data bitmap (which is then updated to mark the newly-allocated block as used), one to write the bitmap (to reflect its new state to disk), two more to read and then write the inode (which is updated with the new block’s location), and finally one to write the actual block itself.
+
+To create a file, the file system must not only allocate an inode, but also allocate space within the directory containing the new file. The total amount of I/O traffic to do so is quite high: one read to the inode bitmap (to find a free inode), one write to the inode bitmap (to mark it allocated), one write to the new inode itself (to initialize it), one to the data of the directory (to link the high-level name of the file to its inode number), and one read and write to the directory inode to update it. If the directory needs to grow to accommodate the new entry, additional I/Os (i.e., to the data bitmap, and the new directory block) will be needed too.
+
+### Caching And Buffering
+
+Even the simplest of operations like opening, reading, or writing a file incurs a huge number of I/O operations, scattered over the disk.
+
+Modern systems employ a **dynamic partitioning** approach. Specifically, many modern operating systems integrate virtual memory pages and file system pages into a **unified page cache**. In this way, memory can be allocated more flexibly across virtual memory and file system, depending on which needs more memory at a given time. 
+
+Whereas read I/O can be avoided altogether with a sufficiently large cache, write traffic has to go to disk in order to become persistent. Thus, a cache does not serve as the same kind of filter on write traffic that it does for reads. That said, **write buffering** certainly has a number of performance benefits. First, by delaying writes, the file system can batch some updates into a smaller set of I/Os. Second, by buffering a number of writes in memory, the system can then **schedule** the subsequent I/Os and thus increase performance. Finally, some writes are avoided altogether by delaying them.
+
+Some applications (such as databases) don’t enjoy these benefits. Thus, to avoid unexpected data loss due to write buffering, they simply force writes to disk, by calling `fsync()`, by using direct I/O interfaces that work around the cache, or by using the raw disk interface and avoiding the file system altogether.
 

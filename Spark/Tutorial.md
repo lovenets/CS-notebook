@@ -652,3 +652,56 @@ libraryDependencies ++= Seq(
       .jdbc("jdbc:postgresql:dbserver", "schema.tablename", connectProp)
 ```
 
+# Spark Streaming
+
+Spark Streaming is an extension of the core Spark API that enables scalable, high-throughput, fault-tolerant stream processing of **live** data streams. Data can be ingested from many sources like Kafka, Flume, Kinesis, or TCP sockets, and can be processed using complex algorithms expressed with high-level functions like `map`, `reduce`, `join` and `window`. Finally, processed data can be pushed out to filesystems, databases, and live dashboards.
+
+Internally, it works as follows. Spark Streaming receives live input data streams and divides the data into batches, which are then processed by the Spark engine to generate the final stream of results in batches.
+
+![streaming-flow](img\streaming-flow.png)
+
+## 1. DStream
+
+Spark Streaming provides a high-level abstraction called discretized stream or DStream, which represents a continuous stream of data. Internally, a DStream is represented as a sequence of RDDs.
+
+[StreamingContext](https://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.streaming.StreamingContext) is the main entry point for all streaming functionality. We create a local `StreamingContext` with two execution threads, and a batch interval of 1 second like the following code.
+
+```scala
+// Create a local StreamingContext with two working thread and batch interval of 1 second.
+// The master requires 2 cores to prevent a starvation scenario.
+
+val conf = new SparkConf().setMaster("local[2]").setAppName("NetworkWordCount")
+val ssc = new StreamingContext(conf, Seconds(1))
+```
+
+After we create a `StreamingContext`object, we can start the Streaming operations.
+
+- use `start()`to start all the procedures.
+
+- use `awaitTermination()` to wait for the termination or use `stop()`to stop the procedures by manual.
+
+**A Simple Example**
+
+Firstly, we write a standalone program:
+
+```scala
+object WordCountStreaming {  
+  def main(args: Array[String]) {  
+      // There are two threads: one is listening and another is processing data
+    val sparkConf = new SparkConf().setAppName("WordCountStreaming").setMaster("local[2]")   
+    val ssc = new StreamingContext(sparkConf, Seconds(20))   
+    // listen to a directory
+    val lines = ssc.textFileStream("logfile")  
+    val words = lines.flatMap(_.split(" "))  
+    val wordCounts = words.map(x => (x, 1)).reduceByKey(_ + _)  
+    wordCounts.print()  
+    ssc.start()  
+    ssc.awaitTermination()  
+  }  
+}  
+```
+
+Then use `sbt package`command to package the project and use `spark-submit` command to submit the job. Every 20s the program checks the `logfile`directory. If there is a new file, it will count the words and print to the console.
+
+
+

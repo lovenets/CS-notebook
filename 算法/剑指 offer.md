@@ -3948,3 +3948,4 @@ func lastNode(target *TreeNode, parent *TreeNode, node *TreeNode, path map[*Tree
 ```
 
 时间复杂度最差是$$O(n)$$，平均是$$O(logn)$$。空间复杂度是$$O(n)$$。
+

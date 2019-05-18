@@ -2052,3 +2052,154 @@ func next(n int) int {
 ```
 
 $$O(n)$$ time, $$O(1)$$ space.
+
+## 5. Debugger
+
+Explain what the following code does: `n & (n-1) == 0`.
+
+`n-1`will look like `n`, except that n's initial 0s will be 1s in n-1 and n's least significant 1 will be a 0 in n-1. That is
+
+```
+if   n   = abcde1000
+then n-1 = abcde0111
+```
+
+If `n & (n-1) == 0`, n and n-1 must have no common 1s. `abcde`must be 0s, which means that n must look like this: 00001000. The value of n is therefore a power of 2. 
+
+## 6. Conversion
+
+Write a function to determine the number of bits you would need to flip to convert integer A to integer B.
+
+```
+EXAMPLE
+Input: 29 (or: 11101), 15 (or: 01111)
+Output: 2
+```
+
+(1)
+
+Just count how many different bits there are.
+
+```go
+func Conversion(A, B int) int {
+	getLastBit := func(n int) int {
+		if n&1 == 1 {
+			return 1
+		} else {
+			return 0
+		}
+	}
+	count := 0
+	for A != 0 || B != 0 {
+		if getLastBit(A) != getLastBit(B) {
+			count++
+		}
+		A, B = A>>1, B>>1
+	}
+	return count
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ space.
+
+(2)
+
+Each 1 in the XOR represents a bit that is different between A and B. Therefore, to check the number of bits that are different between A and B, we simply need to count the number of bits in A XOR B that are 1.
+
+```go
+func Conversion(A, B int) int {
+	count := 0
+	for c := A ^ B; c != 0; c >>= 1 {
+		count += c & 1
+	}
+	return count
+}
+```
+
+Rather than simply shifting c repeatedly while checking the least significant bit, we can continuously flip the least significant bit and count how long it takes c to reach 0.
+
+```go
+func Conversion(A, B int) int {
+   count := 0
+    // c & (c-1) clears the least significant bit in c 
+   for c := A ^ B; c != 0; c = c & (c - 1) {
+      count++
+   }
+   return count
+}
+```
+
+## 7. Pairwise Swap
+
+Write a program to swap odd and even bits in an integer with as few instructions as possible (e.g., bit 0 and bit 1 are swapped, bit 2 and bit 3 are swapped, and so on).
+
+We can approach this as operating on the odds bits first, and then the even bits. Can we take a number n and move the odd bits over by 1 ? Sure. We can mask all odd bits with 10101010 in binary (which is0xAA), then then shift them right by 1 to put them in the even spots. For the even bits, we do an equivalent operation. Finally, we merge these two values.
+
+```go
+func PairwiseSwap(num int) int {
+	return ((num & 0xaaaaaaaa) >> 1) | ((num & 0x55555555) << 1)
+}
+```
+
+$$O(1)$$ time, $$O(1)$$ space.
+
+## 8.Draw Line
+
+A monochrome screen is stored as a single array of bytes, allowing eight consecutive pixels to be stored in one byte. The screen has width w, where w is divisible by 8 (that is, no byte will be split across rows). The height of the screens, of course, can be derived from the length of the array and the width. Implement a function that draws a horizontal line from (x1, y) to (x2, y). The method signature should look something like:
+
+```
+drawLine(byte[] screen, int width, int x1, int x2, int y)
+```
+
+(1) straightforward
+
+```go
+func DrawLine(screen []byte, width int, x1 int, x2 int, y int) []byte {
+   for i := x1; i < width && i <= x2; i++ {
+       screen[y*(width/8)+i] = 1
+   }
+   return screen
+}
+```
+
+$$O(x2-x1)$$ time, $$O(1)$$ space.
+
+(2)
+
+A better solution is to recognize that if x1 and x2 are far away from each other, several full bytes will be contained between them. These full bytes can be set one at a time by doing `screen[pos]=0xFF`.The residual start and end of the line can be set using masks.
+
+```go
+func DrawLine(screen []byte, width int, x1 int, x2 int, y int) []byte {
+   startOffset, firstFullByte := x1%8, x1/8
+   if startOffset != 0 {
+      firstFullByte++
+   }
+   endOffset, lastFullByte := x2%8, x2/8
+   if endOffset != 7 {
+      lastFullByte--
+   }
+   // Set full bytes.
+   for p := firstFullByte; p <= lastFullByte; p++ {
+      screen[(width/8)*y+p] = 0xff
+   }
+   startMask, endMask := 0xff>>uint(startOffset), ^(0xff >> uint(endOffset+1))
+   // Set start and end of line.
+   if x1/8 == x2/8 {
+      // If x1 and x2 are in the same byte
+      mask := startMask & endMask
+      screen[(width/8)*y+(x1/8)] |= byte(mask)
+   } else {
+      if startOffset != 0 {
+         p := (width/8)*y + firstFullByte - 1
+         screen[p] |= byte(startMask)
+      }
+      if endOffset != 7 {
+         p := (width/8)*y + lastFullByte + 1
+         screen[p] |= byte(endMask)
+      }
+   }
+   return screen
+}
+```
+
+$$O(n)$$ time, where n is the number of full bytes.

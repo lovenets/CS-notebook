@@ -2203,3 +2203,171 @@ func DrawLine(screen []byte, width int, x1 int, x2 int, y int) []byte {
 ```
 
 $$O(n)$$ time, where n is the number of full bytes.
+
+# OOD
+
+*How to Approach*
+
+1.Handle Ambiguity
+
+When being asked an object-oriented design question, you should inquire who is going to use it and how they are going to use it. Depending on the question, you may even want to go through the "six Ws"; who, what, where, when, how, why.
+
+2.Define the Core Objects
+
+Now that we understand what we're designing, we should consider what the "core objects" in a system are.
+
+3.Analyze Relationships
+
+Which objects are members of which other objects? Do any objects inherit from any others? Are relationships many-to-many or one-to-many?
+
+4.Investigate Actions 
+
+At this point, you should have the basic outline of your object-oriented design. What remains is to consider the key actions that the objects will take and how they relate to each other. You may find that you have forgotten some objects, and you will need to update your design.
+
+*Design Patterns*
+
+Be careful you don't fall into a trap of constantly trying to find the "right" design pattern for a particular problem. You should create the design that works for that problem. In some cases it might be an established pattern, but in many other cases it is not.
+
+1.Singleton Class
+
+It can be useful in cases where you have a "global" object with exactly one instance.
+
+2.Factory Method
+
+The Factory Method offers an interface for creating an instance of a class, with its subclasses deciding which class to instantiate. 
+
+You might want to implement this with the Creator class being abstract and not providing an implementation for the Factory method. Or, you could have the Creator class be a concrete class that provides an implementation for the Factory method. In this case, the Factory method would take a parameter representing which class to instantiate.
+
+## 1. Deck of Cards
+
+Design the data structures for a generic deck of cards. Explain how you would subclass the data structures to implement blackjack.
+
+
+
+# Recursion and Dynamic Programming
+
+**Recursion**
+
+When you hear a problem beginning with the following statements, it's often (though not always) a good candidate for recursion: "Design an algorithm to compute the nth ..", "Write code to list the first n...", "Implement a method to compute all...", and so on.
+
+*How to Approach*
+
+1.Bottom-Up
+
+We start with knowing how to solve the problem for a simple case, like a list with only one element. Then we figure out how to solve the problem for two elements, then for three elements, and so on. The key here is to think about how you can build the solution for one case off of the previous case (or multiple previous cases).
+
+2.Top-Down
+
+In these problems, we think about how we can divide the problem for case N into subproblems. Be careful of overlap between the cases.
+
+3.Half-and-Half
+
+For example, binary search works with a "ha!f-and-half"approach. When we look for an element in a sorted array, we first figure out which half of the array contains the value. Then we recurse and search for it in that half. Merge sort is also a "half-and-half" approach. We sort each half of the array and then merge together the sorted halves.
+
+*Recursive vs. Iterative Solutions*
+
+Because recursive algorithms can be very space inefficient, it's often better to implement a recursive algorithm iteratively. **All** recursive algorithms can be implemented iteratively, although sometimes the code to do so is much more complex. Before diving into recursive code, ask yourself how hard it would be to implement it iteratively, and discuss the tradeoffs with your interviewer.
+
+**Dynamic Programming & Memoization**
+
+Dynamic programming is mostly just a matter of taking a recursive algorithm and finding the overlapping subproblems (that is, the repeated calls). You then cache those results for future recursive calls.
+
+## 1. Triple Step
+
+A child is running up a staircase with n steps and can hop either 1 step, 2 steps, or 3 steps at a time. Implement a method to count down how many possible ways the child can run up the stairs.
+
+If we thought about all of the paths to the nth step, we could just build them off the paths to the three previous steps. We can get up to the nth step by any of the following:
+
+- Going to the(n-1)st step and hopping 1 step.
+- Going to the (n-2)nd step and hopping 2 steps.
+- Going to the (n-3)rd step and hopping 3 steps.
+
+```go
+func TripleStep(n int) int {
+   memo := make([]int, n+1)
+   for i := range memo {
+      memo[i] = -1
+   }
+   return countPaths(n, &memo)
+}
+
+func countPaths(n int, memo *[]int) int {
+   if n < 0 {
+      return 0
+   } else if n == 0 {
+      // It's more convenient to define memo[0] = 1
+      return 1
+   } else if (*memo)[n] > -1 {
+      return (*memo)[n]
+   } else {
+      (*memo)[n] = countPaths(n-1, memo) +
+         countPaths(n-2, memo) +
+         countPaths(n-3, memo)
+      return (*memo)[n]
+   }
+```
+
+$$O(n)$$ time and $$O(n)$$ space.
+
+Note that he number of ways will quickly overflow the bounds of an integer. It is great to communicate this issue to your interviewer. He probably won't ask you to work around it.
+
+## 2. Robot in a Grid
+
+Imagine a robot sitting on the upper left corner of grid with r rows and c columns. The robot can only move in two directions, right and down, but certain cells are "off limits" such that the robot cannot step on them. Design an algorithm to find a path for the robot from the top left to the bottom right.
+
+```go
+func RobotInAGrid(grid [][]int) [][2]int {
+   if len(grid) == 0 {
+      return nil
+   }
+   r, c := len(grid), len(grid[0])
+   visited := make([][]bool, r)
+   for i := range visited {
+      visited[i] = make([]bool, c)
+   }
+   q := make([][2]int, 0)
+   q = append(q, [2]int{0, 0})
+   visited[0][0] = true
+   lastPoint := make(map[[2]int][2]int)
+   // BFS
+   for len(q) > 0 {
+      cell := q[0]
+      q = q[1:]
+      // Move right.
+      if x, y := cell[0], cell[1]+1; y < c && grid[x][y] != -1 && !visited[x][y] {
+         q = append(q, [2]int{x, y})
+         visited[x][y] = true
+         lastPoint[[2]int{x, y}] = cell
+         if arrived(x, r, y, c) {
+            break
+         }
+      }
+      // Move down.
+      if x, y := cell[0]+1, cell[1]; x < r && grid[x][y] != -1 && !visited[x][y] {
+         q = append(q, [2]int{x, y})
+         visited[x][y] = true
+         lastPoint[[2]int{x, y}] = cell
+         if arrived(x, r, y, c) {
+            break
+         }
+      }
+   }
+   // Cannot reach bottom-right corner.
+   if _, ok := lastPoint[[2]int{r - 1, c - 1}]; !ok {
+      return nil
+   }
+   // Get path.
+   path := make([][2]int, 0)
+   for cur := [2]int{r - 1, c - 1}; cur != [2]int{0, 0}; cur = lastPoint[cur] {
+      path = append([][2]int{{cur[0], cur[1]}}, path...)
+   }
+   return append([][2]int{{0, 0}}, path...)
+}
+
+func arrived(x int, r int, y int, c int) bool {
+   return x == r-1 && y == c-1
+}
+```
+
+$$O(rc)$$ time, $$O(rc)$$ space.
+

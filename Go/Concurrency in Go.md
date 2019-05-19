@@ -350,3 +350,191 @@ When working with a `Pool`, just remember the following points:
 - When you receive an instance from `Get`, make no assumptions regarding the state of the object you receive back.
 - Make sure to call `Put` when you’re finished with the object you pulled out of the pool. Otherwise, the `Pool` is useless. Usually this is done with `defer`.
 - Objects in the pool must be roughly uniform in makeup.
+
+## Channels
+
+When using channels, you’ll pass a value into a `chan` variable, and then somewhere else in your program read it off the channel. The disparate parts of your program don’t require knowledge of each other, only a reference to the same place in memory where the channel resides. This can be done by passing references of channels around your program.
+
+```go
+var dataStream chan interface{} // declare a channel
+dataStream = make(chan interface{}) // initiate the channel
+```
+
+You don’t often see unidirectional channels instantiated, but you’ll often see them used as function parameters and return types, which is very useful. This is possible because Go will implicitly convert bidirectional channels to unidirectional channels when needed.
+
+It is an error to try and write a value onto a read-only channel, and an error to read a value from a write-only channel. Go’s compiler will let us know that we’re doing something illegal.
+
+### Closed Channels
+
+We could continue performing reads on this channel indefinitely despite the channel remaining closed. This is to allow support for multiple downstream reads from a single upstream writer on the channel.
+
+```go
+intStream := make(chan int)
+close(intStream)
+integer, ok := <- intStream // ok will always be false
+fmt.Printf("(%v): %v", ok, integer) 
+```
+
+This opens up a few new patterns for us.
+
+1.`range`iteration
+
+The `range`loop will automatically break the loop when a channel is closed. This allows for concise iteration over the values on a channel. 
+
+```go
+func main() {
+	intStream := make(chan int)
+	go func() {
+		defer close(intStream)
+		for i := 1; i < 5; i++ {
+			intStream <- i
+		}
+	}()
+	for i := range intStream {
+		fmt.Println(i)
+	}
+}
+
+// 1
+// 2
+// 3
+// 4
+```
+
+2.signal
+
+Closing a channel is also one of the ways you can signal multiple goroutines simultaneously. If you have n goroutines waiting on a single channel, instead of writing n times to the channel to unblock each goroutine, you can simply close the channel. Since a closed channel can be read from an infinite number of times, it doesn’t matter how many goroutines are waiting on it, and closing the channel is both cheaper and faster than performing n writes.
+
+```go
+func main() {
+	begin := make(chan int)
+	var wg sync.WaitGroup
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			// Here goroutines will wait until the channel is closed.
+			<-begin
+			fmt.Printf("goroutine %d begins\n", i)
+		}(i)
+	}
+	// CLose the channel and all goroutines are unlocked.
+	close(begin)
+	wg.Wait()
+}
+
+// goroutine 4 begins
+// goroutine 3 begins
+// goroutine 0 begins
+// goroutine 1 begins
+// goroutine 2 begins
+```
+
+Of course we can still use `sync.Cond`to do the same job. But channels are composable.
+
+### Buffered Channels
+
+Buffered channels are an in-memory FIFO **queue** for concurrent processes to communicate over.
+
+It also bears mentioning that if a buffered channel is empty and has a receiver, the buffer will be bypassed and the value will be passed directly from the sender to the receiver. In practice, this happens transparently but it do affect the performance of buffered channels.
+
+If a goroutine making writes to a channel has knowledge of how many writes it will make, it can be useful to create a buffered channel whose capacity is the number of writes to be made, and then make those writes as quickly as possible.
+
+```go
+func main() {
+	var stdOutBuf bytes.Buffer
+	defer stdOutBuf.WriteTo(os.Stdout)
+
+	ch := make(chan int, 4)
+	go func() {
+		defer close(ch)
+		defer fmt.Fprintf(&stdOutBuf, "Producer done.\n")
+		for i := 0; i < 4; i++ {
+			fmt.Fprintf(&stdOutBuf, "Sending: %d\n", i)
+			ch <- i
+		}
+	}()
+	for i := range ch {
+		fmt.Fprintf(&stdOutBuf, "Received %d.\n", i)
+	}
+}
+```
+
+### nil Channels
+
+Be sure to ensure the channels you’re working with are always initialized first.
+
+```go
+var ch chan int
+ch <- 1 // panic: deadlock
+<- ch // panic: deadlock
+close(ch) // panic: close of nil channel
+```
+
+### Result of channel operations given a channel’s State
+
+![result of channel operations given a channel's state](img/result of channel operations given a channel's state.jpg)
+
+![Result of channel operations given a channel’s(2)](img/Result of channel operations given a channel’s(2).jpg)
+
+### Principles of Goroutine Usage
+
+The first thing we should do to put channels in the right context is to assign channel ownership. We can define ownership as being a goroutine that instantiates, writes, and closes a channel.
+
+1.channel owners
+
+The goroutine that owns a channel should:
+
+- Instantiate the channel.
+- Perform writes, or pass ownership to another goroutine.
+- Close the channel.
+- Encapsulate the previous three things in this list and expose them via a reader channel.
+
+By assigning these responsibilities to channel owners, a few things happen:
+
+- Because we’re the one initializing the channel, we remove the risk  of deadlocking by writing to a `nil` channel. 
+- Because we’re the one initializing the channel, we remove the risk of panic by closing a `nil` channel. 
+- Because we’re the one who decides when the channel gets closed, we remove the risk of panic by writing to a closed channel.
+- Because we’re the one who decides when the channel gets closed, we remove the risk of panic by closing a channel more than once. We wield the type checker at compile time to prevent improper writes to our channel.
+
+Note that you should keep the scope of channel ownership as small as possible in order to make things obvious. If you have a channel as a member variable of a struct with numerous methods on it, it’s going to quickly become unclear how the channel will behave.
+
+2.channel consumers
+
+- Knowing when a channel is closed.
+- Responsibly handling blocking for any reason.
+
+To address the first point we simply examine the second return value from the read operation, as discussed previously. The second point is much harder to define because it depends on your algorithm: you may want to time out, you may want to stop reading when someone tells you to, or you may just be content to block for the lifetime of the process.
+
+### The select Statement
+
+In general, `select`statements can bind channels. 
+
+There are 3 interesting questions about `select`.
+
+1.What happens when multiple channels have something to read?
+
+The Go runtime cannot know anything about the intent of your `select` statement; that is, it cannot infer your problem space or why you placed a group of channels together into a `select` statement. Because of this, the best thing the Go runtime can hope to do is to work well in the average case. A good way to do that is to introduce a random variable into your equation — in this case, which channel to select from. By weighting the chance of each channel being utilized equally, all Go programs that utilize the select statement will perform well in the average case.
+
+2.What if there are never any channels that become ready?
+
+If there’s nothing useful you can do when all the channels are blocked, but you also can’t block forever, you may want to time out. Go’s time package provides an elegant way to do this with channels that fits nicely within the paradigm of select statements.
+
+```go
+c := make(<-chan int)
+select {
+    case <-c:
+    case <-time.After(1 * time.Second):
+    	return
+}
+```
+
+3.What if we want to do something but no channels are currently ready?
+
+The `select` statement also allows for a `default` clause in case you’d like to do something if all the channels you’re selecting against are blocking.
+
+### The GOMAXPROCS Lever
+
+People often think `runtime.GOMAXPROCS` relates to the number of logical processors on the host machine — and in a roundabout way it does — but really this function controls the number of OS threads that will host so-called “work queues.”
+
+After Go 1.5, it is now automatically set to the number of logical CPUs  on the host machine.

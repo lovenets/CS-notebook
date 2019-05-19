@@ -1706,3 +1706,73 @@ Whereas read I/O can be avoided altogether with a sufficiently large cache, writ
 
 Some applications (such as databases) don’t enjoy these benefits. Thus, to avoid unexpected data loss due to write buffering, they simply force writes to disk, by calling `fsync()`, by using direct I/O interfaces that work around the cache, or by using the raw disk interface and avoiding the file system altogether.
 
+## Locality and The Fast File System
+
+How can we organize file system data structures so as to improve performance? What types of allocation policies do we need on top of those data structures? How do we make the file system "disk aware"?
+
+### FFS
+
+A group at Berkeley decided to build a better, faster file system, which they cleverly called the **Fast File System** (**FFS**). The idea was to design the file system structures and allocation policies to be “disk aware” and thus improve performance.
+
+FFS thus ushered in a new era of file system research; by keeping the same interface to the file system (the same APIs, including `open()`, `read()`, `write()`, `close()`, and other file system calls) but changing the internal  implementation. Virtually all modern file systems adhere to the existing interface (and thus preserve compatibility with applications) while changing their internals for performance, reliability, or other reasons.
+
+### Organizing Structure: The Cylinder Group
+
+FFS divides the disk into a number of **cylinder groups**. A single **cylinder** is a set of tracks on different surfaces of a hard drive that are the same distance from the center of the drive. FFS aggregates each N consecutive cylinders into group, and thus the entire disk can thus be viewed as a collection of cylinder groups.
+
+![cylinder group](img/cylinder group.jpg)
+
+Modern file systems  often encapsulate these details. Instead, modern file systems (such as Linux ext2, ext3, and ext4) instead organize the drive into **block groups**, each of which is just a consecutive portion of the disk’s address space. Critically, by placing two files within the same group, FFS can ensure that accessing one after the other will not result in long seeks across the disk.
+
+![a block](img/a block.jpg)
+
+### Policies: How To Allocate File and Directories
+
+The basic rule is simple: *keep related stuff together* (and its corollary, *keep unrelated stuff far apart*). Thus, FFS has to decide what is “related” and place it within the same block group; conversely, unrelated items should be placed into different block groups.
+
+1.placement of directories
+
+Find the cylinder group with a low number of allocated directories (to balance directories across groups) and a high number of free inodes (to subsequently be able to allocate a bunch of files), and put the directory data and inode in that group. 
+
+2.placement of files
+
+First, it makes sure (in the general case) to allocate the data blocks of a file in the same group as its inode. Second, it places all files that are in the same directory in the cylinder group of the directory they are in.
+
+### The Large-File Exception
+
+Without a different rule, a large file would entirely fill the block group it is first placed within (and maybe others). Filling a block group in this manner is undesirable, as it prevents subsequent “related” files from  being placed within this block group, and thus may hurt file-access locality.
+
+For large files, after some number of blocks are allocated into the first block group, FFS places the next "large" chunk of the file in another block group (perhaps chosen for its low utilization). Then, the next chunk of the file is placed in yet another different block group, and so on.
+
+However, spreading blocks of a file across the disk will hurt performance, particularly in the relatively common case of sequential file access. But you can address this problem by choosing chunk size carefully. Specifically, if the chunk size is large enough, the file system will spend most of its time transferring data from disk and just a (relatively) little time seeking between chunks of the block. This process of reducing an overhead by doing more work per overhead paid is called **amortization** and is a common technique in computer systems.
+
+### A Few Other Things About FFS
+
+1.sub-blocks
+
+To avoid internal fragmentation which could lead to roughly half the disk being wasted for a typical file system, the FFS designers decided to introduce **sub-blocks**, which were 512-byte little blocks that the file system could allocate to files. Thus, if you created a small file (say 1KB in size), it would occupy two sub-blocks and thus not waste an entire 4KB block. As the file grew, the file system will continue allocating 512 byte blocks to it until it acquires a full 4KB of data. At that point, FFS will find a 4KB block, copy the sub-blocks into it, and free the sub-blocks for future use.
+
+Of course, this approach requires a lot of extra work of I/O. Thus, FFS generally avoided this pessimal behavior by modifying the `libc` library; the library would buffer writes and then issue them in 4KB chunks to  the file system, thus avoiding the sub-block specialization entirely in most cases.
+
+2.disk layout
+
+![ffs disk layout](img/ffs disk layout.jpg)
+
+The problem arose during sequential reads. FFS would first issue a read to block 0; by the time the read was complete, and FFS issued a read to block 1, it was too late: block 1 had rotated under the head and now the read to block 1 would incur a full rotation.
+
+FFS solved this problem with a different layout, as you can see on the right in the above figure. By skipping over every other block (in the example), FFS has enough time to request the next block before it went past the disk head. In fact, FFS was smart enough to figure out for a particular disk how many blocks it should skip in doing layout in order to avoid the extra rotations; this technique was called **parameterization**, as FFS would figure out the specific performance parameters of the disk and use those to decide on the exact staggered layout scheme.
+
+You might be thinking: this scheme isn’t so great after all. In fact, you will only get 50% of peak bandwidth with this type of layout, because you have to go around each track twice just to read each block once. Fortunately, modern disks are much smarter: they internally read the entire track in and buffer it in an internal disk cache, called **track buffer**. Then, on subsequent reads to the track, the disk will just return the desired data from its cache. File systems thus no longer have to worry about these incredibly low-level details. Abstraction and higher-level interfaces can be a good thing, when designed properly.
+
+## Crash Consistency: FSCK and Journaling
+
+Given that crashes can occur at arbitrary points in time, how do we  ensure the file system keeps the on-disk image in a reasonable state?
+
+### The File System Checker (FSCK)
+
+Basically, they decided to let inconsistencies happen and then fix them  later (when rebooting). A classic example of this lazy approach is found in a tool that does this: **fsck**. fsck is a UNIX tool for finding such inconsistencies and repairing them. The only real goal is to make sure the file system metadata is internally consistent.
+
+### Journaling (or Write-Ahead Logging)
+
+When updating the disk, before overwriting the structures in place, first write down a little note (somewhere else on the disk, in a well-known location) describing what you are about to do. Writing this note is the “write ahead” part, and we write it to a structure that we organize as a “log”; hence, write-ahead logging.
+

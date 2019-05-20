@@ -538,3 +538,427 @@ The `select` statement also allows for a `default` clause in case you’d like t
 People often think `runtime.GOMAXPROCS` relates to the number of logical processors on the host machine — and in a roundabout way it does — but really this function controls the number of OS threads that will host so-called “work queues.”
 
 After Go 1.5, it is now automatically set to the number of logical CPUs  on the host machine.
+
+# Concurrency Patterns in Go
+
+## Confinement
+
+*Ad hoc confinement* is when you achieve confinement through a convention — whether it be set by the languages community, the group you work within, or the codebase you work within. *Lexical confinement* involves using lexical scope to expose only the correct data and concurrency primitives for multiple concurrent processes to use. It makes it impossible to do the wrong thing.
+
+```go
+func main() {
+	chanOwner := func() <-chan int {
+		results := make(chan int, 5)
+		go func() {
+			defer close(results)
+			for i := 0; i <= 5; i++ {
+				results <- i
+			}
+		}()
+		return results
+	}
+	consumer := func(results <-chan int) {
+		for result := range results {
+			fmt.Printf("Received: %d\n", result)
+		}
+		fmt.Println("Done receiving!")
+	}
+	results := chanOwner()
+	consumer(results)
+}
+```
+
+## The for-select Loop
+
+```go
+for { // Either infinite loop or range over something
+    select {
+        // Do some work with channels
+    }
+}
+```
+
+*Scenarios*
+
+1.Sending iteration variables out on a channel
+
+```go
+for _, s := range []string {"a", "b", "c"} {
+    select {
+    case <- done:
+        return
+    case stringStream <- s:
+    }
+}
+```
+
+2.Looping infinitely waiting to be stopped
+
+There are some variations.
+
+(1) 
+
+If the `done` channel isn’t closed, we’ll exit the select statement and
+continue on to the rest of our for loop’s body.
+
+```go
+for {
+    select {
+    case <-done:
+        return
+    default:
+    }
+    // Do non-preemptable work
+}
+```
+
+(2) 
+
+This style embeds the work in a `default`clause  When we enter the `select` statement, if the `done` channel hasn’t been closed, we’ll execute the `default` clause instead.
+
+```go
+for {
+    select {
+    case <-done:
+        return 
+    default:
+    	// Do non-preemptable work    
+    }
+}
+```
+
+## Preventing Goroutine Leaks
+
+The runtime handles multiplexing the goroutines onto any number of operating system threads so that we don’t often have to worry about that level of abstraction. But they do cost resources, and goroutines are not garbage collected by the runtime, so regardless of how small their memory footprint is, we don’t want to leave them lying about our process.
+
+The goroutine has a few paths to termination:
+
+- When it has completed its work.
+- When it panic.
+- When it's told to stop working.
+
+The first two paths are achieved by your algorithm. As for the last one, for now et’s consider how to ensure a single **child** goroutine is guaranteed to be cleaned up.
+
+(1) Goroutine blocked on attempting to receive a value from a channel
+
+```go
+func main() {
+	doWork := func(done <-chan interface{}, strings <-chan string) <-chan interface{} {
+		terminated := make(chan interface{})
+		go func() {
+			defer fmt.Println("doWork exited.")
+			defer close(terminated)
+			for {
+				select {
+				case s := <-strings:
+					// ...
+					fmt.Println(s)
+				case <-done:
+					return
+				}
+			}
+		}()
+		return terminated
+	}
+
+	done := make(chan interface{})
+	terminated := doWork(done, nil)
+
+	go func() {
+		time.Sleep(1 * time.Second)
+		fmt.Println("Canceling doWork goroutine...")
+		close(done)
+	}()
+
+	<-terminated
+	fmt.Println("done")
+}
+
+// Canceling doWork goroutine...
+// doWork exited.
+// done
+```
+
+Despite passing in `nil` for our strings channel, goroutines still exits successfully and we don't have a deadlock. This is because before we join the two goroutines, we create a third goroutine to cancel the goroutine within `doWork` after a second.
+
+(2) Goroutine blocked on attempting to send a value to a channel
+
+```go
+func main() {
+   newRandStream := func(done <-chan interface{}) <-chan int {
+      randStream := make(chan int)
+      go func() {
+         defer fmt.Println("newRandStream exited.")
+         defer close(randStream)
+         for {
+            select {
+            case randStream <- rand.Int():
+            case <-done:
+               return
+            }
+         }
+      }()
+      return randStream
+   }
+
+   done := make(chan interface{})
+   randStream := newRandStream(done)
+   fmt.Println("3 random ints:")
+   for i := 0; i < 3; i++ {
+      fmt.Printf("%d: %d\n", i, <-randStream)
+   }
+   close(done)
+   time.Sleep(1 * time.Second)
+}
+
+// 3 random ints:
+// 0: 5577006791947779410
+// 1: 8674665223082153551
+// 2: 6129484611666145821
+// newRandStream exited.
+```
+
+Now that we know how to ensure goroutines don’t leak, we can stipulate a convention: **If a goroutine is responsible for creating a goroutine, it is also responsible for ensuring it can stop the goroutine.**
+
+## The or-channel
+
+At times you may find yourself wanting to combine one or more done channels into a single done channel that closes if any of its component channels close.
+
+```go
+func or(channels ...<-chan interface{}) <-chan interface{} {
+   switch len(channels) {
+   case 0:
+      return nil
+   case 1:
+      return channels[0]
+   }
+   orDone := make(chan interface{})
+   // Create a goroutine to wait for messages on our channels
+   // without blocking
+   go func() {
+      defer close(orDone)
+      switch len(channels) {
+      case 2:
+         // Every recursive call to or will at least have two channels
+         // so this is an optimization.
+         select {
+         case <-channels[0]:
+         case <-channels[1]:
+         }
+      default:
+         select {
+         case <-channels[0]:
+         case <-channels[1]:
+         case <-channels[2]:
+         case <-or(append(channels[3:], orDone)...): 
+         }
+      }
+   }()
+   return orDone
+}
+```
+
+In this function, we recursively create an or-channel from all the channels in our slice after the third index, and then select from this. This recurrence relation will destructure the rest of the slice into or channels to form a tree from which the first signal will return. We also pass in the `orDone` channel so that when goroutines up the tree exit, goroutines down the tree also exit.
+
+An example using `or`:
+
+```go
+func main() {
+	sig := func(after time.Duration) <-chan interface{} {
+		c := make(chan interface{})
+		go func() {
+			defer close(c)
+			time.Sleep(after)
+		}()
+		return c
+	}
+	start := time.Now()
+	<-or(sig(2*time.Second), sig(5*time.Minute), sig(1*time.Hour))
+	fmt.Printf("done after %v\n", time.Since(start))
+}
+
+// done after 2.0089284s
+```
+
+Notice that despite placing several channels in our call to or that take various times to close, our channel that closes after one second causes the entire channel created by the call to or to close. This is because — despite its place in the tree the or function builds — it will always close first and thus the channels that depend on its closure will close as well.
+
+Worrying about the number of goroutines created here is probably a premature optimization. Further, if at compile time you don’t know how many done channels you’re working with, there isn’t any other way to combine done channels.
+
+This pattern is useful to employ at the intersection of modules in your system. At these intersections, you tend to have multiple conditions for canceling trees of goroutines through your call stack. Using the or function, you can simply combine these together and pass it down the stack.
+
+## Error Handling
+
+Errors should be considered first-class citizens when constructing values to return from goroutines. If your goroutine can produce errors, those errors should be tightly coupled with your result type, and passed along through the same lines of communication — just like regular synchronous functions.
+
+In general, your concurrent processes should send their errors to another part of your program that has complete information about the state of your program, and can make a more informed decision about what to do.
+
+```go
+type Result struct {
+   Error error
+   Response *http.Response
+}
+
+func main() {
+   checkStatus := func(done <-chan interface{}, urls ...string) <-chan Result {
+      results := make(chan Result)
+      go func() {
+         defer close(results)
+         for _, url := range urls {
+            var res Result
+            resp, err := http.Get(url)
+            res = Result{err, resp}
+            select {
+            case <-done:
+               return
+               case results <- res:
+            }
+         }
+      }()
+      return results
+   }
+   done := make(chan interface{})
+   defer close(done)
+
+   urls := []string{"https://www.google.com", "https://golang.org"}
+   for res := range checkStatus(done, urls...) {
+      if res.Error != nil {
+         fmt.Println(res.Error)
+      } else {
+         fmt.Println(res.Response.Status)
+      }
+   }
+}
+```
+
+## Pipelines
+
+A pipeline is nothing more than a series of things that take data in, perform an operation on it, and pass the data back out. We call each of these operations a *stage* of the pipeline. One of the benefits of utilizing pipelines is the ability to process individual stages concurrently.
+
+*Best Practices for Constructing Pipelines*
+
+Channels are uniquely suited to constructing pipelines in Go because they fulfill all of our basic requirements. They can receive and emit values, they can safely be used concurrently, they can be ranged over, and they are reified by the language.
+
+(1) Generator:  from discrete values to channels
+
+A function converts a discrete set of values into a stream of data on a channel. Aptly, this type of function is called a generator. You’ll see this frequently when working with pipelines because at the beginning of the pipeline, you’ll always have some batch of data that you need to convert to a channel.
+
+```go
+func generator(done <-chan interface{}, ints ...int) <-chan int {
+	intStream := make(chan int)
+	go func() {
+		// Owner of a channel should be responsible for closing it.
+		defer close(intStream)
+		for _, i := range ints {
+			select {
+			case <-done:
+				return
+			case intStream <- i:
+			}
+		}
+	}()
+	return intStream
+}
+```
+
+There are two points in this process that must be preemptable:
+
+- Creation of the discrete value that is not nearly instantaneous. 
+- Sending of the discrete value on its channel.
+
+(2) construct the pipeline
+
+```go
+func multiply(done <-chan interface{}, intStream <-chan int, multiplier int) <-chan int {
+	multipliedStream := make(chan int)
+	go func() {
+		defer close(multipliedStream)
+		for i := range intStream {
+			select {
+			case <-done:
+				return
+			case multipliedStream <- i * multiplier:
+			}
+		}
+	}()
+	return multipliedStream
+}
+
+func add(done <-chan interface{}, intStream <-chan int, additive int) <-chan int {
+	addedStream := make(chan int)
+	go func() {
+		defer close(addedStream)
+		for i := range intStream {
+			select {
+			case <-done:
+				return
+			case addedStream <- i + additive:
+			}
+		}
+	}()
+	return addedStream
+}
+```
+
+First, we’re using channels. This is obvious but significant because it allows two things: at the end of our pipeline, we can use a range statement to extract the values, and at each stage we can safely execute concurrently because our inputs and outputs are safe in concurrent contexts.
+
+Second, each stage of the pipeline is executing concurrently. This means that any stage only need wait for its inputs, and to be able to send its outputs. 
+
+Now the complete example:
+
+```go
+func main() {
+   done := make(chan interface{})
+   defer close(done)
+   intStream := generator(done, 1, 2, 3, 4)
+   pipeline := multiply(done, add(done, intStream, 1), 2)
+   for v := range pipeline {
+      fmt.Println(v)
+   }
+}
+```
+
+Note that regardless of what state the pipeline stage is in — waiting on the incoming channel, or waiting on the send — closing the done channel will force the pipeline stage to terminate.
+
+*Some Handy Generators*
+
+```go
+func main() {
+    done := make()
+}
+
+// Repeat the values caller passes to it infinitely
+// until it's stopped.
+func repeat(done <-chan interface{}, values ...interface{}) <-chan interface{} {
+	valueStream := make(chan interface{})
+	go func() {
+		defer close(valueStream)
+		for {
+			for _, v := range values {
+				select {
+				case <-done:
+					return
+				case valueStream <- v:
+				}
+			}
+		}
+	}()
+	return valueStream
+}
+
+// Take the first n values.
+func take(done <-chan interface{}, valueStream <-chan interface{}, n int) <-chan interface{} {
+	takeStream := make(chan interface{})
+	go func() {
+		defer close(takeStream)
+		for i := 0; i < n; i++ {
+			select {
+			case <-done:
+				return
+			case takeStream <- <-valueStream:
+			}
+		}
+	}()
+	return takeStream
+}
+```
+

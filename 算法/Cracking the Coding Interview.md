@@ -2371,3 +2371,201 @@ func arrived(x int, r int, y int, c int) bool {
 
 $$O(rc)$$ time, $$O(rc)$$ space.
 
+## 3. Magic Index
+
+A magic index in an array A is define to be an index such that `A[i]=i`. Given a sorted array of distinct integers, write a method to find a magic index, if one exists in array A.
+
+For example, when we look at the middle element `A[5]=3`, we know that the magic index must be on the right side. 
+
+```go
+func MagicIndex(a []int) int {
+	return magic(a, 0, len(a)-1)
+}
+
+func magic(a []int, s int, e int) int {
+	if e < s {
+		return -1
+	}
+	mid := s + (e-s)/2
+	if a[mid] == mid {
+		return mid
+	} else if a[mid] > mid {
+		return magic(a, s, mid-1)
+	} else {
+		return magic(a, mid+1, e)
+	}
+}
+```
+
+$$O(logn)$$ time, $$O(logn)$$ space.
+
+FOLLOW  UP
+
+What if the values are not distinct?
+
+| index | 0    | 1    | 2    | 3    | 4    | 5    | 6    | 7    | 8    | 9    |
+| ----- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
+| value | -10  | -8   | 2    | 2    | 2    | 3    | 3    | 4    | 7    | 9    |
+
+Since `A [5]=3`, we know that `A[4]` couldn't be a magic index. `A [4]` would need to be 4 to be the magic index, but `A[4]` must be less than or equal to `A[5]`. 
+
+In fact, when we see that `A [5]=3`, we'll need to recursively search the right side as before. But, to search the left side, we can skip a bunch of elements and only recursively search elements `A[0]` through `A[3]`, since 4 can not be magic index.
+
+```go
+func MagicIndex(a []int) int {
+	return magic(a, 0, len(a)-1)
+}
+
+func magic(a []int, s int, e int) int {
+	if e < s {
+		return -1
+	}
+	mid := s + (e-s)/2
+	if a[mid] == mid {
+		return mid
+	}
+	// Search left side.
+	leftEnd := int(math.Min(float64(mid-1), float64(a[mid])))
+	if left := magic(a, s, leftEnd); left > 0 {
+		return left
+	}
+	// Search right side.
+	rightStart := int(math.Max(float64(mid+1), float64(a[mid])))
+	return magic(a, rightStart, e)
+}
+```
+
+## 4. Power Set
+
+Write a method to return all subsets of a set.
+
+```go
+func PowerSet(set []int) [][]int {
+   if len(set) == 0 {
+      return nil
+   }
+   res := make([][]int, 0, int(math.Pow(2, float64(len(set)))))
+   powerset(set, 0, make([]int, 0), &res)
+   return res
+}
+
+// Combination
+func powerset(set []int, idx int, tmp []int, res *[][]int) {
+   if idx >= len(set) {
+      *res = append(*res, tmp)
+      return
+   }
+   powerset(set, idx+1, tmp, res)
+   powerset(set, idx+1, append(tmp, set[idx]), res)
+}
+```
+
+## 5. Recursive Multiply
+
+Write a recursive function to multiply two positives without using multiply or divide operator. You can use addition, subtraction, and bit shifting, but you should minimize the number of those operations.
+
+(1) 
+
+We could count half the squares and then double it (by adding this count to itself). To count half the squares, we repeat the same process. Of course, this "doubling" only works if the number is in fact even. When it's not even, we need to do the counting/summing from scratch.
+
+```go
+func RecursiveMultiply(a, b int) int {
+	if a > b {
+		return productHelper(b, a)
+	} else {
+		return productHelper(a, b)
+	}
+}
+
+func productHelper(smaller int, bigger int) int {
+	if smaller == 0 {
+		return 0
+	}
+	if smaller == 1 {
+		return bigger
+	}
+	// Compute half. If uneven, compute other half.
+	// If even, double it.
+	s := smaller >> 1
+	side1 := productHelper(s, bigger)
+	side2 := side1
+	if smaller%2 == 1 {
+		side2 = productHelper(smaller-s, bigger)
+	}
+	return side1 + side2
+}
+```
+
+If uneven, we'll repeat some work when computing the other half.
+
+```go
+func RecursiveMultiply(a, b int) int {
+	if a > b {
+		memo := make([]int, b+1)
+		return productHelper(b, a, &memo)
+	} else {
+		memo := make([]int, a+1)
+		return productHelper(a, b, &memo)
+	}
+}
+
+func productHelper(smaller int, bigger int, memo *[]int) int {
+	if smaller == 0 {
+		return 0
+	}
+	if smaller == 1 {
+		return bigger
+	}
+	if (*memo)[smaller] > 0 {
+		return (*memo)[smaller]
+	}
+	// Compute half. If uneven, compute other half.
+	// If even, double it.
+	s := smaller >> 1
+	side1 := productHelper(s, bigger, memo)
+	side2 := side1
+	if smaller%2 == 1 {
+		side2 = productHelper(smaller-s, bigger, memo)
+	}
+	(*memo)[smaller] = side1 + side2
+	return (*memo)[smaller]
+}
+```
+
+(2)
+
+One thing we might notice when we look at this code is that a call to `productHelper` on an even number is much faster than one on an odd number.
+
+After all, since `31 = 2*15+1`, then `31x35 = 2*15*35+35`. So The logic in this final solution is that, on even numbers, we just divide s m a l l e r by 2 and double the result of the recursive call. On odd numbers, we do the same, but then we also add bigger to this result.
+
+In doing so, we have an unexpected "win." Our`productHelper` function just recurses straight downwards, with increasingly small numbers each time, it will never repeat the same call, so there's no need to cache any information.
+
+```go
+func RecursiveMultiply(a, b int) int {
+	if a > b {
+		return productHelper(b, a)
+	} else {
+		return productHelper(a, b)
+	}
+}
+
+func productHelper(smaller int, bigger int) int {
+	if smaller == 0 {
+		return 0
+	}
+	if smaller == 1 {
+		return bigger
+	}
+	// Compute half. If uneven, compute other half.
+	// If even, double it.
+	s := smaller >> 1
+	side := productHelper(s, bigger)
+	if smaller%2 == 1 {
+		return side + side + bigger
+	} else {
+		return side + side
+	}
+}
+```
+
+This algorithm will run in $$O ( l o g s)$$ time, where s is the smaller of the two numbers.

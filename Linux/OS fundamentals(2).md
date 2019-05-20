@@ -1776,3 +1776,71 @@ Basically, they decided to let inconsistencies happen and then fix them  later (
 
 When updating the disk, before overwriting the structures in place, first write down a little note (somewhere else on the disk, in a well-known location) describing what you are about to do. Writing this note is the “write ahead” part, and we write it to a structure that we organize as a “log”; hence, write-ahead logging.
 
+## Data Integrity and Protection
+
+We need some techniques to ensure that the data we put into storage system is the same when the storage system returns it.
+
+### Disk Failure Modes
+
+1.fail-top model
+
+In early RAID systems, the model of failure was quite simple: either the entire disk is working, or it fails completely, and the detection of such a failure is straightforward.
+
+2.latent-sector errors (LSEs)
+
+LSEs arise when a disk sector (or group of sectors) has been damaged in some way.
+
+in-disk error correcting codes (ECC) are used by the drive to determine whether the on-disk bits in a block are good, and in some cases, to fix them; if they are not good, and the drive does not have enough information to fix the error, the disk will return an error when a request is issued to read them.
+
+3.block corruption
+
+Disks can also seemingly be working and have one or more blocks become inaccessible (i.e., LSEs) or hold the wrong contents (i.e., corruption).
+
+### Handling Latent Sector Errors
+
+As it turns out, latent sector errors are rather straightforward to handle, as they are (by definition) easily detected. When a storage system tries to access a block, and the disk returns an error, the storage system should simply use whatever redundancy mechanism it has to return the correct data.
+
+In a mirrored RAID, for example, the system should access the alternate copy; in a RAID-4 or RAID-5 system based on parity, the system should reconstruct the block from the other blocks in the parity group.
+
+### Detecting Corruption: The Checksum
+
+The primary mechanism used by modern storage systems to preserve data integrity is called the **checksum**. A checksum is simply the result of a function that takes a chunk of data (say a 4KB block) as input and computes a function over said data, producing a small summary of the contents of the data (say 4 or 8 bytes).
+
+*Checksum Layout*
+
+The most basic approach simply stores a checksum with each disk sector (or block). Given a data block D, let us call the checksum over that data C(D). With checksums, the layout adds a single checksum for every block.
+
+![checksum layout1](img/checksum layout1.jpg)
+
+Because checksums are usually small (e.g., 8 bytes), and disks only can write in sector-sized chunks (512 bytes) or multiples thereof, one problem that arises is how to achieve the above layout. One solution employed by drive manufacturers is to format the drive with 520-byte sectors; an extra 8 bytes per sector can be used to store the checksum.
+
+In disks that don’t have such functionality, the file system must figure out a way to store the checksums packed into 512-byte blocks. 
+
+![checksum layout2](img/checksum layout2.jpg)
+
+In this scheme, the n checksums are stored together in a sector, followed by n data blocks, followed by another checksum sector for the next n blocks, and so forth. This scheme has the benefit of working on all disks, but can be less efficient; if the file system, for example, wants to overwrite block D1, it has to read in the checksum sector containing C(D1), update C(D1) in it, and then write out the checksum sector as well as the new data block D1 (thus, one read and two writes). The earlier approach (of one checksum per sector) just performs a single write.
+
+### Using Checksums
+
+When reading a block D, the client (i.e., file system or storage controller) also reads its checksum from disk Cs(D), which we call the stored checksum (hence the subscript Cs). The client then computes the checksum over the retrieved block D, which we call the computed checksum Cc(D). At this point, the client compares the stored and computed checksums; if they are equal (i.e., Cs(D) == Cc(D), the data has likely not been corrupted, and thus can be safely returned to the user. If they do not match (i.e., Cs(D) != Cc(D)), this implies the data has changed since the time it was stored (since the stored checksum reflects the value of the data at that time). In this case, we have a corruption, which our checksum has helped us to detect.
+
+### Misdirected Writes
+
+This arises in disk and RAID controllers which write the data to disk correctly, except in the wrong location. In a single-disk system, this means that the disk wrote block Dx not to address x (as desired) but rather to address y (thus “corrupting” Dy); in addition, within a multi-disk system, the controller may also write Di,x not to address x of disk i but rather to some other disk j.
+
+The answer, not surprisingly, is simple: add a little more information to each checksum. In this case, adding a **physical identifier** (**physical ID**) is quite helpful.
+
+### Lost Writes
+
+Some modern storage devices also have an issue known as a lost write, which occurs when the device informs the upper layer that a write has completed but in fact it never is persisted; thus, what remains is left is the old contents of the block rather than the updated new contents.
+
+One classic approach is to perform a **write verify** or **read-after-write**; by immediately reading back the data after a write, a system can ensure that the data indeed reached the disk surface. This approach, however, is quite slow, doubling the number of I/Os needed to complete a write.
+
+Some systems add a checksum elsewhere in the system to detect lost writes.
+
+### Scrubbing
+
+Some amount of checking occurs when data is accessed by applications, but most data is rarely accessed, and thus would remain unchecked. Unchecked data is problematic for a reliable storage system, as bit rot could eventually affect all copies of a particular piece of data.
+
+To remedy this problem, many systems utilize **disk scrubbing** of various forms. By periodically reading through every block of the system, and checking whether checksums are still valid, the disk system can reduce the chances that all copies of a certain data item become corrupted. Typical systems schedule scans on a nightly or weekly basis.
+

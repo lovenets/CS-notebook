@@ -2569,3 +2569,128 @@ func productHelper(smaller int, bigger int) int {
 ```
 
 This algorithm will run in $$O ( l o g s)$$ time, where s is the smaller of the two numbers.
+
+## 6. Towers of Hanoi
+
+In the classic problem of the Towers of Hanoi, you have 3 towers and N disks of different sizes which can slide onto any tower. The puzzle starts with disks sorted in ascending order of size from top to bottom (i.e., each disk sits on top of an even larger one). You have the following constraints:
+
+(1) Only one disk can be moved at a time.
+
+(2) A disk is slid off the top of one tower onto another tower.
+
+(3) A disk cannot be placed on top of a smaller disk.
+
+Write a program to move the disks from the first tower to the last using Stacks.
+
+```go
+func TowersOfHanoi(n int) *Stack {
+	towers := [3]*Stack{NewStack(), NewStack(), NewStack()}
+	// Load up origin tower.
+	for i := 0; i < n; i++ {
+		towers[0].Push(i)
+	}
+	moveDisks(towers[0], n, towers[2], towers[1])
+	return towers[2]
+}
+
+func moveDisks(origin *Stack, n int, dest *Stack, buf *Stack) {
+	if n <= 0 {
+		return
+	}
+	// Move n-1 disks from 1st tower to 2rd tower
+	// using 3rd tower as a buffer
+	moveDisks(origin, n-1, buf, dest)
+	// Move the last one disk of 1st tower to 3rd tower
+	top, _ := origin.Pop()
+	dest.Push(top)
+	// Move n-1 disks from 2nd tower to 3rd tower
+	// using 1st tower as a buffer
+	moveDisks(buf, n-1, dest, origin)
+}
+```
+
+For n disks, total $$2^n-1$$ moves are required. In other words, $$2^{n-1}$$ function calls are made. So $$O(2^n)$$ time, $$O(2^n)$$ space.
+
+## 7.  Permutations Without Dups
+
+Write a method to compute all permutations of a string of unique characters.
+
+(1) 
+
+Therefore, if we took all the permutations of a1...an and added a0 into all possible locations, we would get all permutations of a0...an.
+
+```go
+func PermutationsWithoutDups(s string) []string {
+   if s == "" {
+      // Be sure to return empty string.
+      return []string{""}
+   }
+   res := make([]string, 0)
+   first := s[0]
+   // Generate the permutations of left n-1 characters
+   s = s[1:]
+   tmp := PermutationsWithoutDups(s)
+   // Insert the first character into every possible position.
+   for _, str := range tmp {
+      for i := 0; i <= len(str); i++ {
+         res = append(res, str[0:i]+string(first)+str[i:])
+      }
+   }
+   return res
+}
+```
+
+(2)
+
+Well, in essence, we just need to "try" each character as the first character and then append the permutations of left characters.
+
+```go
+func PermutationsWithoutDups(s string) []string {
+	if s == "" {
+		return []string{""}
+	}
+	res := make([]string, 0)
+	for i := 0; i < len(s); i++ {
+		before, after := s[0:i], s[i+1:]
+		tmp := PermutationsWithoutDups(before + after)
+		for _, p := range tmp {
+			res = append(res, string(s[i])+p)
+		}
+	}
+	return res
+}
+```
+
+## 8. Permutation with Duplicates
+
+Write a method to compute all permutations of a string whose characters are not necessarily unique. The list of permutations should not have duplicates.
+
+We can start with computing the count of each letter. Let's imagine generating a permutation of this string (now represented as a hash table). Firstly we choose a letter as the first one in permutations. After that, we have a subproblem to solve: find all permutations of the remaining characters, and append those to the already picked "prefix." 
+
+```go
+func PermutationsWithDuplicates(s string) []string {
+	res := make([]string, 0)
+	freq := make(map[rune]int)
+	for _, r := range s {
+		freq[r]++
+	}
+	permutations(freq, "", len(s), &res)
+	return res
+}
+
+func permutations(freq map[rune]int, prefix string, remaining int, res *[]string) {
+	if remaining == 0 {
+		*res = append(*res, prefix)
+		return
+	}
+	for k := range freq {
+		if count := freq[k]; count > 0 {
+			freq[k]--
+			permutations(freq, prefix+string(k), remaining-1, res)
+			// Be sure to restore the status.
+			freq[k] = count
+		}
+	}
+}
+```
+

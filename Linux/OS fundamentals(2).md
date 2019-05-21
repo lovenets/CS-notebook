@@ -1832,7 +1832,7 @@ The answer, not surprisingly, is simple: add a little more information to each c
 
 ### Lost Writes
 
-Some modern storage devices also have an issue known as a lost write, which occurs when the device informs the upper layer that a write has completed but in fact it never is persisted; thus, what remains is left is the old contents of the block rather than the updated new contents.
+Some modern storage devices also have an issue known as a lost write, which occurs when the device informs the upper layer that a write has completed but in fact it never is persisted; thus, what remains is left is the old contents of the bl ock rather than the updated new contents.
 
 One classic approach is to perform a **write verify** or **read-after-write**; by immediately reading back the data after a write, a system can ensure that the data indeed reached the disk surface. This approach, however, is quite slow, doubling the number of I/Os needed to complete a write.
 
@@ -1843,4 +1843,36 @@ Some systems add a checksum elsewhere in the system to detect lost writes.
 Some amount of checking occurs when data is accessed by applications, but most data is rarely accessed, and thus would remain unchecked. Unchecked data is problematic for a reliable storage system, as bit rot could eventually affect all copies of a particular piece of data.
 
 To remedy this problem, many systems utilize **disk scrubbing** of various forms. By periodically reading through every block of the system, and checking whether checksums are still valid, the disk system can reduce the chances that all copies of a certain data item become corrupted. Typical systems schedule scans on a nightly or weekly basis.
+
+## Distributed System
+
+How can we build a working system out of parts that don’t work correctly all the time?
+
+### Remote Procedure Call (RPC)
+
+Remote procedure call packages all have a simple goal: to make the process of executing code on a remote machine as simple and straightforward as calling a local function. Thus, to a client, a procedure call is made, and some time later, the results are returned. The RPC system in general has two pieces: a **stub generator (sometimes called a protocol compiler)** and the **run-time library**.
+
+1.Stub Generator
+
+The stub generator’s job is simple: to remove some of the pain of packing function arguments and results into messages by automating it. Numerous benefits arise: one avoids, by design, the simple mistakes that occur in writing such code by hand; further, a stub compiler can perhaps optimize such code and thus improve performance.
+
+The input to such a compiler is simply the set of calls a server wishes to export to clients (i.e., interfaces). For the client, a **client stub** is generated, which contains each of the functions specified in the interface; a client program wishing to use this RPC service would link with this client stub and call into it in order to make RPCs.
+
+*Thread Pool*
+
+Another important issue is the organization of the server with regards to concurrency. A common organization is a thread pool. In this organization, a finite set of threads are created when the server starts; when a message arrives, it is dispatched to one of these worker threads, which then does the work of the RPC call, eventually replying; during this time, a main thread keeps receiving other requests, and perhaps dispatching them to other workers.
+
+2.Run-Time Library
+
+The run-time library handles much of the heavy lifting in an RPC system; most performance and reliability issues are handled herein.
+
+(1) naming
+
+One of the first challenges we must overcome is how to locate a remote service. This problem, of naming, is a common one in distributed systems. The simplest of approaches build on existing naming systems, e.g., hostnames and port numbers provided by current internet protocols. In such a system, the client must know the hostname or IP address of the machine running the desired RPC service, as well as the port number it is using.
+
+(2) transport-level protocol
+
+Unfortunately, building RPC on top of a reliable communication layer can lead to a major inefficiency in performance. 
+
+For this reason, many RPC packages are built on top of unreliable communication layers, such as UDP. Doing so enables a more efficient RPC layer, but does add the responsibility of providing reliability to the RPC system. The RPC layer achieves the desired level of responsibility by using timeout/retry and acknowledgments. By using some form of sequence numbering, the communication layer can guarantee that each RPC takes place exactly once (in the case of no failure), or at most once (in the case where failure arises).
 

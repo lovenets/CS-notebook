@@ -962,3 +962,329 @@ func take(done <-chan interface{}, valueStream <-chan interface{}, n int) <-chan
 }
 ```
 
+## Fan-Out, Fan-In
+
+Fan-out is a term to describe the process of starting multiple goroutines to handle input from the pipeline, and fan-in is a term to describe the process of combining multiple results into one channel.
+
+You might consider fanning out one of your stages if both of the following apply:
+
+- It doesn't rely on values that the stage had calculated before.
+- It takes a long time to run.
+
+The property of order-independence is important because you have no guarantee in what order concurrent copies of your stage will run, nor in what order they will return.
+
+1.fan-out
+
+Just start up multiple copies of the stage.
+
+```go
+out := make([]<-chan interface{}, MAX)
+for i := 0; i < MAX; i++ {
+    out[i] = stage2(done, stage1)
+}
+```
+
+2.fan-in
+
+```go
+func fanin(done <-chan interface{}, channels ...<-chan interface{}, ) <-chan interface{} {
+	var wg sync.WaitGroup
+	multiplexedStream := make(chan interface{})
+	multiplex := func(c <-chan interface{}) {
+		defer wg.Done()
+		for i := range c {
+			select {
+			case <-done:
+				return
+			case multiplexedStream <- i:
+			}
+		}
+	}
+	// Select from all the channels
+	wg.Add(len(channels))
+	for _, c := range channels {
+		go multiplex(c)
+	}
+	// Wait for all the reads to complete
+	go func() {
+		wg.Wait()
+		close(multiplexedStream)
+	}()
+	return multiplexedStream
+}
+```
+
+Fanning in involves creating the multiplexed channel consumers will read from, and then spinning up one goroutine for each incoming channel, and one goroutine to close the multiplexed channel when the incoming channels have all been closed. Since we’re going to be creating a goroutine that is waiting on N other goroutines to complete, it makes sense to create a `sync.WaitGroup` to coordinate things. The multiplex function also notifies the `WaitGroup` that it’s done.
+
+## The or-done-channel
+
+At times you will be working with channels from disparate parts of your system. Unlike with pipelines, you can’t make any assertions about how a channel will behave when code you’re working with is canceled via its done channel. That is to say, you don’t know if the fact that your goroutine was canceled means the channel you’re reading from will have been canceled.
+
+For this reason, we need to wrap out read from the channel with a `select`statement that also selects from a `done`channel.
+
+```go
+	orDone := func(done, c <-chan interface{}) <-chan interface{} {
+		valStream := make(chan interface{})
+		go func() {
+			defer close(valStream)
+			for {
+				select {
+				case <-done:
+					return
+				case v, ok := <-c:
+					if ok == false {
+						return // or maybe break 
+					}
+					select {
+					case valStream <- v:
+					case <-done:
+					}
+				}
+			}
+		}()
+		return valStream
+	}
+```
+
+## The tee-channel
+
+Sometimes you may want to split values coming in from a channel so that you can send them off into two separate areas of your codebase. Taking its name from the tee command in Unix-like systems, the tee channel does just this. You can pass it a channel to read from, and it will return two separate channels that will get the same value:
+
+```go
+func tee(
+	done <-chan interface{},
+	in <-chan interface{},
+) (_, _ <-chan interface{}) {
+	out1 := make(chan interface{})
+	out2 := make(chan interface{})
+	go func() {
+		defer close(out1)
+		defer close(out2)
+		for val := range orDone(done, in) {
+			var _out1, _out2 = out1, out2
+			// To ensure both are written to
+			// we'll perform an iteration
+			for i := 0; i < 2; i++ {
+				select {
+				case <-done:
+					// Once we’ve written to a channel,
+					// we set its shadowed copy to nil so that
+					// further writes will block and the other channel may continue
+				case _out1 <- val:
+					_out1 = nil
+				case _out2 <- val:
+					_out2 = nil
+				}
+			}
+		}
+	}()
+	return out1, out2
+}
+```
+
+## Queueing
+
+Sometimes it’s useful to begin accepting work for your pipeline even though the pipeline is not yet ready for more. This process is called  *queuing*. All this means is that once your stage has completed some work, it stores it in a temporary location in memory so that other stages can retrieve it later, and your stage doesn’t need to hold a reference to it.
+
+The true utility of queues is to *decouple stages* so that the runtime of one stage has no impact on the runtime of another. Decoupling stages in this manner then cascades to alter the runtime behavior of the system as a whole, which can be either good or bad depending on your system.
+
+## The context package
+
+It would be useful if we could communicate extra information alongside the simple notification to cancel: why the cancellation was occurring, or whether or not our function has a deadline by which it needs to complete. So the Go authors decided to create a standard pattern for doing so.
+
+In Go 1.7, the context package was brought into the standard library, making this a standard Go idiom to consider when working with concurrent code.
+
+### Context type
+
+Each function that is downstream from your top-level concurrent call would take in a `Context` as its first argument.
+
+```go
+// A Context carries a deadline, a cancelation signal, and other values across
+// API boundaries.
+//
+// Context's methods may be called by multiple goroutines simultaneously.
+type Context interface {
+	Deadline() (deadline time.Time, ok bool)
+
+	Done() <-chan struct{}
+    
+    Err() error
+
+	Value(key interface{}) interface{}
+}
+```
+
+- `Done`method returns a channel that's closed when our function is to be preempted.
+- `Dealine`function indicates if a goroutine will be canceled after a certain time. 
+- `Err`method will return non-nil if the goroutine was canceled.
+
+The Go authors noticed that one of the primary uses of goroutines was programs that serviced requests. Usually in these programs, request specific information needs to be passed along in addition to information about preemption. This is the purpose of the `Value` function.
+
+### The Purposes of context package
+
+1.To provide an API for canceling branches of your call-graph.
+
+There’s nothing present that can mutate the state of the underlying structure. Further, there’s nothing that allows the function accepting the `Context` to cancel it. This protects functions up the call stack from children canceling the context. Combined with the `Done` method, which provides a done channel, this allows the `Context` type to safely manage cancellation from its antecedents. To affect the behavior of cancellations in functions below a current function in the call stack, we need to use functions in the `context`package:
+
+```go
+func WithCancel(parent Context) (ctx Context, cancel CancelFunc)
+func WithDeadline(parent Context, d time.Time) (Context, CancelFunc)
+func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc)
+```
+
+Notice that all these functions take in a `Context`and return one as well. `WithCancel` returns a new `Context` that closes its done channel when the returned cancel function is called. `WithDeadline` returns a new `Context` that closes its done channel when the machine’s clock advances past the given deadline. `WithTimeout` returns a new `Context `that closes its done channel after the given timeout duration.
+
+Instances of a `Context` are meant to flow through your program’s call-graph. Instances of `context.Context` may look equivalent from the outside, but internally they may change at every stack-frame. For this reason, it’s important to **always pass instances of `Context` into your functions**.
+
+To start the chain, the context package provides you with two functions to create empty instances of `Context`:
+
+```go
+func Background() Context
+func TODO() Context
+```
+
+`Background` simply returns an empty `Context`. `TODO`’s intended purpose is to serve as a placeholder for when you don’t know which `Context` to utilize, or if you expect your code to be provided with a `Context`, but the upstream code hasn’t yet furnished one.
+
+*An Example*
+
+```go
+func main() {
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := printGreeting(ctx); err != nil {
+			fmt.Printf("cannot print greeting: %v\n", err)
+			cancel()
+		}
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := printFarewell(ctx); err != nil {
+			fmt.Printf("cannot print farewell: %v\n", err)
+		}
+	}()
+	wg.Wait()
+}
+
+func printGreeting(ctx context.Context) error {
+	greeting, err := genGreeting(ctx)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s world!\n", greeting)
+	return nil
+}
+
+func printFarewell(ctx context.Context) error {
+	farewell, err := genFarewell(ctx)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s world!\n", farewell)
+	return nil
+}
+
+func genGreeting(ctx context.Context) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+	switch locale, err := locale(ctx); {
+	case err != nil:
+		return "", err
+	case locale == "EN/US":
+		return "hello", nil
+	}
+	return "", fmt.Errorf("unsupported locale")
+}
+
+func genFarewell(ctx context.Context) (string, error) {
+	switch locale, err := locale(ctx); {
+	case err != nil:
+		return "", err
+	case locale == "EN/US":
+		return "goodbye", nil
+	}
+	return "", fmt.Errorf("unsupported locale")
+}
+
+func locale(ctx context.Context) (string, error) {
+    // Check to see whether our Context has provided a deadline
+    // If itdid, and our system’s clock has advanced past the deadline,
+    // return with a special error.
+	if deadline, ok := ctx.Deadline(); ok {
+		if deadline.Sub(time.Now().Add(1*time.Minute)) <= 0 {
+			return "", context.DeadlineExceeded
+		}
+	}
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	case <-time.After(1 * time.Minute):
+	}
+	return "EN/US", nil
+}
+```
+
+Notice that we always pass instances of `Context` into other functions. 
+
+2.To provide a data-bag for transporting request-scoped data through your call-graph.
+
+Remember that oftentimes when a function creates a goroutine and `Context`, it’s starting a process that will service requests, and functions further down the stack may need information about the request. 
+
+- The key you use must satisfy Go’s notion of comparability; that is, the equality operators `==` and `!=` need to return correct results when used.
+
+- Values returned must be safe to access from multiple goroutines.
+
+Since both the `Context`’s key and value are defined as `interface{}`, we lose Go’s type-safety when attempting to retrieve values. The key could  be a different type, or slightly different than the key we provide. The value could be a different type than we’re expecting. For these reasons, there are some rules to follow. 
+
+- Define a custom key-type in your package. As long as other packages do the same, this prevents collision within the `Context`.
+
+```go
+type foo int
+type bar int
+m := make(map[interface{}]int)
+m[foo(1)] = 1
+m[bar(1)] = 2
+fmt.Printf("%v", m) // map[1:1, 1:2]
+```
+
+- Since we don't export the keys we use to store the data, we must therefore export functions that retrieve data for us. This works out nicely since it allows consumers of this data to use static, type-safe functions.
+
+Here is an example:
+
+```go
+func main() {
+	ProcessRequest("jane", "abc")
+}
+
+type ctxKey int
+
+const (
+	ctxUserID ctxKey = iota
+	ctxAutoToken
+)
+
+func UserID(c context.Context) string {
+	return c.Value(ctxUserID).(string)
+}
+
+func AutoToken(c context.Context) string {
+	return c.Value(ctxAutoToken).(string)
+}
+
+func ProcessRequest(userID, autoToken string) {
+	ctx := context.WithValue(context.Background(), ctxUserID, userID)
+	ctx = context.WithValue(ctx, ctxAutoToken, autoToken)
+	HandleResponse(ctx)
+}
+
+func HandleResponse(ctx context.Context) {
+	fmt.Printf("handling repsonse for %v (auto: %v)", UserID(ctx), AutoToken(ctx))
+}
+```
+
+
+

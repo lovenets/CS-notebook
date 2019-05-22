@@ -2694,3 +2694,165 @@ func permutations(freq map[rune]int, prefix string, remaining int, res *[]string
 }
 ```
 
+$$O(n)$$ time?
+
+## 9. Parens
+
+Implement an algorithm to print all valid (i.e., properly opened and closed) combinations of n pairs of parentheses.
+
+```
+EXAMPLE
+Input: 3
+Output: ((())), (()()), (())(), ()(()), ()()() 
+```
+
+Our first thought here might be to apply a recursive approach where we build the solution for f(n) by adding pairs of parentheses to f(n-1).
+
+(1) 
+
+We can do this by inserting a pair of parentheses inside every existing pair of parentheses, as well as one at the beginning of the string. Any other places that we could insert parentheses, such as at the end of the string, would reduce to the earlier cases. 
+
+For example, we build the solution for n=3 from the solution n=2 which is (()), ()():
+
+```
+(()) -> (()()) // inserted pair after 1st left paren
+        ((())) // inserted pair after 2nd left paren
+        ()(()) // inserted pair at the beginning 
+()() -> (())() // inserted pair after 1st left paren
+        ()(()) // inserted pair after 2nd left paren
+        ()()() // inserted pair at the beginning
+```
+
+As we can see, there are duplicates. So we need to check for duplicated after we generate a combination.
+
+```go
+func Parens(n int) []string {
+	set := make(map[string]bool)
+	if n == 0 {
+		set[""] = true
+	} else {
+		prev := Parens(n - 1)
+		for _, s := range prev {
+			for i := 0; i < len(s); i++ {
+				if s[i] == '(' {
+					// Insert a pair after every left paren
+					tmp := s[0:i+1] + "()" + s[i+1:]
+					if !set[tmp] {
+						set[tmp] = true
+					}
+				}
+			}
+			// Insert a pair at the beginning
+			set["()"+s] = true
+		}
+	}
+	res := make([]string, 0, len(set))
+	for k := range set {
+		res = append(res, k)
+	}
+	return res
+}
+```
+
+This is method is inefficient because it will generate many duplicates.
+
+(2) 
+
+On each recursive call, we have the index for a particular character in the string. We need to select either a left or a right paren. When can we use a left paren, and when can we use a right paren?
+1. Left Paren: As iong as we haven't used up all the left parentheses, we can always insert a left paren.
+2. Right Paren: We can insert a right paren as long as it won't lead to a syntax error. When will we get a syntax error? We will get a syntax error if there are more right parentheses than left.
+
+```go
+func Parens(n int) []string {
+	res := make([]string, 0)
+	addParen(&res, n, n, make([]byte, 2*n, 2*n), 0)
+	return res
+}
+
+func addParen(res *[]string, left int, right int, str []byte, i int) {
+	if left < 0 || left > right {
+		// Invalid status
+		return
+	}
+	if left == 0 && right == 0 {
+		// Got a combination
+		*res = append(*res, string(str))
+	} else {
+		// Add left paren and recurse
+		str[i] = '('
+		addParen(res, left-1, right, str, i+1)
+		// Add right paren and recurse
+		str[i] = ')'
+		addParen(res, left, right-1, str, i+1)
+	}
+}
+```
+
+## 10. Paint Fill
+
+Implement the "paint fill" function that one might see on many images editing programs. That is, given a screen (represented by a two-dimension array of colors), a point, and a new color, fill in the surrounding area until the color changes from he original color.
+
+Do it in DFS or BFS.
+
+```go
+func PaintFill(screen [][]int, x int, y int, color int) bool {
+	if x < 0 || x >= len(screen) || y < 0 || y >= len(screen[0]) {
+		return false
+	}
+	if screen[x][y] == color {
+		return false
+	}
+	return fill(&screen, x, y, screen[x][y], color)
+
+}
+
+func fill(screen *[][]int, x int, y int, origin int, color int) bool {
+	if x < 0 || x >= len(*screen) || y < 0 || y >= len((*screen)[0]) {
+		return false
+	}
+	if (*screen)[x][y] == origin {
+		(*screen)[x][y] = color
+		fill(screen, x+1, y, origin, color)
+		fill(screen, x-1, y, origin, color)
+		fill(screen, x, y+1, origin, color)
+		fill(screen, x, y-1, origin, color)
+	}
+	return true
+}
+```
+
+$$O(rc)$$ time and $$O(rc)$$ space, where r and c are the number of rows and the number of columns respectively.
+
+## 11.  Coins
+
+Given an infinite number of quarters (25 cents), dimes (10 cents), nickels  (5 cents), and pennies (1 cent), write code to calculate the number of ways of representing n cents.
+
+```go
+func Coins(n int) int {
+   if n <= 0 {
+      return 0
+   }
+   denoms := []int{25, 10, 5, 1}
+   memo := make([][4]int, n+1)
+   return makeChange(n, denoms, 0, &memo)
+}
+
+func makeChange(n int, denoms []int, idx int, memo *[][4]int) int {
+   if (*memo)[n][idx] > 0 {
+      return (*memo)[n][idx]
+   }
+   if idx == 3 {
+      // We are using pennies so there are only 1 solution
+      // i.e., n pennies
+      return 1
+   }
+   denomValue := denoms[idx]
+   count := 0
+   for i := 0; i*denomValue <= n; i++ {
+      remaining := n - i*denomValue
+      count += makeChange(remaining, denoms, idx+1, memo)
+   }
+   (*memo)[n][idx] = count
+   return count
+}
+```

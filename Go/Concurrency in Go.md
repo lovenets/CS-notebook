@@ -1288,3 +1288,323 @@ func HandleResponse(ctx context.Context) {
 
 
 
+# Concurrency at Scale
+
+## Error Propagation
+
+Errors indicate that your system has entered a state in which it cannot fulfill an operation that a user either explicitly or implicitly requested. Because of this, it needs to relay a few pieces of critical information:
+
+- What happened
+- When and where it occurred
+- A friendly user-facing message
+- How the user can get more info
+
+## Timeouts and Cancellation
+
+When writing concurrent code that can be terminated at any time, what things do you need to take into account?
+
+```go
+	reallyLongCalculation := func(
+		done <-chan interface{},
+		value interface{},
+	) interface{} {
+		intermediateResult := longCalculation(done, value)
+		return longCaluclation(done, intermediateResult)
+	}
+
+	var value interface{}
+	select {
+	case <-done:
+		return
+	case value = <-valueStream:
+	}
+	result := reallyLongCalculation(value)
+	select {
+	case <-done:
+		return
+	case resultStream <- result:
+	}
+```
+
+In the above example, we see that we have done two things: define the period within which our concurrent process is preemptable, and ensure that any functionality that takes more time than this period is itself preemptable. An easy way to do this is to break up the pieces of your goroutine into smaller pieces. You should aim for all *nonpreemptable* atomic operations to complete in less time than the period you’ve deemed acceptable. 
+
+There’s another problem lurking here as well: if our goroutine happens to modify shared state — e.g., a database, a file, an in-memory data structure — what happens when the goroutine is canceled? Does your goroutine try and roll back the intermediary work it’s done? How long does it have to do this work? Something has told the goroutine that it should halt, so the goroutine shouldn’t take too long to roll back its work, right?
+
+A general guideline is to keep the surface area we have to worry about rolling back as small as possible. Don't do this:
+
+```go
+result := add(1, 2, 3)
+writeTallyToState(result)
+result = add(result, 4, 5, 6)
+writeTallyToState(result)
+result = add(result, 7, 8, 9)
+writeTallyToState(result)
+```
+
+Instead,
+
+```go
+result := add(1, 2, 3, 4, 5, 6, 7, 8, 9)
+writeTallyToState(result)
+```
+
+If the cancellation comes in after our call to `writeToState`, we still need a way to back out our changes, but the probability that this will happen is much smaller since we only modify state once.
+
+## Heartbeats
+
+Heartbeats are a way for concurrent processes to signal life to outside parties. They get their name from human anatomy wherein a heartbeat signifies life to an observer. 
+
+1.Heartbeats that occur on a time interval.
+
+Heartbeats that occur on a time interval are useful for concurrent code that might be waiting for something else to happen for it to process a unit of work. Because you don’t know when that work might come in, your goroutine might be sitting around for a while waiting for something to happen. A heartbeat is a way to signal to its listeners that everything is well, and that the silence is expected.
+
+We might use them to gather statistics regarding idle time, but the utility for interval-based heartbeats really shines when your goroutine isn’t behaving as expected. 
+
+Consider the next example. We’ll simulate an incorrectly written goroutine with a panic by stopping the goroutine after only two iterations, and then not closing either of our channels.
+
+```go
+doWork := func(
+   done <-chan interface{},
+   pulseInterval time.Duration,
+) (<-chan interface{}, <-chan time.Time) {
+   heartbeat := make(chan interface{})
+   results := make(chan time.Time)
+   go func() {
+      pulse := time.Tick(pulseInterval)
+      workGen := time.Tick(2 * pulseInterval)
+      sendPulse := func() {
+         select {
+         case heartbeat <- struct{}{}:
+         default:
+         }
+      }
+      sendResult := func(r time.Time) {
+         for {
+            select {
+            case <-pulse:
+               sendPulse()
+            case results <- r:
+               return
+            }
+         }
+      }
+      for i := 0; i < 2; i++ {
+         select {
+         case <-done:
+            return
+         case <-pulse:
+            sendPulse()
+         case r := <-workGen:
+            sendResult(r)
+         }
+      }
+   }()
+   return heartbeat, results
+}
+
+done := make(chan interface{})
+time.AfterFunc(10*time.Second, func() { close(done) })
+const timeout = 2 * time.Second
+heartbeat, results := doWork(done, timeout/2)
+for {
+   select {
+   case _, ok := <-heartbeat:
+      if ok == false {
+         return
+      }
+      fmt.Println("pulse")
+   case r, ok := <-results:
+      if ok == false {
+         return
+      }
+      fmt.Printf("results %v\n", r)
+   case <-time.After(timeout):
+      fmt.Println("worker goroutine is not healthy!")
+      return
+   }
+}
+
+// pulse
+// pulse
+// worker goroutine is not healthy!
+```
+
+Within two seconds our system realizes something is amiss with our goroutine and breaks the for-select loop. By using a heartbeat, we have successfully avoided a deadlock, and we remain deterministic by not having to rely on a longer timeout.
+
+2.Heartbeats occur at the beginning of a unit of work. 
+
+Where this technique really shines is in writing tests. 
+
+```go
+func DoWork(
+	done <-chan interface{},
+	nums ...int,
+) (<-chan interface{}, <-chan int) {
+	heartbeat := make(chan interface{}, 1)
+	intStream := make(chan int)
+	go func() {
+		defer close(heartbeat)
+		defer close(intStream)
+		time.Sleep(2 * time.Second)
+		for _, n := range nums {
+			select {
+			case heartbeat <- struct{}{}:
+			default:
+			}
+			select {
+			case <-done:
+				return
+			case intStream <- n:
+			}
+		}
+	}()
+	return heartbeat, intStream
+}
+
+func TestDoWork_GeneratesAllNumbers(t *testing.T) {
+	done := make(chan interface{})
+	defer close(done)
+	intSlice := []int{0, 1, 2, 3, 5}
+	heartbeat, results := DoWork(done, intSlice...)
+    // Here we wait for the goroutine to signal that
+    // it's beginning to process an iteration.
+	<-heartbeat
+	i := 0
+	for r := range results {
+		if expected := intSlice[i]; r != expected {
+			t.Errorf("index %v: expected %v, but received %v,", i, expected, r)
+		}
+		i++
+	}
+}
+```
+
+Because of the heartbeat, we can safely write our test without timeouts. We can assure that the test function will receive a result. 
+
+The only risk we run is of one of our iterations taking an inordinate amount of time. If that’s important to us, we can utilize the safer interval-based heartbeats and achieve perfect safety.
+
+```go
+func DoWork(
+	done <-chan interface{},
+	pulseInterval time.Duration,
+	nums ...int,
+) (<-chan interface{}, <-chan int) {
+	heartbeat := make(chan interface{}, 1)
+	intStream := make(chan int)
+	go func() {
+		defer close(heartbeat)
+		defer close(intStream)
+		time.Sleep(2 * time.Second)
+		pulse := time.Tick(pulseInterval)
+	numLoop:
+		for _, n := range nums {
+			for {
+				select {
+				case <-done:
+					return
+				case <-pulse:
+					select {
+					case heartbeat <- struct{}{}:
+					default:
+					}
+				case intStream <- n:
+					continue numLoop
+				}
+			}
+		}
+	}()
+	return heartbeat, intStream
+}
+
+func TestDoWork_GeneratesAllNumbers(t *testing.T) {
+	done := make(chan interface{})
+	defer close(done)
+	intSlice := []int{0, 1, 2, 3, 5}
+	const timeout = 2 * time.Second
+	heartbeat, results := DoWork(done, timeout/2, intSlice...)
+	<-heartbeat
+	i := 0
+	for {
+		select {
+		case r, ok := <-results:
+			if ok == false {
+				return
+			} else if expected := intSlice[i]; r != expected {
+				t.Errorf(
+					"index %v: expected %v, but received %v,",
+					i,
+					expected,
+					r,
+				)
+			}
+			i++
+		case <-heartbeat: // Select on the heartbeat to keep from timing out 
+		case <-time.After(timeout):
+			t.Fatal("test timed out")
+		}
+	}
+}
+```
+
+Heartbeats aren’t strictly necessary when writing concurrent code. But for any long-running goroutines, or goroutines that need to be tested, they are helpful.
+
+## Replicated Requests
+
+For some applications, receiving a response as quickly as possible is the top priority. In these instances you can make a trade-off: you can replicate the request to multiple handlers (whether those be goroutines, processes, or servers), and one of them will return faster than the other ones; you can then immediately return the result. The downside is that you’ll have to utilize resources to keep multiple copies of the handlers running. 
+
+```go
+func main() {
+	doWork := func(
+		done <-chan interface{},
+		id int,
+		wg *sync.WaitGroup,
+		result chan<- int,
+	) {
+		started := time.Now()
+		defer wg.Done()
+		// Simulate random load
+		simulatedLoadTime := time.Duration(1+rand.Intn(5)) * time.Second
+		select {
+		case <-done:
+		case <-time.After(simulatedLoadTime):
+		}
+		select {
+		case <-done:
+		case result <- id:
+		}
+		took := time.Since(started)
+		// Display how long handlers would have taken
+		if took < simulatedLoadTime {
+			took = simulatedLoadTime
+		}
+		fmt.Printf("%v took %v\n", id, took)
+	}
+	
+	done := make(chan interface{})
+	result := make(chan int)
+	var wg sync.WaitGroup
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go doWork(done, i, &wg, result)
+	}
+	firstReturned := <-result
+	close(done)
+	wg.Wait()
+	fmt.Printf("Received an answer from #%v\n", firstReturned)
+}
+
+// 9 took 3s
+// 8 took 4s
+// 1 took 5s
+// 2 took 1.0005733s
+// 5 took 1.0005733s
+// 6 took 3s
+// 0 took 1.0005733s
+// 4 took 2s
+// 3 took 2s
+// 7 took 2s
+// Received an answer from #2
+```
+
+Notice that You should only replicate out requests like this to handlers that have different runtime conditions: different processes, machines, paths to a data store, or access to different data stores altogether.
+

@@ -2856,3 +2856,184 @@ func makeChange(n int, denoms []int, idx int, memo *[][4]int) int {
    return count
 }
 ```
+
+## 12. Eight Queens
+
+Write an algorithm to print all ways of arranging eight queens on an 8x8 chess board so that none of them share the same row, column, or diagonal. In this case, "diagonal" means ail diagonals, not just the two that bisect the board.
+
+Since each row can only have one queen, we don't have to use a two-dimension array to represent the board. We only need a single array where `columns[r]=c`indicates row r has a queen at column c.
+
+```go
+func EightQueens(row int, columns *[]int) {
+	if row == GRIDSIZE {
+		// Found a solution
+		for r := 0; r < GRIDSIZE; r++ {
+			for c := 0; c < GRIDSIZE; c++ {
+				if (*columns)[r] == c {
+					fmt.Print(1, " ")
+				} else {
+					fmt.Print(0, " ")
+				}
+			}
+			fmt.Println()
+		}
+		fmt.Println("- - - - - - - - ")
+	} else {
+		for col := 0; col < GRIDSIZE; col++ {
+            // Start with placing the first queen at (0, col)
+			if check(columns, row, col) {
+				(*columns)[row] = col
+				EightQueens(row+1, columns)
+			}
+		}
+	}
+}
+
+func check(columns *[]int, row1 int, col1 int) bool {
+	for row2 := 0; row2 < row1; row2++ {
+		col2 := (*columns)[row2]
+		if col1 == col2 {
+			// Two queens are in the same column.
+			return false
+		}
+		colDis, rowDis := int(math.Abs(float64(col2-col1))), row1-row2
+		if colDis == rowDis {
+			// The distance between columns equals the distance between rows
+			// then they are in the same diagonal
+			return false
+		}
+	}
+	return true
+}
+```
+
+## 13. Stack of Boxes
+
+You have a stack of n boxes, with widths `wt` , heights `h`, and depths `dr`. The boxes cannot be rotated and can only be stacked on top of one another if each box in the stack is strictly larger than the box above it in width, height, and depth. Implement a method to compute the height of the tallest possible stack. The height of a stack is the sum of the heights of each box.
+
+First, we choose whether or not to put box 0 in the stack. Take one recursive path with box 0 at the bottom and one recursive path without box 0. Return the better of the two options.
+
+Then, we choose whether or not to put box 1 in the stack. Take one recursive path with box 1 at the bottom and one path without box 1. Return the better of the two options. If we choose box 1, make sure that box 1 can be placed above box 0.
+
+For convenience, we sort boxes in descending order by a dimension such as depth. 
+
+```go
+type Box struct {
+	Width  int
+	Height int
+	Depth  int
+}
+
+func StackOfBoxes(boxes []*Box) int {
+    // Sort boxes in discending order by depth.
+	sort.Slice(boxes, func(i, j int) bool {
+		return boxes[j].Height > boxes[j].Height
+	})
+	stackMap := make([]int, len(boxes))
+	return createStack(boxes, nil, 0, &stackMap)
+}
+
+func createStack(boxes []*Box, btm *Box, idx int, stackMap *[]int) int {
+	if idx >= len(boxes) {
+		return 0
+	}
+	// Create stack with this box.
+	newBtm, heightWithBtm := boxes[idx], 0
+	if btm == nil || canBeAbove(newBtm, btm) {
+		if (*stackMap)[idx] == 0 {
+			(*stackMap)[idx] = createStack(boxes, newBtm, idx+1, stackMap)
+			(*stackMap)[idx] += newBtm.Height
+		}
+		heightWithBtm = (*stackMap)[idx]
+	}
+	// Create stack without this box.
+	heightWithoutBtm := createStack(boxes, btm, idx+1, stackMap)
+	if heightWithBtm > heightWithoutBtm {
+		return heightWithBtm
+	} else {
+		return heightWithoutBtm
+	}
+}
+
+func canBeAbove(b1, b2 *Box) bool {
+	if b2 == nil {
+		return true
+	}
+	return b1.Width < b2.Width && b1.Height < b2.Height && b1.Depth < b2.Depth
+}
+```
+
+## 14. Boolean Evaluation
+
+Given a boolean expression consisting of the symbols 0 (false), 1 (true), & (AND), | (OR) and ^ (XOR), and a desired boolean result value `result`. Implement a function to count the number of ways of parenthesizing the expression such that it evaluates to `result`. The expression should be fully parenthesized (e.g., (0)^(1)) but not extraneously (e.g., ((0))^(1)).
+
+```
+EXAMPLE
+countEval("1^0|0|1", false) -> 2
+```
+
+For example, 
+
+```
+countEval("1^0|0|1", false) = 
+countEval("(1)^(0|0|1)", false) +
+countEval("(1^0)|(0|1)", false) +
+countEval("(1^0|0)|(1)", false)
+```
+
+```go
+func BooleanEvaluation(expr string, result bool) int {
+	return countEval(expr, result, make(map[string]int))
+}
+
+func countEval(expr string, result bool, memo map[string]int) int {
+	if len(expr) == 0 {
+		return 0
+	}
+	if len(expr) == 1 {
+		var boolVal bool
+		if expr == "1" {
+			boolVal = true
+		} else {
+			boolVal = false
+		}
+		if boolVal == result {
+			return 1
+		} else {
+			return 0
+		}
+	}
+	if val, ok := memo[expr+strconv.FormatBool(result)]; ok {
+		return val
+	}
+	
+	ways := 0
+	for i := 1; i < len(expr); i += 2 {
+		op := expr[i]
+		left, right := expr[0:i], expr[i+1:]
+		leftTrue, leftFalse := countEval(left, true, memo), countEval(left, false, memo)
+		rightTrue, rightFalse := countEval(right, true, memo), countEval(right, false, memo)
+		total, totalTrue := (leftTrue+leftFalse)*(rightTrue+rightFalse), 0
+		switch op {
+		// Notice that we multiply the results of the left and right sides.
+		case '&':
+			totalTrue = leftTrue * rightTrue
+		case '|':
+			totalTrue = leftTrue*rightTrue + leftTrue*rightFalse + leftFalse*rightTrue
+		case '^':
+			totalTrue = leftTrue*rightFalse + leftFalse*rightTrue
+		}
+		subWays := 0
+		if result {
+			subWays = totalTrue
+		} else {
+			subWays = total - totalTrue
+		}
+		ways += subWays
+	}
+	memo[expr+strconv.FormatBool(result)] = ways
+	return ways
+}
+```
+
+Our current code is blind to what we do and don't actually need to do and instead just computes all of the values. This is probably a reasonable tradeoff to make (especially given the constraints of whiteboard coding) as it makes our code substantially shorter and less tedious to write. Whichever approach you make, you should discuss the tradeoffs with your interviewer.

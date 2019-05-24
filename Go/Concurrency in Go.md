@@ -1608,3 +1608,148 @@ func main() {
 
 Notice that You should only replicate out requests like this to handlers that have different runtime conditions: different processes, machines, paths to a data store, or access to different data stores altogether.
 
+## Rate Limiting
+
+Rate limiting is such technique which constrains the number of times some kind of resource is accessed to some finite number per unit of time.
+
+Most rate limiting is done by utilizing an algorithm called the **token bucket**. 
+
+Let’s assume that to utilize a resource, you have to have an access token for the resource. Without the token, your request is denied. No imagine these tokens are stored in a bucket waiting to be retrieved for usage. The bucket has a depth of *d*, which indicates it can hold d *access* tokens at a time. We define *r* to be the rate at which tokens are added *back* to the bucket. It can be one a nanosecond, or one a minute. This becomes what we commonly think of as the rate limit: because we have to wait until new tokens become available, we limit our operations to that refresh rate.
+
+We can implement some simple rate limiters with `golang.org/x/time`package.
+
+1.Basic Rate Limiter
+
+```go
+type APIConnection struct {
+	rateLimiter *rate.Limiter
+}
+
+func Open() *APIConnection {
+	return &APIConnection{
+		rateLimiter: rate.NewLimiter(rate.Limit(1), 1),
+	}
+}
+
+func (a *APIConnection) Foo(ctx context.Context) error {
+	if err := a.rateLimiter.Wait(ctx); err != nil {
+		return err
+	}
+	// Do some work...
+	return nil
+}
+
+func (a *APIConnection) Bar(ctx context.Context) error {
+	if err := a.rateLimiter.Wait(ctx); err != nil {
+		return err
+	}
+	// Do some work
+	return nil
+}
+```
+
+- `rate.NewLimiter` returns a new Limiter that allows events up to rate r and permits bursts of at most b tokens. 
+- `rate.Limit` defines the maximum frequency of some events. Limit is represented as **number of events per second**. A zero Limit allows no events.
+- `Wait` is shorthand for `WaitN(ctx, 1)`. `WaitN` blocks until Limiter permits n events to happen.
+
+2.Multiple Time Dimensions
+
+We will probably want to establish multiple tiers of limits: fine-grained controls to limit requests per second, and coarse-grained controls to limit requests per minute, hour, or day.
+
+```go
+type RateLimiter interface {
+	Wait(context.Context) error
+	Limit() rate.Limit
+}
+
+func MultiLimiter(limiters ...RateLimiter) *multiLimiter {
+	sort.Slice(limiters, func(i, j int) bool {
+		// Limit is a type alias of float64
+		return limiters[i].Limit() < limiters[j].Limit()
+	})
+	return &multiLimiter{limiters: limiters}
+}
+
+type multiLimiter struct {
+	limiters []RateLimiter
+}
+
+func (l *multiLimiter) Wait(ctx context.Context) error {
+	for _, l := range l.limiters {
+		if err := l.Wait(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (l *multiLimiter) Limit() rate.Limit {
+	// Because we sort child RateLimiter instances in ascending order by Limit
+	// just return the most restrictive limit
+	return l.limiters[0].Limit()
+}
+```
+
+Now modify `Open`function:
+
+```go
+func Open() *APIConnection {
+	// Every converts a minimum time interval between events to a Limit
+	secondLimit := rate.NewLimiter(rate.Every(2*time.Second), 1)
+	minuteLimit := rate.NewLimiter(rate.Every(10*time.Minute), 10)
+	return &APIConnection{
+		rateLimiter: MultiLimiter(secondLimit, minuteLimit),
+	}
+}
+```
+
+3.Limit More Than One Things
+
+You’ll likely have some kind of limit on the number of API requests, but in addition, you’ll probably also have limits on other resources like disk access, network access, etc.
+
+```go
+type APIConnection struct {
+   networkLimit,
+   diskLimit,
+   apiLimit RateLimiter
+}
+
+func Open() *APIConnection {
+   return &APIConnection{
+      apiLimit: MultiLimiter(
+         rate.NewLimiter(rate.Every(2*time.Second), 2),
+         rate.NewLimiter(rate.Every(10*time.Minute), 10),
+      ),
+      diskLimit: MultiLimiter(
+         rate.NewLimiter(rate.Limit(1), 1),
+      ),
+      networkLimit: MultiLimiter(
+         rate.NewLimiter(rate.Every(3*time.Second), 3),
+      ),
+   }
+}
+
+func (a *APIConnection) Foo(ctx context.Context) error {
+   if err := MultiLimiter(a.apiLimit, a.diskLimit).Wait(ctx); err != nil {
+      return err
+   }
+   // Do some work...
+   return nil
+}
+
+func (a *APIConnection) Bar(ctx context.Context) error {
+   if err := MultiLimiter(a.apiLimit, a.networkLimit).Wait(ctx); err != nil {
+      return err
+   }
+   // Do some work...
+   return nil
+}
+```
+
+## Healing Unhealthy Goroutines
+
+It can be very easy for a long-lived goroutine to become stuck in a bad state from which it cannot recover without external help. 
+
+To heal goroutines, we’ll use our heartbeat pattern to check up on the liveliness of the goroutine we’re monitoring. The type of heartbeat will be determined by what you’re trying to monitor, but if your goroutine can become **livelocked**, make sure that the heartbeat contains some kind of information indicating that the goroutine is not only up, but doing useful work.
+
+We’ll call the logic that monitors a goroutine’s health a *steward*, and the goroutine that it monitors a *ward*. Stewards will also be responsible for restarting a ward’s goroutine should it become unhealthy. To do so, it will need a reference to a function that can start the goroutine.

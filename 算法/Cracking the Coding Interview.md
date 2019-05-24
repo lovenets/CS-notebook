@@ -3037,3 +3037,215 @@ func countEval(expr string, result bool, memo map[string]int) int {
 ```
 
 Our current code is blind to what we do and don't actually need to do and instead just computes all of the values. This is probably a reasonable tradeoff to make (especially given the constraints of whiteboard coding) as it makes our code substantially shorter and less tedious to write. Whichever approach you make, you should discuss the tradeoffs with your interviewer.
+
+# Sorting and Searching
+
+**Common Sorting Algorithms**
+
+| Algorithm                                                    | Runtime                                                      | Memory       |
+| ------------------------------------------------------------ | ------------------------------------------------------------ | ------------ |
+| Bubble Sort                                                  | $$O(n^2)$$ average and worst case                            | $$O(1)$$     |
+| Selection Sort                                               | $$O(n^2)$$ average and worst case                            | $$O(1)$$     |
+| Merge Sort                                                   | $$O(nlogn)$$ average and worst case                          | Depends      |
+| Quick Sort                                                   | #                                                            | $$O(nlogn)$$ |
+| [Radix Sort](<http://bubkoo.com/2014/01/15/sort-algorithm/radix-sort/>) | $$(kn)$$ where n is the number of elements and k is the number of passes of the sorting algorithm |              |
+
+**Searching Algorithms**
+
+When we think of searching algorithms, we generally think of binary search. Indeed, this is a very useful algorithm to study. However, think beyond binary search.
+
+## 1. Sorted Merge
+
+You are given two sorted arrays, A and B, where A has a large enough buffer at the end to hold B. Write a method to merge B into A in sorted order.
+
+To avoid shifting elements, we insert elements into the back of the array, where there's empty space.
+
+```go
+func MergeSorted(A, B []int) []int {
+	if len(A) == 0 {
+		return nil
+	}
+	indexA, indexB := len(A)-1, len(B)-1
+	indexMerged := len(A) + len(B) - 1
+	for indexB >= 0 {
+		if indexA >= 0 && A[indexA] > B[indexB] {
+			A[indexMerged], indexA = A[indexA], indexA-1
+		} else {
+			A[indexMerged], indexB = B[indexB], indexB-1
+		}
+		indexMerged--
+	}
+	return A
+}
+```
+
+$$O(n)$$ time, $$O(1)$$ space.
+
+## 2. Group Anagrams
+
+Write a method to sort an array of strings so that all the anagrams are next to each other.
+
+One way to do this is to just apply any standard sorting algorithm, like merge sort or quick sort, and modify the comparator. This comparator will be used to indicate that two strings which are anagrams of each other are equivalent.
+
+```go
+func GroupAnagrams(strs []string) []string {
+   sort.Slice(strs, func(i, j int) bool {
+      runes1, runes2 := []rune(strs[i]), []rune(strs[j])
+      // Sort characters.
+      sort.Slice(runes1, func(i, j int) bool {
+         return runes1[i] < runes1[j]
+      })
+      sort.Slice(runes2, func(i, j int) bool {
+         return runes2[i] < runes2[j]
+      })
+      // Check if sorted characters of two strings are equal
+      return strings.Compare(string(runes1), string(runes2)) == 0
+   })
+   return strs
+}
+```
+
+We can do this by using a hash table which maps from the sorted version of a word to a list of its anagrams. So, for example, a c r e will map to the list `{ "acre", "race", "care" }` . Once we've grouped all the words into these lists by anagram, we can then put them back into the array. Actually, it's a modification of bucket sort.
+
+```go
+func GroupAnagrams(strs []string) []string {
+	sortRunes := func(s string) string {
+		runes := []rune(s)
+		sort.Slice(runes, func(i, j int) bool {
+			return runes[i] > runes[j]
+		})
+		return string(runes)
+	}
+	m := make(map[string][]string)
+	for _, s := range strs {
+		sorted := sortRunes(s)
+		if _, ok := m[sorted]; !ok {
+			m[sorted] = make([]string, 0)
+		}
+		m[sorted] = append(m[sorted], s)
+	}
+	idx := 0
+	for k := range m {
+		for _, s := range m[k] {
+			strs[idx] = s
+			idx++
+		}
+	}
+	return strs
+}
+```
+
+Average case will cost $$O(n^2logn)$$ time, $$O(n)$$ space.
+
+## 3. Search in Rotated Array
+
+Given a sorted array of n integers that has been rotated an unknown number of times, write code to find an element in the array. You may assume that the array was originally sorted in increasing order.
+
+```
+EXAMPLE
+Input: array: {15, 16, 19, 20, 25, 1, 3, 4, 5, 7, 10, 14}, target: 5
+Output: 8 (the index of 5 in the array)
+```
+
+Do it in binary search.
+
+(1)
+
+ Since the array is just locally sorted, when the middle isn't the target, we need to search both left half and right half.
+
+```go
+func SearchInRotatedArray(arr []int, target int) int {
+	if len(arr) == 0 {
+		return -1
+	}
+	mid := len(arr) / 2
+	if arr[mid] == target {
+		return mid
+	}
+	res := make(chan int)
+	go bs(arr, target, 0, mid-1, res)
+	go bs(arr, target, mid+1, len(arr)-1, res)
+	return <-res
+}
+
+func bs(arr []int, target int, low int, high int, res chan int) {
+	if low > high {
+		return
+	}
+	mid := low + (high-low)/2
+	if arr[mid] == target {
+		res <- mid
+		return
+	}
+	bs(arr, target, low, mid-1, res)
+	bs(arr, target, mid+1, high, res)
+}
+```
+
+(2) 
+
+Given two arrays:
+
+```
+Array1: {10, 15, 20, 0, 5}
+Array2: {50, 5, 20, 30, 40}
+```
+
+For example, if we are searching for 5 in Array1 , we can look at the left element (10) and middle element (20). Since 10 < 20, the left half must be ordered normally. And, since 5 is not between those, we know that we must search the right half.
+
+In Array2, we can see that since 50 > 20, the right half must be ordered normally. We turn to the middle (20) and right (40) element to check if 5 would fall between them. The value 5 would not; therefore, we search the left half.
+
+The tricky condition is if the left and the middle are identical, as in the example array { 2 , 2, 2, 3, 4, 2}. In this case, we can check if the rightmost element is different. If it is, we can search just the right side. Otherwise, we have no choice but to search both halves.
+
+```go
+func SearchInRotatedArray(arr []int, target int) int {
+	if len(arr) == 0 {
+		return -1
+	}
+	return bs(arr, target, 0, len(arr)-1)
+}
+
+func bs(arr []int, target int, low int, high int) int {
+	mid := low + (high-low)/2
+	if target == arr[mid] {
+		return mid
+	}
+	if high < low {
+		return -1
+	}
+	// While there may be an inflection point due to the rotation, either the left or
+	// right half must be normally ordered.  We can look at the normally ordered half
+	// to make a determination as to which half we should search.
+	if arr[low] < arr[mid] {
+		// Left half is normally ordered.
+		if target >= arr[low] && target < arr[mid] {
+			return bs(arr, target, low, mid-1)
+		} else {
+			return bs(arr, target, mid+1, high)
+		}
+	} else if arr[mid] < arr[high] {
+		// Left half is normally ordered.
+		if target > arr[mid] && target <= arr[high] {
+			return bs(arr, target, mid+1, high)
+		} else {
+			return bs(arr, target, low, mid-1)
+		}
+	} else if arr[low] == arr[mid] {
+		// Left is either all repeats OR loops around (with the right half being all dups)
+		if arr[mid] != arr[high] {
+			// Right half is different 
+			return bs(arr, target, mid+1, high)
+		} else {
+			// We need to search both halves
+			if res := bs(arr, target, low, mid-1); res != -1 {
+				return res
+			} else {
+				return bs(arr, target, mid+1, high)
+			}
+		}
+	}
+	return -1
+}
+```
+
+This code will run in $$O(logn)$$ if all the elements are unique. However, with many duplicates, the algorithm is actually $$O(n)$$. This is because with many duplicates, we will often have to search both the left and right sides of the array (or subarrays).

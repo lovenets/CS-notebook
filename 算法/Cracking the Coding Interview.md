@@ -3249,3 +3249,84 @@ func bs(arr []int, target int, low int, high int) int {
 ```
 
 This code will run in $$O(logn)$$ if all the elements are unique. However, with many duplicates, the algorithm is actually $$O(n)$$. This is because with many duplicates, we will often have to search both the left and right sides of the array (or subarrays).
+
+## 4. Sorted Search, No Size
+
+You are given an array-like data structure Listy which lacks a size method. It does, however, have an `elementAt(i)` method that returns the element at index `i` in $$O(1)$$ time. If `i` is beyond the bounds of the data structure, it returns -1. (For this reason, the data structure only supports positive integers.) Given a Listy which contains sorted, positive integers, find the index at which an element x occurs. If x occurs multiple times, you may return any index.
+
+We know that `elementAt` will return -1 when `i` is too large. We can therefore just try bigger and bigger values until we exceed the size of the list. It's better to back off exponentially. Try 1, then 2, then 4, then 8, then 16, and so on. This ensures that, if the list has length n, we'll find the length in at most $$O(logn)$$ time.
+
+```go
+func SortedSearchNoSize(l Listy, x int) int {
+   idx := 1
+   for e := l.ElementAt(idx); e != -1 && e < x; idx *= 2 {
+   }
+   return binarySearch(l, x, idx/2, idx)
+}
+
+func binarySearch(l Listy, x int, left int, right int) int {
+   for left <= right {
+      mid := left + (right-left)/2
+      if middle := l.ElementAt(mid); middle > x || middle == -1 {
+         // If the middle is -1, then we need treat this as a too big value
+         right = mid - 1
+      } else if middle < x {
+         left = mid + 1
+      } else {
+         return mid
+      }
+   }
+   return -1
+}
+```
+
+## 5. Sparse Search
+
+Given a sorted array of strings that is interspersed with empty strings, write a method to find the location of a given string. 
+
+If it weren't for the empty strings, we could simply use binary search. With empty strings interspersed, we can implement a simple modification of binary search. All we need to do is fix the comparison against mid, in case mid is an empty string. We simply move mid to the closest non-empty string.
+
+```go
+func SparseSearch(strs []string, str string) int {
+	if len(strs) == 0 || str == "" {
+		return -1
+	}
+	left, right := 0, len(strs)-1
+	mid := left + (right-left)/2
+	for left <= right {
+		if middle := strs[mid]; middle == str {
+			return mid
+		} else if middle == "" {
+			// Find the closet non-empty string
+			l, r := mid-1, mid+1
+			for {
+				if l < left && r > right {
+					return -1
+				} else if r < right && strs[r] != "" {
+					mid = right
+					break
+				} else if l > left && strs[l] != "" {
+					mid = left
+					break
+				}
+				l, r = l-1, r+1
+			}
+		} else if strings.Compare(str, middle) == 1 {
+			left = mid + 1
+		} else {
+			right = mid - 1
+		}
+	}
+	return -1
+}
+```
+
+The worst-case runtime for this algorithm is $$O(n)$$ . In fact, it's impossible to have an algorithm for this problem that is better than $$O(n)$$ in the worst case. After all, you could have an array of all empty strings except for one non-empty string. There is no "smart" way to find this non-empty string. In the worst case, you will need to look at every element in the array.
+
+## 6. Sort Big File
+
+Imagine you have a 20 GB file with one string per line. Explain how you would sort the file.
+
+We'll divide the file into chunks, which are x megabytes each, where x is the amount of memory we have available. Each chunk is sorted separately and then saved back to the file system. Once alt the chunks are sorted, we merge the chunks, one by one. At the end, we have a fully sorted file. 
+
+This algorithm is known as **external sort**.

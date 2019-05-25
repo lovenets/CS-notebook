@@ -1753,3 +1753,124 @@ It can be very easy for a long-lived goroutine to become stuck in a bad state fr
 To heal goroutines, we’ll use our heartbeat pattern to check up on the liveliness of the goroutine we’re monitoring. The type of heartbeat will be determined by what you’re trying to monitor, but if your goroutine can become **livelocked**, make sure that the heartbeat contains some kind of information indicating that the goroutine is not only up, but doing useful work.
 
 We’ll call the logic that monitors a goroutine’s health a *steward*, and the goroutine that it monitors a *ward*. Stewards will also be responsible for restarting a ward’s goroutine should it become unhealthy. To do so, it will need a reference to a function that can start the goroutine.
+
+# Goroutines and the Go Runtime
+
+## Work Stealing
+
+Go will handle multiplexing goroutines onto OS threads for you. The algorithm it uses to do this is known as a **work stealing** strategy.
+
+1. At a fork point, add tasks to the tail of the deque associated with the
+thread.
+2. If the thread is idle, steal work from the head of deque associated
+with some other random thread.
+
+3. At a join point that cannot be realized yet (i.e., the goroutine it is
+synchronized with has not completed yet), pop work off the tail of
+the thread’s own deque.
+4. If the thread’s deque is empty, either:
+a. Stall at a join.
+b. Steal work from the head of a random thread’s associated
+deque.
+
+*Optimization*
+
+Go’s scheduler has three main concepts:
+
+- goroutines
+- OS threads 
+- contexts (also referenced as processors)
+
+![Go's scheduler](img/Go's scheduler.jpg)
+
+The `GOMAXPROCS` setting controls how many contexts are available for use by the runtime. The default setting is for there to be one context per logical CPU on the host machine. Unlike contexts, there may be more or less OS threads than cores to help Go’s runtime manage things like garbage collection and goroutines. That means, there will always be at least enough OS threads available to handle hosting every context. This allows the runtime to make an important optimization.
+
+**If a goroutine is blocked, the OS thread that hosts the goroutine would also be blocked.** What Go does when a goroutine is blocked is dissociate the context from the OS thread so that the context can be handed off to another, unblocked, OS thread. This allows the context to schedule further goroutines, which allows the runtime to keep the host machine’s CPUs active. The blocked goroutine remains associated with the blocked thread. 
+
+When the goroutine eventually becomes unblocked, the host OS thread attempts to steal back a context from one of the other OS threads so that it can continue executing the previously blocked goroutine. However, sometimes this is not always possible. In this case, the thread will place its goroutine on a *global* context, the thread will go to sleep, and it will be put into the runtime’s thread pool for future use (for instance, if a goroutine becomes blocked again). 
+
+The global context we just mentioned doesn’t fit into our prior discussions of abstract work-stealing algorithms. It’s an implementation detail that is necessitated by how Go is optimizing CPU utilization. Periodically, a context will check the global context to see if there are any goroutines there, and when a context’s queue is empty, it will first check the global context for work to steal before checking other OS threads’ contexts.
+
+# Appendix
+
+## Anatomy of a Goroutine Error
+
+Go 1.6 and greater greatly simplify things by printing only the stack trace of the panicking goroutine.
+
+```go
+package main
+
+func main() {
+    waitForever := make(chan interface{})
+    go func() {
+        panic("test panic")
+    }()
+    <-waitForever
+}
+
+panic: test panic
+
+// goroutine 19 [running]:
+// main.main.func1()     ----->1
+//	 main.go:14 +0x40    ----->2
+// created by main.main
+//	 main.go:13 +0x5f    ----->3
+```
+
+1. Indicates the name of the function running as a goroutine. If it’s an
+   anonymous function as in this example, an automatic and unique identifier is assigned.
+2. Refers to where the panic occurred.
+3. Refers to where the goroutine was started.
+
+If you’d like to see the stack traces of all the goroutines that were executing when the program panicked, you can enable the old behavior by setting the `GOTRACEBACK` environmental variable to `all`.
+
+## Race Detection
+
+In Go 1.1, a -race flag was added as a flag for most go commands to detect race conditions:
+
+```shell
+$ go test -race mypkg # test the package
+$ go run -race mysrc.go # compile and run the program
+$ go build -race mycmd # build the command
+$ go install -race mypkg # install the package
+```
+
+One caveat of using the race detector is that the algorithm will only find races that are contained in code that is exercised. For this reason, the Go team recommends running a build of your application built with the race flag under real-world load. This increases the probability of finding races by virtue of increasing the probability that more code is exercised.
+
+## pprof
+
+pprof is a tool that was created at Google and can display profile data either while a program is running, or by consuming saved runtime statistics. The usage of the program is pretty well described by its help flag.
+
+The `runtime/pprof` package is pretty simple, and has predefined profiles to hook into and display:
+
+```
+goroutine - stack traces of all current goroutines
+heap - a sampling of all heap allocations
+threadcreate - stack traces that led to the creation of new OS threads
+block - stack traces that led to blocking on synchronization
+primitives
+mutex - stack traces of holders of contended mutexes
+```
+
+For example, here’s a goroutine that can help you detect goroutine leaks:
+
+```go
+func main() {
+	log.SetFlags(log.Ltime | log.LUTC)
+	log.SetOutput(os.Stdout)
+	// Every second, log how many goroutines are currently running.
+	go func() {
+		goroutines := pprof.Lookup("goroutine")
+		for range time.Tick(1 * time.Second) {
+			log.Printf("goroutine count: %d\n", goroutines.Count())
+		}
+	}()
+	// Create some goroutines which will never exit.
+	var blockForever chan struct{}
+	for i := 0; i < 10; i++ {
+		go func() { <-blockForever }()
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+```
+

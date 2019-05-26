@@ -3588,3 +3588,166 @@ public class SortedMatrixSearch {
 }
 ```
 
+## 10. Rank from Stream
+
+Imagine you are reading in a stream of integers. Periodically, you wish to be able to look up the rank of a number x (the number of values less than or equal to x). Implement the data structures and algorithms to support these operations. That is, implement the method `track(int x)`, which is called when each number is generated, and the method `getRankOfNumber(int x)`, which returns the number of values less than or equal to x (not including x itself).
+
+```
+EXAMPLE
+Stream (in order of appearance): 5, 1, 4, 4, 5, 9, 7 , 13, 3
+getRankOfNumber(1) = 0
+getRank0fNumber(3) = 1
+getRank0fNumber(4) = 3
+```
+
+Instead of inserting elements into an array, we insert elements into a binary search tree. The method `track(int x)` will run in $$O(logn)$$ time, where n is the size of the tree (provided, of course, that the tree is balanced). 
+
+To find the rank of a number, we could do an in-order traversal, keeping a counter as we traverse. The goal Is that, by the time we find x, counter will equal the number of elements less than x. As long as we're moving left during searching for x, the counter won't change. Why? Because all the values we're skipping on the right side are greater than x. After all, the very smallest element (with rank of 1) is the leftmost node.
+
+```go
+type RankNode struct {
+	Val      int
+	Left     *RankNode
+	Right    *RankNode
+	LeftSize int
+}
+
+func (n *RankNode) insert(num int) {
+	if num < n.Val {
+		if n.Left == nil {
+			n.Left = &RankNode{
+				Val:      num,
+				Left:     nil,
+				Right:    nil,
+				LeftSize: 0,
+			}
+		} else {
+			n.Left.insert(num)
+		}
+		n.LeftSize++
+	} else {
+		if n.Right == nil {
+			n.Right = &RankNode{
+				Val:      num,
+				Left:     nil,
+				Right:    nil,
+				LeftSize: 0,
+			}
+		} else {
+			n.Right.insert(num)
+		}
+	}
+}
+
+func (n *RankNode) rankOf(num int) int {
+	if n == nil {
+		return -1
+	}
+	if v := n.Val; v == num {
+		return n.LeftSize
+	} else if v < num {
+		if n.Left == nil {
+			return -1
+		} else {
+			return n.Left.rankOf(num)
+		}
+	} else {
+		if n.Right == nil {
+			return -1
+		} else {
+			return n.Right.rankOf(num) + n.LeftSize + 1
+		}
+	}
+}
+
+func Track(num int, root *RankNode) *RankNode {
+	if root == nil {
+		root = &RankNode{
+			Val:      num,
+			Left:     nil,
+			Right:    nil,
+			LeftSize: 0,
+		}
+	} else {
+		root.insert(num)
+	}
+	return root
+}
+
+func GetRankOfNumber(num int, root *RankNode) int {
+	return root.rankOf(num)
+}
+```
+
+The `track`method and the `getRankOfNumber` method will both operate in $$O(logN)$$ on a balanced tree and $$O(N)$$ on an unbalanced tree.
+
+## 11. Peaks and Valleys
+
+In an array of integers, a "peak" is an element which is greater than or equal to the adjacent integers and a "valley" is an element which is less than or equal to the adjacent integers. For example, in the array `(5, 8, 6, 2, 3, 4, 6)`, `(8,6)` are peaks and `(5, 2)` are valleys. Given an array of integers, sort the array into an alternating sequence of peaks and valleys.
+
+```
+EXAMPLE
+Input: {5,3,1,2,3}
+Output: {5,1,3,2,3}
+```
+
+(1)
+
+1. Sort the array in ascending order.
+2. Iterate through the elements, starting from index 1 (not 0) and jumping two elements at a time.
+3. At each element, swap it with the previous element. Since every three elements appear in the order small <= medium <= large, swapping these elements will always put medium as a peak: medium <= small <= large . 
+
+```go
+func PeaksAndValleys(arr []int) []int {
+	if len(arr) == 0 {
+		return nil
+	}
+	sort.Ints(arr)
+	for i := 1; i < len(arr); i += 2 {
+		arr[i-1], arr[i] = arr[i], arr[i-1]
+	}
+	return arr
+}
+```
+
+$$O(nlogn)$$ time.
+
+(2) 
+
+We can fix this sequence by swapping the center element with the largest adjacent element. By doing this, we can make sure that each center element is a peak.
+
+```
+func PeaksAndValleys(arr []int) []int {
+	if len(arr) == 0 {
+		return nil
+	}
+	for i := 1; i < len(arr); i += 2 {
+		if idx := maxIndex(arr, i-1, i, i+1); idx != i {
+			arr[i], arr[idx] = arr[idx], arr[i]
+		}
+	}
+	return arr
+}
+
+func maxIndex(arr []int, a int, b int, c int) int {
+	val := func(i int) int {
+		if i >= 0 && i < len(arr) {
+			return arr[i]
+		} else {
+			return math.MinInt64
+		}
+	}
+	aVal, bVal, cVal := val(a), val(b), val(c)
+	max := int(math.Max(float64(aVal), math.Max(float64(bVal), float64(cVal))))
+	if max == aVal {
+		return a
+	} else if max == bVal {
+		return b
+	} else {
+		return c
+	}
+}
+```
+
+$$O(n)$$ time.
+

@@ -3330,3 +3330,261 @@ Imagine you have a 20 GB file with one string per line. Explain how you would so
 We'll divide the file into chunks, which are x megabytes each, where x is the amount of memory we have available. Each chunk is sorted separately and then saved back to the file system. Once alt the chunks are sorted, we merge the chunks, one by one. At the end, we have a fully sorted file. 
 
 This algorithm is known as **external sort**.
+
+## 7. Missing Int
+
+Given an input file with four billion non-negative integers, provide an algorithm to generate an integer that is not contained in the file. Assume you have 1 GB of memory available for this task.
+
+We have 1 GB of memory, or 8 billion bits. Thus, with 8 billion bits, we can map all possible integers to a distinct bit with the available memory. The logic is as follows:
+1. Create a [bit vector (BV)](<https://en.wikipedia.org/wiki/Bit_array>) with 4 billion bits. Recall that a bit vector is an array that compactly stores boolean values by using an array of ints (or another data type). Each int represents 32 boolean values.
+2. Initialize BV with all 0s.
+3. Scan all numbers (num) from the file and call BV.set(num, 1).
+4. Now scan again BVfrom the 0th index.
+5. Return the first index which has a value of 0.
+
+```go
+func MissingInt(filename string) int {
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Println(err)
+		return -1
+	}
+	defer file.Close()
+
+	bv := make([]byte, math.MaxInt64/8)
+	rd := bufio.NewReader(file)
+	for s, err := rd.ReadString('\n'); err == nil; {
+		n, err := strconv.Atoi(s[:len(s)-1])
+		if err != nil {
+			log.Println(err)
+			return -1
+		}
+		// Finds the corresponding number in the bitfield by using
+		// the OR operator to set the nth bit of a byte
+		// (e.g., 10 would correspond to bit 2 of index 1 in
+		// the byte array).
+		bv[n/8] |= 1 << uint(n%8)
+	}
+	for i := 0; i < len(bv); i++ {
+		for j := 0; j < 8; j++ {
+			//Retrieves the individual bits of each byte. When 0 bit
+			// is found, finds the corresponding value.
+			if bv[i]&(1<<uint(j)) == 0 {
+				return i*8 + j
+			}
+		}
+	}
+	return -1
+}
+```
+
+## 8. Find Duplicates
+
+You have an array with all the numbers from 1 to N, where N is at most 32,000. The array may have duplicate entries and you do not know what N is. With only 4 kilobytes of memory available, how would you print all duplicate elements in the array?
+
+Just implement a simple bit vector (bit set/bit map, whatever).
+
+```go
+func FindDuplicates(arr []int) {
+	bs := NewBitset(32000)
+	for i := 0; i < len(arr); i++ {
+		num := arr[i]
+		num0 := num - 1 // Bitset starts at 0, numbers start at 1
+		if bs.Get(num0) {
+			fmt.Println(num)
+		} else {
+			bs.Set(num0)
+		}
+	}
+}
+
+type BitSet struct {
+	bitset []int
+}
+
+func NewBitset(size int) *BitSet {
+	return &BitSet{make([]int, (size>>5)+1)}
+}
+
+func (bs *BitSet) Get(pos int) bool {
+	wordNumber := pos >> 5  // divide by 32
+	bitNumber := pos & 0x1f // mod 32
+	return bs.bitset[wordNumber]&(1<<uint(bitNumber)) == 1
+}
+
+func (bs *BitSet) Set(pos int) {
+	wordNumber := pos >> 5
+	bitNumber := pos & 0x1f
+	bs.bitset[wordNumber] |= 1 << uint(bitNumber)
+}
+```
+
+## 9. Sorted Matrix Search
+
+Given an M x N matrix in which each row and each column is sorted in ascending order, write a method to find an element.
+
+(1) Binary search
+
+```go
+func SortedMatrixSearch(matrix [][]int, target int) bool {
+	if len(matrix) == 0 || len(matrix[0]) == 0 {
+		return false
+	}
+	rows, cols := len(matrix), len(matrix[0])
+	bs := func(r int) bool {
+		left, right := 0, cols-1
+		for left <= right {
+			mid := left + (right-left)/2
+			if num := matrix[r][mid]; num == target {
+				return true
+			} else if num > target {
+				right = mid - 1
+			} else {
+				left = mid + 1
+			}
+		}
+		return false
+	}
+	// Do binary search in each row.
+	for r := 0; r < rows; r++ {
+		if bs(r) {
+			return true
+		}
+	}
+	return false
+}
+```
+
+The worst case costs $$O(MlogN)$$ time.
+
+(2) Linear search
+
+```go
+func SortedMatrixSearch(matrix [][]int, target int) bool {
+	if len(matrix) == 0 || len(matrix[0]) == 0 {
+		return false
+	}
+	rows, cols := len(matrix), len(matrix[0])
+	for r, c := 0, cols; r < rows && c >= 0; {
+		if num := matrix[r][c]; num == target {
+			return true
+		} else if num > target {
+			c--
+		} else {
+			// Current number is less than target
+			// so previous ones in the row are also less
+			r++
+		}
+	}
+	return false
+}
+```
+
+The worst case in which all numbers in matrix are greater than target costs $$O(MN)$$ time.
+
+(3) 
+
+Suppose we were searching for the value 85. If we look along the diagonal, we'll find the elements 35 and 95. What does this tell us about the location of 85?
+
+![Cracking the coding interview_10_9_1](img/Cracking the coding interview_10_9_1.jpg)
+
+85 can't be in the red area, since 95 is in the upper left hand corner and is therefore the smallest element in that square.
+
+85 can't be in the yellow area either, since 35 is in the lower right hand corner of that square.
+
+85 must be in one of the two other areas.
+
+So, we partition our grid into four quadrants and recursively search the lower left quadrant and the upper right quadrant. These, too, will get divided into quadrants and searched. Observe that since the diagonal is sorted, we can efficiently search it using binary search.
+
+```java
+public class Coordinate implements Cloneable {
+	public int row;
+	public int column;
+	public Coordinate(int r, int c) {
+		row = r;
+		column = c;
+	}
+	
+	public boolean inbounds(int[][] matrix) {
+		return 	row >= 0 &&
+				column >= 0 &&
+				row < matrix.length &&
+				column < matrix[0].length;
+	}
+	
+	public boolean isBefore(Coordinate p) {
+		return row <= p.row && column <= p.column;
+	}
+	
+	public Object clone() { 
+		return new Coordinate(row, column);
+	}
+	
+	public void moveDownRight() {
+		row++;
+		column++;
+	}
+	
+	public void setToAverage(Coordinate min, Coordinate max) {
+		row = (min.row + max.row) / 2;
+		column = (min.column + max.column) / 2;
+	}
+}
+
+public class SortedMatrixSearch {
+	
+	public static Coordinate partitionAndSearch(int[][] matrix, Coordinate origin, Coordinate dest, Coordinate pivot, int x) {
+		Coordinate lowerLeftOrigin = new Coordinate(pivot.row, origin.column);
+		Coordinate lowerLeftDest = new Coordinate(dest.row, pivot.column - 1);
+		Coordinate upperRightOrigin = new Coordinate(origin.row, pivot.column);
+		Coordinate upperRightDest = new Coordinate(pivot.row - 1, dest.column);
+		
+		Coordinate lowerLeft = findElement(matrix, lowerLeftOrigin, lowerLeftDest, x);
+		if (lowerLeft == null) {
+			return findElement(matrix, upperRightOrigin, upperRightDest, x);
+		}
+		return lowerLeft;
+	}
+	
+	public static Coordinate findElement(int[][] matrix, Coordinate origin, Coordinate dest, int x) {
+		if (!origin.inbounds(matrix) || !dest.inbounds(matrix)) {
+			return null;
+		}
+		if (matrix[origin.row][origin.column] == x) {
+			return origin;
+		} else if (!origin.isBefore(dest)) {
+			return null;
+		}
+		
+		/* Set start to start of diagonal and end to the end of the diagonal. Since
+		 * the grid may not be square, the end of the diagonal may not equal dest.
+		 */
+		Coordinate start = (Coordinate) origin.clone();
+		int diagDist = Math.min(dest.row - origin.row, dest.column - origin.column);
+		Coordinate end = new Coordinate(start.row + diagDist, start.column + diagDist);
+		Coordinate p = new Coordinate(0, 0);
+		
+		/* Do binary search on the diagonal, looking for the first element greater than x */
+		while (start.isBefore(end)) {
+			p.setToAverage(start, end);
+			if (x > matrix[p.row][p.column]) {
+				start.row = p.row + 1;
+				start.column = p.column + 1;
+			} else {
+				end.row = p.row - 1;
+				end.column = p.column - 1;
+			}
+		}
+		
+		/* Split the grid into quadrants. Search the bottom left and the top right. */ 
+		return partitionAndSearch(matrix, origin, dest, start, x);
+	}
+	
+	public static Coordinate findElement(int[][] matrix, int x) {
+		Coordinate origin = new Coordinate(0, 0);
+		Coordinate dest = new Coordinate(matrix.length - 1, matrix[0].length - 1);
+		return findElement(matrix, origin, dest, x);
+	}
+}
+```
+

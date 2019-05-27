@@ -3751,3 +3751,156 @@ func maxIndex(arr []int, a int, b int, c int) int {
 
 $$O(n)$$ time.
 
+# Threads and Locks
+
+A deadlock is a situation where a thread is waiting for an object lock that another thread holds, and this second thread is waiting for an object lock that the first thread holds (or an equivalent situation with several threads). Since each thread is waiting for the other thread to relinquish a lock, they both remain waiting forever. The threads are said to be deadlocked. 
+
+In order for a deadlock to occur, you must have all four of the following conditions met:
+
+- Mutual Exclusion: Only one process can access a resource at a given time. (Or, more accurately, there is limited access to a resource, A deadlock could also occur if a resource has limited quantity.)
+- Hold and Wait: Processes already holding a resource can request additional resources, without relinquishing their current resources.
+- No Preemption: One process cannot forcibly remove another process'resource.
+- Circular Wait: Two or more processes form a circular chain where each process is waiting on another resource in the chain. 
+
+## 1. Thread vs. Process
+
+What's the difference between a thread and a process? 
+
+A process can be thought of as an instance of a program in execution. A process is an independent entity to which system resources (e.g., CPU time and memory) are allocated. 
+
+A thread exists within a process and shares the process' resources (including its heap space). Multiple threads within the same process will share the same heap space.This is very different from processes, which cannot directly access the memory of another process. Each thread still has its own registers and its own stack, but other threads can read and write the heap memory.
+
+## 2. Context Switch
+
+How would you measure the time spent in a context switch?
+
+
+
+## 3. Dining Philosophers
+
+In the famous dining philosophers problem, a bunch of philosophers are sitting around a circular table with one chopstick between each of them. A philosopher needs both chopsticks to eat, and always picks up the left chopstick before the right one. A deadlock could potentially occur if all the philosophers reached for the left chopstick at the same time. Using threads and locks, implement a simulation of the dining philosophers problem that prevents deadlocks.
+
+(1)
+
+To prevent deadlocks, we can implement a strategy where a philosopher will put down his left chopstick if he is unable to obtain the right one.
+
+```go
+func DinningPhilosophers(n int) {
+	chopsticks := make([]*Chopstick, n)
+	for i := 0; i < n; i++ {
+		chopsticks[i] = new(Chopstick)
+	}
+	philosophers := make([]*Philosopher, n)
+	for i := range philosophers {
+		philosophers[i] = &Philosopher{i, chopsticks[i], chopsticks[(i+1)%n]}
+	}
+    //...
+}
+
+type Chopstick struct{ sync.Mutex }
+
+func (cp *Chopstick) pickup() bool {
+	timeout := make(chan bool)
+	go func() {
+		time.Sleep(3 * time.Minute)
+		timeout <- true
+	}()
+	success := make(chan bool)
+	go func() {
+		cp.Lock()
+		success <- true
+	}()
+	for {
+		select {
+		case <-timeout:
+			return false
+		case <-success:
+			return true
+		default:
+		}
+	}
+}
+
+func (cp *Chopstick) putdown() {
+	cp.Unlock()
+}
+
+type Philosopher struct {
+	id                  int
+	leftFork, rightFork *Chopstick
+}
+
+func (p *Philosopher) eat() {
+	for {
+		fmt.Printf("Philosopher %d is trying to eat.\n", p.id)
+		tryToEat := func() bool {
+			if !p.leftFork.pickup() {
+				return false
+			}
+			if !p.rightFork.pickup() {
+				p.leftFork.putdown()
+				return false
+			}
+			return true
+		}
+		if tryToEat() {
+			fmt.Printf("Philosopher %d is eating.\n", p.id)
+			p.rightFork.putdown()
+			p.leftFork.putdown()
+			fmt.Printf("Philosopher %d has finished eating.\n", p.id)
+		} else {
+			fmt.Printf("Philosopher %d gave up eating.\n", p.id)
+		}
+	}
+}
+```
+
+(2)
+
+If there is no restriction on the order of picking up chopsticks, we can label the chopsticks with a number from 0 to N-1. Each philosopher attempts to pick up the lower numbered chopstick first. This essentially means that each philosopher goes for the left chopstick before right one (assuming that's the way you labeled it),  except for the last philosopher who does this in reverse. This will break the cycle.
+
+```go
+func DinningPhilosophers(n int) {
+	chopsticks := make([]Chopstick, n)
+	for i := 0; i < n; i++ {
+		cp := make(chan bool, 1)
+		cp <- true
+		chopsticks[i] = cp
+	}
+	philosophers := make([]*Philosopher, n)
+	for i := range philosophers {
+		left, right := i, (i+1)%n
+		if left > right {
+			philosophers[i] = &Philosopher{i, chopsticks[right], chopsticks[left]}
+		} else {
+			philosophers[i] = &Philosopher{i, chopsticks[left], chopsticks[right]}
+		}
+	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	for i := range philosophers {
+		go philosophers[i].eat()
+	}
+	wg.Wait()
+}
+
+type Chopstick chan bool
+
+type Philosopher struct {
+	id            int
+	lower, higher Chopstick
+}
+
+func (p *Philosopher) eat() {
+	for {
+		<-p.lower
+		<-p.higher
+		fmt.Printf("Philosopher %d is eating.\n", p.id)
+		time.Sleep(time.Millisecond*time.Duration(rand.Intn(100)))
+		p.higher <- true
+		p.lower <- true
+		fmt.Printf("Philosopher %d has finished eating.\n", p.id)
+	}
+}
+```
+

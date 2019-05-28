@@ -3904,3 +3904,101 @@ func (p *Philosopher) eat() {
 }
 ```
 
+## 4. Deadlock-Free Class
+
+Design a class which provides a lock only if there are no possible deadlocks.
+
+One of the popular ways is to require a process to declare upfront what locks it will need. We can then verify if a deadlock would be created by issuing these locks, and we can fail if so.
+
+With these constraints in mind, let's investigate how we can detect deadlocks. Suppose this was the order of locks requested:
+
+```
+A = {1, 2, 3, 4}
+B = {1, 3, 5}
+C = {7, 5, 9, 2}
+```
+
+This may create a deadlock because we could have the following scenario:
+
+```
+A locks 2, waits on 3
+B locks 3, waits on 5
+C locks 5, waits on 2
+```
+
+We can think about this as a graph, where 2 is connected to 3,3 is connected to 5, and 5 is connected to 2. A deadlock is represented by a cycle. An edge `(w, v)` exists in the graph if a process declares that it will request lock v immediately after lock w. For the earlier example, the following edges would exist in the graph: `(1, 2), (2, 3), (3, 4) , (1, 3), (3, 5), (7, 5), (5, 9), (9, 2)`. The"owner" of the edge does not matter.
+
+This class will need a `declare` method, which threads and processes will use to declare what order they will request resources in. This declare method will iterate through the declare order, adding each contiguous pair of elements `(v, w)` to the graph. Afterwards, it will check to see if any cycles have been created. If any cycles have been created, it will backtrack, removing these edges from the graph, and then exit.
+
+## 5. Call In Order
+
+Suppose we have the following code:
+
+```java
+public class Foo {
+    public Foo() {...}
+    public void first() {...}
+    public void second() {...}
+    public void third() {...}
+}
+```
+
+The same instance of `Foo` will be passed to three different threads. Thread A will call `first`, thread B will call `second`, and thread C will call `third`. Design a mechanism to ensure that `first` is called before `second` and `second` is called before `third`.
+
+```go
+func CallInOrder() {
+	tokens := make([]chan bool, 3)
+	for i := range tokens {
+		tokens[i] = make(chan bool, 1)
+		if i == 0 {
+			tokens[0] <- true
+		}
+	}
+	var wg sync.WaitGroup
+	wg.Add(3)
+	f := new(Foo)
+	for i := 0; i < 3; i++ {
+		go func(id int, f *Foo) {
+			<-tokens[id]
+			switch id {
+			case 0:
+				f.first()
+				tokens[1] <- true
+			case 1:
+				f.second()
+				tokens[2] <- true
+			case 2:
+				f.third()
+			}
+			wg.Done()
+		}(i, f)
+	}
+	wg.Wait()
+}
+
+type Foo struct {
+	// ...
+}
+
+func (f *Foo) first() {
+	fmt.Println("first is called.")
+}
+
+func (f *Foo) second() {
+	fmt.Println("second is called.")
+}
+
+func (f *Foo) third() {
+	fmt.Println("third is called.")
+}
+```
+
+## 6. Synchronized Methods
+
+You are given a class with synchronized method A and a normal method B, If you have two threads in one instance of a program, can they both execute A at the same time? Can they execute A and B at the same time?
+
+Ultimately, the key concept to remember is that only one synchronized method can be in execution per instance of that object. Other threads can execute non-synchronized methods on that instance, or they can execute any method on a different instance of the object.
+
+So, the answer to the first part really depends. If the two threads have the same instance of the object, then no, they cannot simultaneously execute method A. However, if they have different instances of the object, then they can. 
+
+Since B is not synchronized, there is nothing to block thread 1 from executing A while thread2 is executing B. This is true regardless of whether thread 1 and thread 2 have the same instance of the object.

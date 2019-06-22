@@ -2889,3 +2889,213 @@ func SearchStrings(a []string, x string) int {
 }
 ```
 
+# http
+
+location: net/http
+
+## interfaces
+
+```go
+// A Handler responds to an HTTP request.
+//
+// ServeHTTP should write reply headers and data to the ResponseWriter
+// and then return. Returning signals that the request is finished; it
+// is not valid to use the ResponseWriter or read from the
+// Request.Body after or concurrently with the completion of the
+// ServeHTTP call.
+type Handler interface {
+   ServeHTTP(ResponseWriter, *Request)
+}
+```
+
+## structs
+
+1.`Server`
+
+location: net/http/server.go
+
+```go
+// A Server defines parameters for running an HTTP server.
+// The zero value for Server is a valid configuration.
+type Server struct {
+   Addr    string  // TCP address to listen on, ":http" if empty
+   Handler Handler // handler to invoke, http.DefaultServeMux if nil
+   ...
+}
+
+// ListenAndServe listens on the TCP network address srv.Addr and then
+// calls Serve to handle requests on incoming connections.
+// Accepted connections are configured to enable TCP keep-alives.
+//
+// If srv.Addr is blank, ":http" is used.
+//
+// ListenAndServe always returns a non-nil error. After Shutdown or Close,
+// the returned error is ErrServerClosed.
+func (srv *Server) ListenAndServe() error {
+	if srv.shuttingDown() {
+		return ErrServerClosed
+	}
+	addr := srv.Addr
+	if addr == "" {
+		addr = ":http"
+	}
+    // Set the socket listened
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+    // Start serving
+	return srv.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
+}
+
+// Serve accepts incoming connections on the Listener l, creating a
+// new service goroutine for each. The service goroutines read requests and
+// then call srv.Handler to reply to them.
+//
+// Serve always returns a non-nil error and closes l.
+// After Shutdown or Close, the returned error is ErrServerClosed.
+func (srv *Server) Serve(l net.Listener) error {
+    ...
+    // onceCloseListener wraps a net.Listener, 
+    // protecting it from multiple Close calls.
+	l = &onceCloseListener{Listener: l}
+	defer l.Close()
+    ...
+	for {
+		rw, e := l.Accept()
+         ...
+		c := srv.newConn(rw)
+		c.setState(c.rwc, StateNew) // before Serve can return
+		go c.serve(ctx)
+	}
+}
+```
+
+2.`ServerMux`
+
+location: net/http/server.go
+
+```go
+// ServeMux is an HTTP request multiplexer.
+// It matches the URL of each incoming request against a list of registered
+// patterns and calls the handler for the pattern that
+// most closely matches the URL.
+type ServeMux struct {
+   mu    sync.RWMutex
+   m     map[string]muxEntry
+   es    []muxEntry // slice of entries sorted from longest to shortest.
+                    // Longer patterns take precedence over shorter ones.
+   hosts bool       // whether any patterns contain hostnames
+}
+
+type muxEntry struct {
+	h       Handler
+	pattern string
+}
+
+// ServeHTTP dispatches the request to the handler whose
+// pattern most closely matches the request URL.
+func (mux *ServeMux) ServeHTTP(w ResponseWriter, r *Request) {
+	if r.RequestURI == "*" {
+		if r.ProtoAtLeast(1, 1) {
+			w.Header().Set("Connection", "close")
+		}
+		w.WriteHeader(StatusBadRequest)
+		return
+	}
+	h, _ := mux.Handler(r) // Get the registered handler
+	h.ServeHTTP(w, r)
+}
+
+// Find a handler on a handler map given a path string.
+// Most-specific (longest) pattern wins.
+func (mux *ServeMux) match(path string) (h Handler, pattern string) {
+	// Check for exact match first.
+	v, ok := mux.m[path]
+	if ok {
+		return v.h, v.pattern
+	}
+
+	// Check for longest valid match.  mux.es contains all patterns
+	// that end in / sorted from longest to shortest.
+    // Noted that mux.es is sorted from longest to shortest.
+	for _, e := range mux.es {
+		if strings.HasPrefix(path, e.pattern) {
+			return e.h, e.pattern
+		}
+	}
+	return nil, ""
+}
+
+// HandleFunc registers the handler function for the given pattern.
+func (mux *ServeMux) HandleFunc(pattern string, handler func(ResponseWriter, *Request)) {
+	if handler == nil {
+		panic("http: nil handler")
+	}
+	mux.Handle(pattern, HandlerFunc(handler))
+}
+
+// Handle registers the handler for the given pattern.
+// If a handler already exists for pattern, Handle panics.
+func (mux *ServeMux) Handle(pattern string, handler Handler) {
+	mux.mu.Lock()
+	defer mux.mu.Unlock()
+
+	if pattern == "" {
+		panic("http: invalid pattern")
+	}
+	if handler == nil {
+		panic("http: nil handler")
+	}
+	if _, exist := mux.m[pattern]; exist {
+		panic("http: multiple registrations for " + pattern)
+	}
+
+	if mux.m == nil {
+		mux.m = make(map[string]muxEntry)
+	}
+	e := muxEntry{h: handler, pattern: pattern}
+	mux.m[pattern] = e
+	if pattern[len(pattern)-1] == '/' {
+        // Make sure mux.es is sorted from longest to shortest
+		mux.es = appendSorted(mux.es, e)
+	}
+
+	if pattern[0] != '/' {
+		mux.hosts = true
+	}
+}
+```
+
+## functions
+
+1.`http.HandleFunc`
+
+```go
+// HandleFunc registers the handler function for the given pattern
+// in the DefaultServeMux.
+func HandleFunc(pattern string, handler func(ResponseWriter, *Request)) {
+   DefaultServeMux.HandleFunc(pattern, handler)
+}
+```
+
+The calling chain after calling `http.HandleFunc`: `http.HandleFunc`->`DefaultServeMux.HandleFunc`->`DefaultServeMux.Handle`.
+
+2.`http.ListenAndServe`
+
+```go
+// ListenAndServe listens on the TCP network address addr and then calls
+// Serve with handler to handle requests on incoming connections.
+// Accepted connections are configured to enable TCP keep-alives.
+//
+// The handler is typically nil, in which case the DefaultServeMux is used.
+//
+// ListenAndServe always returns a non-nil error.
+func ListenAndServe(addr string, handler Handler) error {
+   server := &Server{Addr: addr, Handler: handler}
+   return server.ListenAndServe()
+}
+```
+
+The calling chain after calling `http.ListenAndServe`: `http.ListenAndServe`->`Server.ListenAndServe`->`net.Listen`->`Server.Serve`.
+

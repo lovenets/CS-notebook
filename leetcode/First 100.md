@@ -290,3 +290,161 @@ func myAtoi(str string) int {
 - Time complexity: $$O(n)$$
 - Space complexity: $$O(n)$$
 
+## 9. [Palindrome Number](<https://leetcode.com/problems/palindrome-number/>)
+
+Determine whether an integer is a palindrome. An integer is a palindrome when it reads the same backward as forward.
+
+**Example 1:**
+
+```
+Input: 121
+Output: true
+```
+
+**Example 2:**
+
+```
+Input: -121
+Output: false
+Explanation: From left to right, it reads -121. From right to left, it becomes 121-. Therefore it is not a palindrome.
+```
+
+**Example 3:**
+
+```
+Input: 10
+Output: false
+Explanation: Reads 01 from right to left. Therefore it is not a palindrome.
+```
+
+**Follow up:**
+
+Could you solve it without converting the integer to a string?
+
+**Solution**
+
+```go
+func isPalindrome(x int) bool {
+	// Solve this problem without converting number to string
+	if x < 0 || (x%10 == 0 && x != 0) {
+		return false
+	}
+	origin, reverse := x, 0
+	for x != 0 {
+		reverse, x = reverse*10+x%10, x/10
+	}
+	return origin == reverse
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+## 10. [Regular Expression Matching](<https://leetcode.com/problems/regular-expression-matching/>)
+
+Given an input string (`s`) and a pattern (`p`), implement regular expression matching with support for `'.'` and `'*'`.
+
+```
+'.' Matches any single character.
+'*' Matches zero or more of the preceding element.
+```
+
+The matching should cover the **entire** input string (not partial).
+
+**Note:**
+
+- `s` could be empty and contains only lowercase letters `a-z`.
+- `p` could be empty and contains only lowercase letters `a-z`, and characters like `.` or `*`.
+
+**Example 1:**
+
+```
+Input:
+s = "aa"
+p = "a"
+Output: false
+Explanation: "a" does not match the entire string "aa".
+```
+
+**Example 2:**
+
+```
+Input:
+s = "aa"
+p = "a*"
+Output: true
+Explanation: '*' means zero or more of the precedeng element, 'a'. Therefore, by repeating 'a' once, it becomes "aa".
+```
+
+**Example 3:**
+
+```
+Input:
+s = "ab"
+p = ".*"
+Output: true
+Explanation: ".*" means "zero or more (*) of any character (.)".
+```
+
+**Example 4:**
+
+```
+Input:
+s = "aab"
+p = "c*a*b"
+Output: true
+Explanation: c can be repeated 0 times, a can be repeated 1 time. Therefore it matches "aab".
+```
+
+**Example 5:**
+
+```
+Input:
+s = "mississippi"
+p = "mis*is*p*."
+Output: false
+```
+
+**Solution**
+
+[explanation](<https://www.youtube.com/watch?v=l3hda49XcDE&index=17&list=PLrmLmBdmIlpsHaNTPP_jHHDx_os9ItYXr>)
+
+As the problem has an **optimal substructure**, it is natural to cache intermediate results. We ask the question `dp[i][j]`: does `s[:i]` and `p[:j]`match?
+
+- If `s[i]==p[j] || p[j]=='.'`, `dp[i][j]=dp[i-1][j-1]`
+- If `p[j]=='*'`, `dp[i][j]=dp[i][j-2]`; and if `s[i]==p[j-1] || p[j-1]=='.'`, then `dp[i][j]=dp[i-1][j ]`
+- Else, `dp[i][j]=false`
+
+```go
+func isMatch(s string, p string) bool {
+   dp := make([][]bool, len(s)+1)
+   for i := range dp {
+      dp[i] = make([]bool, len(p)+1)
+   }
+   // Deals with patterns like a* or a*b* or a*b*c*
+   dp[0][0] = true
+   for i := 1; i < len(dp[0]); i++ {
+      if p[i-1] == '*' {
+         dp[0][i] = dp[0][i-2]
+      }
+   }
+   for i := 1; i < len(dp); i++ {
+      for j := 1; j < len(dp[0]); j++ {
+         if p[j-1] == '.' || p[j-1] == s[i-1] {
+            dp[i][j] = dp[i-1][j-1]
+         } else if p[j-1] == '*' {
+            dp[i][j] = dp[i][j-2]
+            if p[j-2] == '.' || p[j-2] == s[i-1] {
+               dp[i][j] = dp[i][j] || dp[i-1][j]
+            }
+         } else {
+            dp[i][j] = false
+         }
+      }
+   }
+   return dp[len(s)][len(p)]
+}
+```
+
+- Time complexity: $$O(mn)$$ where m is the length of `s`and n is the length of `p`
+- Space complexity: $$O(mn)$$

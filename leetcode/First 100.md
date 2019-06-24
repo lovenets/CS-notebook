@@ -448,3 +448,122 @@ func isMatch(s string, p string) bool {
 
 - Time complexity: $$O(mn)$$ where m is the length of `s`and n is the length of `p`
 - Space complexity: $$O(mn)$$
+
+## [14. Longest Common Prefix](<https://leetcode.com/problems/longest-common-prefix/>)
+
+Write a function to find the longest common prefix string amongst an array of strings.
+
+If there is no common prefix, return an empty string `""`.
+
+**Example 1:**
+
+```
+Input: ["flower","flow","flight"]
+Output: "fl"
+```
+
+**Example 2:**
+
+```
+Input: ["dog","racecar","car"]
+Output: ""
+Explanation: There is no common prefix among the input strings.
+```
+
+**Note:**
+
+All given inputs are in lowercase letters `a-z`.
+
+**Solution**
+
+$$LCP(S_1…S_n)=LCP(LCP(LCP(S_1, S_2), S_3), …S_n)$$
+
+```go
+func longestCommonPrefix(strs []string) string {
+   if len(strs) == 0 {
+      return ""
+   }
+   pre := strs[0]
+   for i := 1; i < len(strs); i++ {
+      for !strings.HasPrefix(strs[i], pre) {
+         pre = pre[:len(pre)-1]
+      }
+      if pre == "" {
+         break
+      }
+   }
+   return pre
+}
+```
+
+- Time complexity:  $$O(s)$$ , where s is the sum of all characters in all strings. In the worst case all n strings are the same. The algorithm compares the string $$S_1$$ with the other strings $$[S_2…S_n]$$. There are s character comparisons, where s is the sum of all characters in the input array.
+
+- Space complexity: $$O(1)$$
+
+## [15. 3Sum](<https://leetcode.com/problems/3sum/>)
+
+Given an array `nums` of *n* integers, are there elements *a*, *b*, *c* in `nums` such that *a*+ *b* + *c* = 0? Find all unique triplets in the array which gives the sum of zero.
+
+**Note:**
+
+The solution set must not contain duplicate triplets.
+
+**Example:**
+
+```
+Given array nums = [-1, 0, 1, 2, -1, -4],
+
+A solution set is:
+[
+  [-1, 0, 1],
+  [-1, -1, 2]
+]
+```
+
+**Solution**
+
+The idea is to sort an input array and then run through all indices of a possible first element of a triplet. For each possible first element we make a standard bi-directional 2Sum sweep of the remaining part of the array. Also we want to skip equal elements to avoid duplicates in the answer.
+
+```go
+func threeSum(nums []int) [][]int {
+	if len(nums) < 3 {
+		return nil
+	}
+	sort.Ints(nums)
+	res := make([][]int, 0)
+	for i := range nums[:len(nums)-2] {
+		// Since the nums is sorted, if the first number is bigger than 0
+		// it is impossible to have a sum of 0.
+		if nums[i] > 0 {
+			break
+		}
+		if i == 0 || (i > 0 && nums[i] != nums[i-1]) {
+			low, high := i+1, len(nums)-1
+			target := 0 - nums[i]
+			for low < high {
+				if sum := nums[low] + nums[high]; sum == target {
+					res = append(res, []int{nums[i], nums[low], nums[high]})
+					// Skip duplicates to avoid the same combinations
+					for low < high && nums[low] == nums[low+1] {
+						low++
+					}
+					low++
+					for low < high && nums[high] == nums[high-1] {
+						high--
+					}
+					high--
+				} else if sum < target {
+					low++
+				} else {
+					high--
+				}
+			}
+		}
+	}
+	return res
+}
+```
+
+- Time complexity: $$O(n^2)$$
+- Space complexity: $$O(1)$$
+

@@ -1,4 +1,4 @@
-## 5. Longest Palindromic Substring
+## [5. Longest Palindromic Substring](https://leetcode.com/problems/longest-palindromic-substring)
 
 Given a string **s**, find the longest palindromic substring in **s**. You may assume that the maximum length of **s** is 1000.
 
@@ -48,7 +48,7 @@ func longestPalindrome(s string) string {
 
 - Space complexity : $$O(1)$$.
 
-## ZigZag Conversion
+## [ZigZag Conversion](https://leetcode.com/problems/zigzag-conversion/)
 
 The string `"PAYPALISHIRING"` is written in a zigzag pattern on a given number of rows like this: (you may want to display this pattern in a fixed font for better legibility)
 
@@ -126,7 +126,7 @@ func convert(s string, numRows int) string {
 - Time complexity : $$O(n)$$.
 - Space complexity : $$O(n)$$.
 
-## 7. Reverse Integer
+## [7. Reverse Integer](https://leetcode.com/problems/reverse-integer/)
 
 Given a 32-bit signed integer, reverse digits of an integer.
 
@@ -176,7 +176,7 @@ func reverse(x int) int {
 - Time complexity: $$O(n)$$
 - Space complexity: $$O(1)$$
 
-## 8. String to Integer (atoi)
+## [8. String to Integer (atoi)](https://leetcode.com/problems/string-to-integer-atoi/)
 
 Implement `atoi` which converts a string to an integer.
 
@@ -290,7 +290,7 @@ func myAtoi(str string) int {
 - Time complexity: $$O(n)$$
 - Space complexity: $$O(n)$$
 
-## 9. [Palindrome Number](<https://leetcode.com/problems/palindrome-number/>)
+## [9. Palindrome Number](<https://leetcode.com/problems/palindrome-number/>)
 
 Determine whether an integer is a palindrome. An integer is a palindrome when it reads the same backward as forward.
 
@@ -340,7 +340,7 @@ func isPalindrome(x int) bool {
 - Time complexity: $$O(n)$$
 - Space complexity: $$O(1)$$
 
-## 10. [Regular Expression Matching](<https://leetcode.com/problems/regular-expression-matching/>)
+## [10. Regular Expression Matching](<https://leetcode.com/problems/regular-expression-matching/>)
 
 Given an input string (`s`) and a pattern (`p`), implement regular expression matching with support for `'.'` and `'*'`.
 

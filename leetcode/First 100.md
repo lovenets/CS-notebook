@@ -1,4 +1,6 @@
-## [5. Longest Palindromic Substring](https://leetcode.com/problems/longest-palindromic-substring)
+## [
+
+## 5. Longest Palindromic Substring](https://leetcode.com/problems/longest-palindromic-substring)
 
 Given a string **s**, find the longest palindromic substring in **s**. You may assume that the maximum length of **s** is 1000.
 
@@ -769,4 +771,137 @@ func threeSum(nums []int) [][]int {
 
 - Time complexity: $$O(n^2)$$
 - Space complexity: $$O(1)$$
+
+## [16. 3Sum Closet](<https://leetcode.com/problems/3sum-closest/>)
+
+Given an array `nums` of *n* integers and an integer `target`, find three integers in `nums` such that the sum is closest to `target`. Return the sum of the three integers. You may assume that each input would have exactly one solution.
+
+**Example:**
+
+```
+Given array nums = [-1, 2, 1, -4], and target = 1.
+
+The sum that is closest to the target is 2. (-1 + 2 + 1 = 2).
+```
+
+**Solution**
+
+```go
+func threeSumClosest(nums []int, target int) int {
+	res := nums[0] + nums[1] + nums[len(nums)-1]
+	sort.Ints(nums)
+	for i := range nums[:len(nums)-2] {
+		l, r := i+1, len(nums)-1
+		for l < r {
+			sum := nums[i] + nums[l] + nums[r]
+			if sum > target {
+				r--
+			} else {
+				l++
+			}
+			if math.Abs(float64(sum-target)) < math.Abs(float64(res-target)) {
+				res = sum
+			}
+		}
+	}
+	return res
+}
+```
+
+- Time complexity: $$O(n^2)$$
+- Space complexity: $$O(1)$$
+
+## [17. Letter Combinations of a Phone Number](<https://leetcode.com/problems/letter-combinations-of-a-phone-number/>)
+
+Given a string containing digits from `2-9`inclusive, return all possible letter combinations that the number could represent.
+
+A mapping of digit to letters (just like on the telephone buttons) is given below. Note that 1 does not map to any letters.
+
+![img](http://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Telephone-keypad2.svg/200px-Telephone-keypad2.svg.png)
+
+**Example:**
+
+```
+Input: "23"
+Output: ["ad", "ae", "af", "bd", "be", "bf", "cd", "ce", "cf"].
+```
+
+**Note:**
+
+Although the above answer is in lexicographical order, your answer could be in any order you want.
+
+**Solution**
+
+(1) 
+
+![leetcoe 17](img/leetcoe 17.jpg)
+
+```go
+func letterCombinations(digits string) []string {
+    if digits == "" {
+        return nil
+    }
+    numToLetters := map[rune][]string{
+        '2': []string{"a", "b", "c"},
+        '3': []string{"d", "e", "f"},
+        '4': []string{"g", "h", "i"},
+        '5': []string{"j", "k", "l"},
+        '6': []string{"m", "n", "o"},
+        '7': []string{"p", "q", "r", "s"},
+        '8': []string{"t", "u", "v"},
+        '9': []string{"w", "x", "y", "z"},
+    }
+    queue := []string{""}
+    for i, r := range digits {
+        letters := numToLetters[r]
+        for len(queue[0]) == i {
+            head := queue[0]
+            queue = queue[1:]
+            for _, letter := range letters {
+                queue = append(queue, head+letter)
+            }
+        }
+    }
+    return queue
+}
+```
+
+- Time complexity: $$O(n^2)$$
+- Space complexity: $$O(1)$$
+
+(2) 
+
+```go
+func letterCombinations(digits string) []string {
+    if digits == "" {
+        return nil
+    }
+    numToLetters := map[uint8][]string{
+        '2': []string{"a", "b", "c"},
+        '3': []string{"d", "e", "f"},
+        '4': []string{"g", "h", "i"},
+        '5': []string{"j", "k", "l"},
+        '6': []string{"m", "n", "o"},
+        '7': []string{"p", "q", "r", "s"},
+        '8': []string{"t", "u", "v"},
+        '9': []string{"w", "x", "y", "z"},
+    }
+    res := make([]string, 0)
+    combinate("", digits, 0, numToLetters, &res)
+    return res
+}
+
+func combinate(expansion string, digits string, offset int, m map[uint8][]string, res *[]string) {
+    if offset >= len(digits) {
+        // Got a combination
+        *res = append(*res, expansion)
+        return
+    }
+    for _, s := range m[digits[offset]] {
+        combinate(expansion+s, digits, offset+1, m, res)
+    }
+}
+```
+
+
 

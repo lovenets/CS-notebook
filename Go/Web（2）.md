@@ -590,7 +590,7 @@ Supervisord 可以通过`sudo easy_install supervisor`安装，当然也可以�
 
 Supervisord 默认的配置文件路径为 /etc/supervisord.conf，通过文本编辑器修改这个文件，下面是一个示例的配置文件：
 
-```python
+```properties
 ;/etc/supervisord.conf
 
 [unix_http_server]

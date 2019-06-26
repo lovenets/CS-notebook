@@ -548,7 +548,7 @@ db.Close()
 
 ## 一、Cookie
 
-Go 提供了用来表示 Cookie 的接口：
+Go 提供了用来表示 Cookie 的 struct：
 
 ```go
 type Cookie struct {
@@ -906,9 +906,9 @@ func  CreateJson(){
 - 结构体中首字母小写的字段不会导出，也就是说不会出现在 JSON 中
 
 - JSON 对象只支持`string`作为属性名，所以要编码一个`map`，那么必须是`map[string]T`这种类型(`T`是 Go 语言中任意的类型)
-- `channel`, `complex`和函数不能被编码成 JSON 
+- **`channel`, `complex`和函数不能被编码成 JSON **
 - 嵌套的数据是不能编码的，不然会让 JSON 编码进入死循环
-- 指针在编码的时候会输出指针指向的内容，而空指针会输出`null`
+- **指针在编码的时候会输出指针指向的内容，**而空指针会输出`null`
 
 ### 3.详解 struct tag
 
@@ -916,7 +916,7 @@ func  CreateJson(){
 - tag 中带有自定义名称，那么这个自定义名称会作为 JSON 的属性名
 - tag 中如果带有`"omitempty"`，那么如果该字段值为空，就不会输出到JSON串中
 - 如果字段类型是`bool`, `string`, `int`, `int64`等，而 tag 中带有`",string"`选项，那么这个字段在输出到 JSON 的时候会把该字段对应的值转换成 JSON 字符串
-- 如果 tag 中有多个 key，那么用空格分开
+- 如果 tag 中有多个 key，那么用*空格*分开
 
 ```go
 type User struct {
@@ -956,7 +956,7 @@ func ParseIP(s string) IP
 
 在 Go 语言的`net`包中有一个类型`TCPConn`，这个类型可以用来作为客户端和服务器端交互的通道，它有两个主要的函数：
 
-```
+```go
 func (c *TCPConn) Write(b []byte) (n int, err os.Error)
 func (c *TCPConn) Read(b []byte) (n int, err os.Error)
 ```
@@ -1196,7 +1196,7 @@ func main() {
 
 ### 一、路由冲突
 
-当两个路由的 HTTP 方法一致、路径前缀一致、且在某个位置 A 路由是参数而 B 路由是普通字符串时，就会产生路由冲突，进而在==初始化阶段==就`panic`。
+当两个路由的 HTTP 方法一致、路径前缀一致、且在某个位置 A 路由是参数而 B 路由是普通字符串时，就会产生路由冲突，进而在==初始化阶段==就`panic`。比如在下面的例子中，如果第二个路由的 id 参数为 info，httprouter 就无法处理。
 
 ```go
 GET /user/info/:name
@@ -1221,7 +1221,7 @@ RPC 实现函数调用模式的网络化。客户端就像调用本地函数一�
 
 ![rpc](img\rpc.png)
 
-Go 标准包支持三个级别的 RPC：TCP、HTTP、JSONRPC。但 Go RPC 和传统的RPC 系统不同，它只支持 Go 开发的服务器与客户端之间的交互，因为在内部它们采用了 Gob 来编码。
+Go 标准包支持三个级别的 RPC：TCP、HTTP、JSONRPC。但 Go RPC 和传统的 RPC 系统不同，它只支持 Go 开发的服务器与客户端之间的交互，因为在内部它们采用了 Gob 来编码。
 
 Go RPC 的函数只有符合下面的条件才能被远程访问，不然会被忽略，详细的要求如下：
 

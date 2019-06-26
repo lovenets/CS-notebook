@@ -2908,6 +2908,8 @@ type Handler interface {
 }
 ```
 
+![http Handler interface](img/http Handler interface.jpg)
+
 ## structs
 
 1.`Server`
@@ -2916,7 +2918,6 @@ location: net/http/server.go
 
 ```go
 // A Server defines parameters for running an HTTP server.
-// The zero value for Server is a valid configuration.
 type Server struct {
    Addr    string  // TCP address to listen on, ":http" if empty
    Handler Handler // handler to invoke, http.DefaultServeMux if nil

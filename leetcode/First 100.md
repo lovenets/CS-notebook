@@ -901,5 +901,277 @@ func combinate(expansion string, digits string, offset int, m map[uint8][]string
 }
 ```
 
+## [18. 4Sum](<https://leetcode.com/problems/4sum/>)
+
+Given an array `nums` of *n* integers and an integer `target`, are there elements *a*, *b*, *c*, and *d* in `nums` such that *a* + *b* + *c* + *d* = `target`? Find all unique quadruplets in the array which gives the sum of `target`.
+
+**Note:**
+
+The solution set must not contain duplicate quadruplets.
+
+**Example:**
+
+```
+Given array nums = [1, 0, -1, 0, -2, 2], and target = 0.
+
+A solution set is:
+[
+  [-1,  0, 0, 1],
+  [-2, -1, 1, 2],
+  [-2,  0, 0, 2]
+]
+```
+
+**Solution**
+
+(1) 
+
+Just like 3Sum.
+
+```go
+func fourSum(nums []int, target int) [][]int {
+	if len(nums) < 4 {
+		return nil
+	}
+	sort.Ints(nums)
+	res := make([][]int, 0)
+	for i := 0; i < len(nums)-3; {
+		for j := i + 1; j < len(nums)-2; {
+			l, r := j+1, len(nums)-1
+			for l < r {
+				if sum := nums[i] + nums[j] + nums[l] + nums[r]; sum == target {
+					res = append(res, []int{nums[i], nums[j], nums[l], nums[r]})
+					// Skip duplicates
+					for l < r && nums[l] == nums[l+1] {
+						l++
+					}
+					l++
+					for l < r && nums[r] == nums[r-1] {
+						r--
+					}
+					r--
+				} else if sum < target {
+					l++
+				} else {
+					r--
+				}
+			}
+			// Skip duplicates.
+			for j < len(nums)-2 && nums[j] == nums[j+1] {
+				j++
+			}
+			j++
+		}
+		// Skip duplicates.
+		for i < len(nums)-3 && nums[i] == nums[i+1] {
+			i++
+		}
+		i++
+	}
+	return res
+}
+```
+
+- Time complexity: $$O(n^3)$$
+- Space complexity: $$O(1)$$
+
+(2)
+
+The core is to implement a fast 2-pointer to solve 2-sum, and recursion to reduce the N-sum to 2-sum. Some optimization was be made knowing the list is sorted.
+
+```go
+func fourSum(nums []int, target int) [][]int {
+	if len(nums) < 4 {
+		return nil
+	}
+	sort.Ints(nums)
+	res := make([][]int, 0)
+	findSum(nums, target, 4, make([]int, 0), &res)
+	return res
+}
+
+func findSum(sorted []int, target int, n int, tmp []int, result *[][]int) {
+	if len(sorted) < n || n < 2 || target < sorted[0]*n || target > sorted[len(sorted)-1]*n {
+		// Since the slice is sorted, we can do some optimization
+		return
+	}
+	if n == 2 {
+		// 2Sum problem
+		l, r := 0, len(sorted)-1
+		for l < r {
+			if sum := sorted[l] + sorted[r]; sum == target {
+				*result = append(*result, append(tmp, sorted[l], sorted[r]))
+				for l < r && sorted[l] == sorted[l+1] {
+					l++
+				}
+				l++
+				for l < r && sorted[r] == sorted[r-1] {
+					r--
+				}
+				r--
+			} else if sum < target {
+				l++
+			} else {
+				r--
+			}
+		}
+	} else {
+		// Reduce the problem to 2Sum
+		for i := 0; i < len(sorted)-n+1; i++ {
+			if i == 0 || (i > 0 && sorted[i] != sorted[i-1]) {
+				findSum(sorted[i+1:], target-sorted[i], n-1, append(tmp, sorted[i]), result)
+			}
+		}
+	}
+}
+```
+
+## [21. Merge Two Sorted Lists](<https://leetcode.com/problems/merge-two-sorted-lists/>)
+
+Merge two sorted linked lists and return it as a new list. The new list should be made by splicing together the nodes of the first two lists.
+
+**Example:**
+
+```
+Input: 1->2->4, 1->3->4
+Output: 1->1->2->3->4->4
+```
+
+**Solution**
+
+(1)
+
+```go
+func mergeTwoLists(l1 *ListNode, l2 *ListNode) *ListNode {
+	if l1 == nil {
+		return l2
+	}
+	if l2 == nil {
+		return l1
+	}
+	var merged *ListNode
+	// Get the head of new list
+	if l1.Val < l2.Val {
+		merged = l1
+		l1 = l1.Next
+	} else {
+		merged = l2
+		l2 = l2.Next
+	}
+	// Merge the left nodes
+	tail := merged
+	p, q := l1, l2
+	for p != nil && q != nil {
+		if p.Val < q.Val {
+			tail.Next = p
+			p = p.Next
+		} else {
+			tail.Next = q
+			q = q.Next
+		}
+		tail = tail.Next
+	}
+	for p != nil {
+		tail.Next = p
+		tail, p = tail.Next, p.Next
+	}
+	for q != nil {
+		tail.Next = q
+		tail, q = tail.Next, q.Next
+	}
+	return merged
+}
+```
+
+- Time complexity: $$O(l1+l2)$$
+- Space complexity: $$O(1)$$
+
+(2) recursive
+
+```go
+func mergeTwoLists(l1 *ListNode, l2 *ListNode) *ListNode {
+    if l1 == nil {
+        return l2
+    }
+    if l2 == nil {
+        return l1
+    }
+    if l1.Val < l2.Val {
+        l1.Next = mergeTwoLists(l1.Next, l2)
+        return l1
+    } else {
+        l2.Next = mergeTwoLists(l2.Next, l1)
+        return l2
+    }
+}
+```
+
+- Time complexity: $$O(l1+l2)$$
+- Space complexity: $$O(l1+l2)$$
+
+## [22. Generate Parentheses](<https://leetcode.com/problems/generate-parentheses>)
+
+Given *n* pairs of parentheses, write a function to generate all combinations of well-formed parentheses.
+
+For example, given *n* = 3, a solution set is:
+
+```
+[
+  "((()))",
+  "(()())",
+  "(())()",
+  "()(())",
+  "()()()"
+]
+```
+
+**Solution**
+
+The goal is to print a string of “(“ ,”)” in certain order. The length of string is 2n. The constraints are that “(“s need to match “)”s.
+
+Without constraints, we just simply print out “(“ or “)” until length hits n. So the base case will be `length ==2*n`, recursive case is print out “(“ and “)”. The code will look like
+
+```
+//base case
+if(string length == 2*n) {
+add(string);
+return;
+}
+//recursive case
+add a “(“
+add a “)"
+```
+
+Let’s add in constraints now. We need to interpret the meanings of constraints. First, the first character should be “(“. Second, at each step, you can either print “(“ or “)”, but print “)” only when there are more “(“s than “)”s. Stop printing out “(“ when the number of “(“ s hits n. 
+
+```go
+func generateParenthesis(n int) []string {
+	if n <= 0 {
+		return nil
+	}
+	res := make([]string, 0)
+	addParenthesis("", 0, 0, n, &res)
+	return res
+}
+
+func addParenthesis(s string, numOfOpen int, numOfClosing int, numOfPar int, res *[]string) {
+	if len(s) == 2*numOfPar {
+		*res = append(*res, s)
+		return
+	}
+	if numOfOpen < numOfPar {
+		addParenthesis(s+"(", numOfOpen+1, numOfClosing, numOfPar, res)
+	}
+	if numOfClosing < numOfOpen {
+		addParenthesis(s+")", numOfOpen, numOfClosing+1, numOfPar, res)
+	}
+}
+```
+
+**The key to all backtracking problems is "to choose". You have to choose between many options and then come back to choose again.** In this problem, you have to choose between left and right parenthesis. 
+
+- Time complexity: It turns out this is the `n`-th Catalan number $$\dfrac{1}{n+1}\binom{2n}{n}$$, which is bounded asymptotically by $$\dfrac{4^n}{n\sqrt{n}}$$. So the complexity is $$\dfrac{4^n}{\sqrt{n}}$$. Each valid sequence has at most `n` steps during the backtracking procedure.
+- Space Complexity : $$O(\dfrac{4^n}{\sqrt{n}})$$, as described above, and using $$O(n)$$ space to store the sequence. 
+
 
 

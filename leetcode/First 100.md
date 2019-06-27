@@ -1173,5 +1173,219 @@ func addParenthesis(s string, numOfOpen int, numOfClosing int, numOfPar int, res
 - Time complexity: It turns out this is the `n`-th Catalan number $$\dfrac{1}{n+1}\binom{2n}{n}$$, which is bounded asymptotically by $$\dfrac{4^n}{n\sqrt{n}}$$. So the complexity is $$\dfrac{4^n}{\sqrt{n}}$$. Each valid sequence has at most `n` steps during the backtracking procedure.
 - Space Complexity : $$O(\dfrac{4^n}{\sqrt{n}})$$, as described above, and using $$O(n)$$ space to store the sequence. 
 
+## [25. Reverse Nodes in k-Group](<https://leetcode.com/problems/reverse-nodes-in-k-group/>)
 
+Given a linked list, reverse the nodes of a linked list *k* at a time and return its modified list.
+
+*k* is a positive integer and is less than or equal to the length of the linked list. If the number of nodes is not a multiple of *k* then left-out nodes in the end should remain as it is.
+
+**Example:**
+
+Given this linked list: `1->2->3->4->5`
+
+For *k* = 2, you should return: `2->1->4->3->5`
+
+For *k* = 3, you should return: `3->2->1->4->5`
+
+**Note:**
+
+- Only constant extra memory is allowed.
+- You may not alter the values in the list's nodes, only nodes itself may be changed.
+
+**Solution**
+
+The key point is to reverse a part f list:
+
+```
+   /**
+     * Reverse a link list between begin and end exclusively
+     * an example:
+     * a linked list:
+     * 0->1->2->3->4->5->6
+     * |           |   
+     * begin       end
+     * after call begin = reverse(begin, end)
+     * 
+     * 0->3->2->1->4->5->6
+     *          |  |
+     *      begin end
+     * @return the reversed list's 'begin' node, which is the precedence of node end
+     */
+```
+
+Then repeat the above procedure every k nodes.
+
+```go
+func reverseKGroup(head *ListNode, k int) *ListNode {
+	if head == nil || head.Next == nil || k == 1 {
+		return head
+	}
+	// Reverse a part of list
+	reverse := func(beg, end *ListNode) *ListNode {
+		cur, prev := beg.Next, beg
+		originalHead := cur
+		var next *ListNode
+		for cur != end {
+			next = cur.Next
+			cur.Next = prev
+			prev = cur
+			cur = next
+		}
+		beg.Next, originalHead.Next = prev, cur
+		return originalHead
+	}
+	dummy := &ListNode{Next: head}
+	beg := dummy
+	for i := 0; head != nil; {
+		i++
+		if i%k == 0 {
+			beg = reverse(beg, head.Next)
+			head = beg.Next
+		} else {
+			head = head.Next
+		}
+	}
+	return dummy.Next
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+## [26. Remove Duplicates from Sorted Array](<https://leetcode.com/problems/remove-duplicates-from-sorted-array/>)
+
+Given a sorted array *nums*, remove the duplicates [**in-place**](https://en.wikipedia.org/wiki/In-place_algorithm) such that each element appear only *once* and return the new length.
+
+Do not allocate extra space for another array, you must do this by **modifying the input array in-place** with O(1) extra memory.
+
+**Example 1:**
+
+```
+Given nums = [1,1,2],
+
+Your function should return length = 2, with the first two elements of nums being 1 and 2 respectively.
+
+It doesn't matter what you leave beyond the returned length.
+```
+
+**Example 2:**
+
+```
+Given nums = [0,0,1,1,1,2,2,3,3,4],
+
+Your function should return length = 5, with the first five elements of nums being modified to 0, 1, 2, 3, and 4 respectively.
+
+It doesn't matter what values are set beyond the returned length.
+```
+
+**Clarification:**
+
+Confused why the returned value is an integer but your answer is an array?
+
+Note that the input array is passed in by **reference**, which means modification to the input array will be known to the caller as well.
+
+Internally you can think of this:
+
+```
+// nums is passed in by reference. (i.e., without making a copy)
+int len = removeDuplicates(nums);
+
+// any modification to nums in your function would be known by the caller.
+// using the length returned by your function, it prints the first len elements.
+for (int i = 0; i < len; i++) {
+    print(nums[i]);
+}
+```
+
+**Solution**
+
+The duplicates must be consecutive since the array is sorted. We can keep two pointers i and j, where i is the slow-runner while j is the fast-runner. As long as `nums[i] = nums[j]`, we increment j to skip the duplicates.
+
+When we encounter `nums[j] != nums[i]`, the duplicate run has ended so we must copy its value to `nums[i + 1]`. i is then incremented and we repeat the same process again until j reaches the end of array.
+
+```go
+func removeDuplicates(nums []int) int {
+	if nums == nil {
+		return 0
+	}
+	i := 0
+	for j := 1; j < len(nums); j++ {
+		if nums[i] != nums[j] {
+			i++
+			nums[i] = nums[j]
+		}
+	}
+	return i + 1
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+## [27. Remove Element](<https://leetcode.com/problems/remove-element/>)
+
+Given an array *nums* and a value *val*, remove all instances of that value [**in-place**](https://en.wikipedia.org/wiki/In-place_algorithm)and return the new length.
+
+Do not allocate extra space for another array, you must do this by **modifying the input array in-place** with O(1) extra memory.
+
+The order of elements can be changed. It doesn't matter what you leave beyond the new length.
+
+**Example 1:**
+
+```
+Given nums = [3,2,2,3], val = 3,
+
+Your function should return length = 2, with the first two elements of nums being 2.
+
+It doesn't matter what you leave beyond the returned length.
+```
+
+**Example 2:**
+
+```
+Given nums = [0,1,2,2,3,0,4,2], val = 2,
+
+Your function should return length = 5, with the first five elements of nums containing 0, 1, 3, 0, and 4.
+
+Note that the order of those five elements can be arbitrary.
+
+It doesn't matter what values are set beyond the returned length.
+```
+
+**Clarification:**
+
+Confused why the returned value is an integer but your answer is an array?
+
+Note that the input array is passed in by **reference**, which means modification to the input array will be known to the caller as well.
+
+Internally you can think of this:
+
+```
+// nums is passed in by reference. (i.e., without making a copy)
+int len = removeElement(nums, val);
+
+// any modification to nums in your function would be known by the caller.
+// using the length returned by your function, it prints the first len elements.
+for (int i = 0; i < len; i++) {
+    print(nums[i]);
+}
+```
+
+**Solution**
+
+```go
+if nums == nil {
+	return 0
+}
+beg := 0
+for i := 0; i < len(nums); i++ {
+	if nums[i] != val {
+		nums[beg] = nums[i]
+		beg++
+	}
+}
+return beg
+```
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
 

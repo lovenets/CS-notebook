@@ -1,10 +1,14 @@
+
+
 # 网络安全
 
 ==永远不要相信外部的输入==
 
 ## 一、CSRF 
 
-CSRF（Cross-site request forgery），中文名称：跨站请求伪造，也被称为：one click attack/session riding，缩写为：CSRF/XSRF。 ![csrf](img\csrf.png)
+CSRF（Cross-site request forgery），中文名称：跨站请求伪造，也被称为：one click attack/session riding，缩写为：CSRF/XSRF。 
+
+![csrf](img\csrf.png)
 
 ### 1.概述
 
@@ -191,7 +195,7 @@ func main() {
 
 Go 语言的`crypto`里面支持对称加密的高级加解密包有：
 
-- `crypto/aes`包：AES(Advanced Encryption Standard)，又称Rijndael加密法，是美国联邦政府采用的一种区块加密标准。
+- `crypto/aes`包：AES(Advanced Encryption Standard)，又称 Rijndael 加密法，是美国联邦政府采用的一种区块加密标准。
 - `crypto/des`包：DES(Data Encryption Standard)，是一种对称加密标准，是目前使用最广泛的密钥系统，特别是在保护金融数据的安全中。曾是美国联邦政府的加密标准，但现已被 AES 所替代。
 
 两种方案的使用方法类似。

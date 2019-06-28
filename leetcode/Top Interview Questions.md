@@ -293,3 +293,384 @@ func rotate(nums []int, k int) {
 - Time complexity: $$O(n)$$
 - Space complexity: $$O(n)$$
 
+## [217. Contains Duplicates](<https://leetcode.com/problems/contains-duplicate/>)
+
+Given an array of integers, find if the array contains any duplicates.
+
+Your function should return true if any value appears at least twice in the array, and it should return false if every element is distinct.
+
+**Example 1:**
+
+```
+Input: [1,2,3,1]
+Output: true
+```
+
+**Example 2:**
+
+```
+Input: [1,2,3,4]
+Output: false
+```
+
+**Solution**
+
+(1) Accepted
+
+```go
+func containsDuplicate(nums []int) bool {
+    if len(nums) == 0 {
+        return false
+    }
+    sort.Ints(nums)
+    for i := 0; i < len(nums)-1; i++ {
+        if nums[i] == nums[i+1] {
+            return true
+        }
+    }
+    return false
+}
+```
+
+- Time complexity: average $$O(nlogn)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+```go
+func containsDuplicate(nums []int) bool {
+    if len(nums) == 0 {
+        return false
+    }
+    count := make(map[int]int)
+    for i := range nums {
+        count[nums[i]]++
+    }
+    for n := range count {
+        if count[n] > 1 {
+            return true
+        }
+    }
+    return false
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+(3) Accepted
+
+```go
+func containsDuplicate(nums []int) bool {
+    if len(nums) <= 1 {
+        return false
+    }
+    present := make(map[int]bool)
+    for i := range nums {
+        if present[nums[i]] {
+            return true
+        } else {
+            present[nums[i]] = true
+        }
+    }
+    return false
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+**Recap**
+
+Always try as hard as possible to find out a solution which can solve array problem in one pass.
+
+## [283. More Zeroes](<https://leetcode.com/problems/move-zeroes/>)
+
+Given an array `nums`, write a function to move all `0`'s to the end of it while maintaining the relative order of the non-zero elements.
+
+**Example:**
+
+```
+Input: [0,1,0,3,12]
+Output: [1,3,12,0,0]
+```
+
+**Note**:
+
+1. You must do this **in-place** without making a copy of the array.
+2. Minimize the total number of operations.
+
+**Solution**
+
+(1) Accepted
+
+Two pointers.
+
+```go
+func moveZeroes(nums []int) {
+	for i, j := len(nums)-1, len(nums)-1; i >= 0 && j >= 0; {
+		// Find a zero 
+		for ; i >= 0 && nums[i] != 0; i-- {
+		}
+		if i < 0 {
+			return
+		} else {
+			// Move non-zero elements to the left
+			for k := i; k < j; k++ {
+				nums[k] = nums[k+1]
+			}
+			// Move zero to the end
+			nums[j] = 0
+			i, j = i-1, j-1
+		}
+	}
+}
+```
+
+- Time complexity: $$O(n)$$?
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+```go
+func moveZeroes(nums []int) {
+	if len(nums) == 0 {
+		return
+	}
+	insert := 0
+    // Move non-zeros to the left as far as possible
+	for i := range nums {
+		if nums[i] != 0 {
+			nums[insert] = nums[i]
+			insert++
+		}
+	}
+    // Fill remaining positions with 0s
+	for ; insert < len(nums); insert++ {
+		nums[insert] = 0
+	}
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+(3) Accepted
+
+```go
+func moveZeroes(nums []int) {
+	if len(nums) == 0 {
+		return
+	}
+    // j is the index of left-most zero 
+	for i, j := 0, 0; i < len(nums); i++ {
+		if nums[i] != 0 {
+			nums[i], nums[j] = nums[j], nums[i]
+			j++
+		}
+	}
+}
+```
+
+Improvement:
+
+```go
+func moveZeroes(nums []int) {
+	if len(nums) == 0 {
+		return
+	}
+	for i, j := 0, 0; i < len(nums); i++ {
+		if nums[i] != 0 {
+             // Avoid unnecessary operations 
+			if i > j {
+				nums[j] = nums[i]
+				nums[i] = 0
+			}
+			j++
+		}
+	}
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+**Recap**
+
+Shifting elements in a array one by one is always too slow.
+
+## [384. Shuffle Array](<https://leetcode.com/problems/shuffle-an-array/>)
+
+Shuffle a set of numbers without duplicates.
+
+**Example:**
+
+```
+// Init an array with set 1, 2, and 3.
+int[] nums = {1,2,3};
+Solution solution = new Solution(nums);
+
+// Shuffle the array [1,2,3] and return its result. Any permutation of [1,2,3] must equally likely to be returned.
+solution.shuffle();
+
+// Resets the array back to its original configuration [1,2,3].
+solution.reset();
+
+// Returns the random shuffling of array [1,2,3].
+solution.shuffle();
+```
+
+**Solution**
+
+(1) Memory Limited Exceeded
+
+```go
+type Solution struct {
+	Data  []int
+	Perms [][]int
+}
+
+func Constructor(nums []int) Solution {
+	solution := Solution{}
+	solution.Data = make([]int, len(nums))
+	copy(solution.Data, nums)
+	// Generate all permutations
+	solution.Perms = perm(nums)
+	return solution
+}
+
+func perm(data []int) (res [][]int) {
+	var do func(int)
+	do = func(i int) {
+		if i == len(data) {
+			tmp := make([]int, i)
+			copy(tmp, data)
+			res = append(res, tmp)
+		} else {
+			for j := i; j < len(data); j++ {
+				data[j], data[i] = data[i], data[j]
+				do(i + 1)
+				data[j], data[i] = data[i], data[j]
+			}
+		}
+	}
+	do(0)
+	return
+}
+
+/** Resets the array to its original configuration and return it. */
+func (this *Solution) Reset() []int {
+	return this.Data
+}
+
+/** Returns a random shuffling of the array. */
+func (this *Solution) Shuffle() []int {
+	return this.Perms[rand.Intn(len(this.Perms))]
+}
+```
+
+We will need $$O(n!)$$  extra space to store all permutations which is too much.
+
+(2) Accepted
+
+[Fisher-Yates Algorithm]([https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm](https://en.wikipedia.org/wiki/Fisher–Yates_shuffle#The_modern_algorithm))
+
+```go
+type Solution struct {
+	Data []int
+}
+
+func Constructor(nums []int) Solution {
+	return Solution{nums}
+}
+
+/** Resets the array to its original configuration and return it. */
+func (this *Solution) Reset() []int {
+	return this.Data
+}
+
+/** Returns a random shuffling of the array. */
+func (this *Solution) Shuffle() []int {
+	arr := make([]int, len(this.Data))
+	copy(arr, this.Data)
+	// Fisher-Yates algorithm
+	for i := len(arr) - 1; i >= 1; i-- {
+		j := rand.Intn(i + 1)
+		arr[i], arr[j] = arr[j], arr[i]
+	}
+	return arr
+}
+```
+
+`Shuffle`complexity:
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+Improvement: We allocate an extra array to store one permutation in advance instead of allocating one every time we call `Shuffle`.
+
+```go
+type Solution struct {
+	Data []int
+	Perm []int
+}
+
+func Constructor(nums []int) Solution {
+	perm := make([]int, len(nums))
+    copy(perm, nums)
+	return Solution{nums, perm}
+}
+
+/** Resets the array to its original configuration and return it. */
+func (this *Solution) Reset() []int {
+	return this.Data
+}
+
+/** Returns a random shuffling of the array. */
+func (this *Solution) Shuffle() []int {
+	// Fisher-Yates algorithm
+	for i := len(this.Perm) - 1; i >= 1; i-- {
+		j := rand.Intn(i + 1)
+		this.Perm[i], this.Perm[j] = this.Perm[j], this.Perm[i]
+	}
+	return this.Perm
+}
+```
+
+(3) Accepted
+
+`rand.Shuffle`is a function of standard library which can shuffle pseudo-randomizes the order of elements. Actually, it's also based on Fisher-Yates algorithm.
+
+```go
+type Solution struct {
+	Data []int
+	Perm []int
+}
+
+func Constructor(nums []int) Solution {
+	perm := make([]int, len(nums))
+	copy(perm, nums)
+	return Solution{nums, perm}
+}
+
+/** Resets the array to its original configuration and return it. */
+func (this *Solution) Reset() []int {
+	return this.Data
+}
+
+/** Returns a random shuffling of the array. */
+func (this *Solution) Shuffle() []int {
+	rand.Shuffle(len(this.Perm), func(i, j int) {
+		this.Perm[i], this.Perm[j] = this.Perm[j], this.Perm[i]
+	})
+	return this.Perm
+}
+```
+
+**Recap**
+
+1. Fisher-Yates algorithm can generate every permutation equally likely. `rand.Shuffle`is based on it.
+2. `rand.Intn`generates pseudo-random number in [0, n).
+
+
+

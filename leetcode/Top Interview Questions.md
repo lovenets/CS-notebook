@@ -672,5 +672,417 @@ func (this *Solution) Shuffle() []int {
 1. Fisher-Yates algorithm can generate every permutation equally likely. `rand.Shuffle`is based on it.
 2. `rand.Intn`generates pseudo-random number in [0, n).
 
+## [350. Intersection of Two Arrays II](<https://leetcode.com/problems/intersection-of-two-arrays-ii/>)
+
+Given two arrays, write a function to compute their intersection.
+
+**Example 1:**
+
+```
+Input: nums1 = [1,2,2,1], nums2 = [2,2]
+Output: [2,2]
+```
+
+**Example 2:**
+
+```
+Input: nums1 = [4,9,5], nums2 = [9,4,9,8,4]
+Output: [4,9]
+```
+
+**Note:**
+
+- Each element in the result should appear as many times as it shows in both arrays.
+- The result can be in any order.
+
+**Follow up:**
+
+- What if the given array is already sorted? How would you optimize your algorithm?
+- What if *nums1*'s size is small compared to *nums2*'s size? Which algorithm is better?
+- What if elements of *nums2* are stored on disk, and the memory is limited such that you cannot load all elements into the memory at once?
+
+**Solution**
+
+(1) Accepted
+
+Quite straightforward.
+
+```go
+func intersect(nums1 []int, nums2 []int) []int {
+    if len(nums1) == 0 || len(nums2) == 0 {
+        return nil
+    }
+    countNums1, countNums2 := make(map[int]int), make(map[int]int)
+    for i := range nums1 {
+        countNums1[nums1[i]]++
+    }
+    for i := range nums2 {
+        countNums2[nums2[i]]++
+    }
+    res := make([]int, 0)
+    add := func(element, count int) {
+        for i := 0; i < count; i++ {
+            res = append(res, element)
+        }
+    }
+    for n1 := range countNums1 {
+        var min int
+        if countNums1[n1] < countNums2[n1] {
+            min = countNums1[n1]
+        } else {
+            min = countNums2[n1]
+        }
+        add(n1, min)
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(max\{len(nums1), len(nums2)\})$$
+- Space complexity: $$O(n1+n2)$$ where n1 is the number of distinct numbers in `nums1`and n2 is the number of distinct numbers in `nums2`.
+
+Improvement: only one map
+
+```go
+func intersect(nums1 []int, nums2 []int) []int {
+    if len(nums1) == 0 || len(nums2) == 0 {
+        return nil
+    }
+    count := make(map[int]int)
+    for i := range nums1 {
+        count[nums1[i]]++
+    }
+    res := make([]int, 0)
+    for i := range nums2 {
+        if count[nums2[i]] > 0 {
+            res = append(res, nums2[i])
+            count[nums2[i]]--
+        }
+    }
+    return res
+}
+```
+
+(2) Accepted
+
+```go
+func intersect(nums1 []int, nums2 []int) []int {
+    if len(nums1) == 0 || len(nums2) == 0 {
+        return nil
+    }
+    sort.Ints(nums1)
+    sort.Ints(nums2)
+    res := make([]int, 0)
+    for i, j := 0, 0; i < len(nums1) && j < len(nums2); {
+        if nums1[i] == nums2[j] {
+            res = append(res, nums1[i])
+            i, j = i+1, j+1
+        } else if nums1[i] > nums2[j] {
+            j++
+        } else {
+            i++
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(n1log(n1)+n2log(n2))$$
+- Space complexity: $$O(1)$$
+
+(3) Solution to 3rd follow-up question?
+If only nums2 cannot fit in memory, put all elements of nums1 into a map (like Solution 1), read chunks of array that fit into the memory, and record the intersections. 
+
+**Solution**
+
+Use as little memory as we can. In general, it's unnecessary to use more than one map.
+
+## [334. Increasing Triplet Subsequence](<https://leetcode.com/problems/increasing-triplet-subsequence/>)
+
+Given an unsorted array return whether an increasing subsequence of length 3 exists or not in the array.
+
+Formally the function should:
+
+> Return true if there exists *i, j, k* 
+> such that *arr[i]* < *arr[j]* < *arr[k]* given 0 ≤ *i* < *j* < *k* ≤ *n*-1 else return false.
+
+**Note:** Your algorithm should run in O(*n*) time complexity and O(*1*) space complexity.
+
+**Example 1:**
+
+```
+Input: [1,2,3,4,5]
+Output: true
+```
+
+**Example 2:**
+
+```
+Input: [5,4,3,2,1]
+Output: false
+```
+
+**Solution**
+
+(1) Time Limited Exceeded
+
+Of course brute force ...
+
+````go
+func increasingTriplet(nums []int) bool {
+    if len(nums) < 3 {
+        return false
+    }   
+    for i := 0; i < len(nums)-2; i++ {
+        for j := i+1; j < len(nums)-1; j++ {
+            for k := j+1; k < len(nums); k++ {
+                if nums[i] < nums[j] && nums[j] < nums[k] {
+                    return true
+                }
+            }
+        }
+    }
+    return false
+}
+````
+
+- Time complexity: $$O(n^3)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+
+```go
+func increasingTriplet(nums []int) bool {
+    if len(nums) < 3 {
+        return false
+    }   
+    small, middle := math.MaxInt64, math.MaxInt64
+    for i := range nums {
+        if nums[i] <= small {
+            small = nums[i]
+        } else if nums[i] <= middle {
+            middle = nums[i]
+        } else {
+            return true
+        }
+    }
+    return false
+}
+```
+
+Let's clarify what `small`and `middle`mean:
+
+- `small`: so far best candidate of smallest one in the triplet subsequence
+- `middle`: so far best candidate of middle one in the triplet subsequence
+
+For this problem, above code does work well. Take `[1, 0, 2, 0, -1, 3]`for example:
+
+```
+Iteration One
+small = 1 middle = INF
+Iteration Two
+small = 0 middle = INF
+Iteration Three
+small = 0 middle = 2
+Iteration Four (Nothing Changes)
+small = 0 middle = 2
+Iteration Five (Confusing Part)
+small = -1 middle = 2
+Iteration Six
+return true; Since 3 > 2 && 3 > -1
+```
+
+Setting `small= -1` is important, yet doesn't change the answer in this case since `middle= 2` implies that their existed a value that was previously smaller than `2`. Notice if we had a test case like this `[1,0,2,0,-1,0,1]` we now could see the importance of the updated lower bound for `small = -1`.
+
+However, **if the problem requires us to return the index, then this code would not work**.
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+**Recap**
+
+Obviously, this is another DP problem. We don't really need `dp`array stuff in every single DP problem.
+
+## [240. Search a 2D Matrix II](<https://leetcode.com/problems/search-a-2d-matrix-ii/>)
+
+Write an efficient algorithm that searches for a value in an *m* x *n* matrix. This matrix has the following properties:
+
+- Integers in each row are sorted in ascending from left to right.
+- Integers in each column are sorted in ascending from top to bottom.
+
+**Example:**
+
+Consider the following matrix:
+
+```
+[
+  [1,   4,  7, 11, 15],
+  [2,   5,  8, 12, 19],
+  [3,   6,  9, 16, 22],
+  [10, 13, 14, 17, 24],
+  [18, 21, 23, 26, 30]
+]
+```
+
+Given target = `5`, return `true`.
+
+Given target = `20`, return `false`.
+
+**Solution**
+
+(1) Accepted
+
+Since every row/column is sorted, we can do binary search to every row/column.
+
+```go
+func searchMatrix(matrix [][]int, target int) bool {
+	if len(matrix) == 0 || len(matrix[0]) == 0 {
+		return false
+	}
+	for i := range matrix {
+		if target >= matrix[i][0] && target <= matrix[i][len(matrix[i])-1] {
+			if j := sort.SearchInts(matrix[i], target); j < len(matrix[i]) && matrix[i][j] == target {
+				return true
+			}
+		}
+	}
+	return false
+}
+```
+
+- Time complexity: $$O(rows*log(columns))$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+```go
+func searchMatrix(matrix [][]int, target int) bool {
+	if len(matrix) == 0 || len(matrix[0]) == 0 {
+		return false
+	}
+    for r, c := 0, len(matrix[0])-1; r < len(matrix) && c >= 0; {
+        if matrix[r][c] == target {
+            return true
+        } else if matrix[r][c] < target {
+            r++
+        } else {
+            c--
+        }
+    } 
+	return false
+}
+```
+
+- Time complexity: $$O(rows+columns)$$
+- Space complexity: $$O(1)$$
+
+**Recap**
+
+1. `sort.Ints`will return the index where target **should be** in array.
+2. Sometimes try to iterate an array reversely and it may help.
+
+## [238. Product of Array Except Self](<https://leetcode.com/problems/product-of-array-except-self/>)
+
+Given an array `nums` of *n* integers where *n*> 1,  return an array `output` such that `output[i]` is equal to the product of all the elements of `nums` except `nums[i]`.
+
+**Example:**
+
+```
+Input:  [1,2,3,4]
+Output: [24,12,8,6]
+```
+
+**Note:** Please solve it **without division** and in O(*n*).
+
+**Follow up:**
+Could you solve it with constant space complexity? (The output array **does not** count as extra space for the purpose of space complexity analysis.)
+
+**Solution**
+
+(1) Accepted
+
+- `left[i]=nums[0]*...*nums[i-1], i > 0`
+- `right[i]=nums[len(nums)-1]*...*nums[i+1]`
+
+```go
+func productExceptSelf(nums []int) []int {
+    n := len(nums)
+    res, left, right := make([]int, n), make([]int, n), make([]int, n)
+    for i := range left {
+        left[i], right[i] = 1, 1
+    }
+    for i := 1; i < n; i++ {
+        left[i] = left[i-1] * nums[i-1]
+    }
+    for i := n-2; i >= 0; i-- {
+        right[i] = right[i+1] * nums[i+1]
+    }
+    for i := range nums {
+        res[i] = left[i] * right[i]
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+Improvement: no extra space
+
+```go
+func productExceptSelf(nums []int) []int {
+    n := len(nums)
+    res := make([]int, len(nums))
+    res[0] = 1
+    // res[i] = nums[0]*...*nums[i-1], i > 1
+    for i := 1; i < n; i++ {
+        res[i] = res[i-1] * nums[i-1]
+    }
+    // right = nums[n-1]*...*nums[1]
+    // So multiply res[i] by corresponding right 
+    // to complete the computation
+    right := 1
+    for i := n-1; i >= 0; i-- {
+        res[i] *= right
+        right *= nums[i]
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+Same idea but one pass.
+
+```go
+func productExceptSelf(nums []int) []int {
+	n := len(nums)
+	res := make([]int, n)
+	for i := range res {
+		res[i] = 1
+	}
+	left, right := 1, 1
+	for i := 0; i < n; i++ {
+		res[i] *= left
+		res[n-1-i] *= right
+		left, right = left*nums[i], right*nums[n-1-i]
+	}
+	return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+**Recap**
+
+Product or accumulation problem ?
+
+
+
 
 

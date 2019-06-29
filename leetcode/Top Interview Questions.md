@@ -1082,7 +1082,334 @@ func productExceptSelf(nums []int) []int {
 
 Product or accumulation problem ?
 
+# Linked List
+
+## [138. Copy List with Random Pointer](<https://leetcode.com/problems/copy-list-with-random-pointer/>)
+
+A linked list is given such that each node contains an additional random pointer which could point to any node in the list or null.
+
+Return a [**deep copy**](https://en.wikipedia.org/wiki/Object_copying#Deep_copy) of the list.
+
+**Example 1:**
+
+**![img](https://discuss.leetcode.com/uploads/files/1470150906153-2yxeznm.png)**
+
+```
+Input:
+{"$id":"1","next":{"$id":"2","next":null,"random":{"$ref":"2"},"val":2},"random":{"$ref":"2"},"val":1}
+
+Explanation:
+Node 1's value is 1, both of its next and random pointer points to Node 2.
+Node 2's value is 2, its next pointer points to null and its random pointer points to itself.
+```
+
+**Note:**
+
+1. You must return the **copy of the given head** as a reference to the cloned list.
+
+**Solution**
+
+```go
+type RandomListNode struct {
+    Label  int
+    Next   *RandomListNode
+    Random *RandomListNode
+}
+
+func copyRandomListNode(head *RandomListNode) *RandomListNode {   
+    // 1st round: copy every node and 
+    // make them linked to their original nodes
+    var next *RandomListNode
+    for iter := head; iter != nil; iter = iter.Next {
+        next = iter.Next
+        copyNode := &RandomListNode{Label: iter.Label}
+        // make the copy one become its original node's next node
+        iter.Next = copyNode
+        copyNode.Next = next
+    }
+    
+    // 2nd round: assign random poiters for the copy nodes
+    // iter.Next.Next is the original one
+    for iter := head; iter != nil; iter = iter.Next.Next {
+        if iter.Random != nil {
+            // Note that iter.Next is the copy one 
+            // and iter.Random.Next is also a copy one
+            iter.Next.Random = iter.Random.Next
+        }
+    }
+    
+    // 3rd round: restore the original list and 
+    // extract the copy ones
+    dummy := new(RandomListNode)
+    for iter, copyIter := head, dummy; iter != nil; iter, copyIter = iter.Next, copyIter.Next {
+        next, copyNode := iter.Next.Next, iter.Next
+        // extarct the copy one
+        copyIter.Next = copyNode
+        // restore the original list
+        iter.Next = next
+    }
+    return dummy.Next
+}
+```
+
+Clarify:
+
+![138. Copy List with Random Pointer](img/138. Copy List with Random Pointer.jpg)
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+## [141. Linked List Cycle](<https://leetcode.com/problems/linked-list-cycle/>)
+
+Given a linked list, determine if it has a cycle in it.
+
+To represent a cycle in the given linked list, we use an integer `pos` which represents the position (0-indexed) in the linked list where tail connects to. If `pos` is `-1`, then there is no cycle in the linked list.
+
+**Example 1:**
+
+```
+Input: head = [3,2,0,-4], pos = 1
+Output: true
+Explanation: There is a cycle in the linked list, where tail connects to the second node.
+```
+
+![img](https://assets.leetcode.com/uploads/2018/12/07/circularlinkedlist.png)
+
+**Example 2:**
+
+```
+Input: head = [1,2], pos = 0
+Output: true
+Explanation: There is a cycle in the linked list, where tail connects to the first node.
+```
+
+![img](https://assets.leetcode.com/uploads/2018/12/07/circularlinkedlist_test2.png)
+
+**Example 3:**
+
+```
+Input: head = [1], pos = -1
+Output: false
+Explanation: There is no cycle in the linked list.
+```
+
+![img](https://assets.leetcode.com/uploads/2018/12/07/circularlinkedlist_test3.png)
+
+**Follow up:**
+
+Can you solve it using *O(1)* (i.e. constant) memory?
+
+**Solution**
+
+(1) Accepted
+
+```go
+func hasCycle(head *ListNode) bool {
+    if head == nil {
+        return false
+    }
+    // present records whether a node has been found in list
+    present := make(map[*ListNode]bool)
+    for p := head; p != nil; p = p.Next {
+        if present[p] {
+            return true
+        } else {
+            present[p] = true
+        }
+    }
+    return false
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+(2) Accepted
+
+A quite commonly used algorithm for detecting a cycle in a linked list is [Floyds's algorithm](<https://en.wikipedia.org/wiki/Cycle_detection#Floyd's_Tortoise_and_Hare>).
+
+```go
+func hasCycle(head *ListNode) bool {
+    if head == nil {
+        return false
+    }
+    for slow, fast := head, head; slow != nil && fast != nil && fast.Next != nil; slow, fast = slow.Next, fast.Next.Next {
+        if slow == fast {
+            return true
+        }
+    } 
+    return false
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+**Recap**
+
+1. Many linked list problems can be solved by two pointers.
+2. Floyd's algorithm can also be used for looking for the entry point of cycle easily:
+
+```go
+// Let's say fast is already in cycle
+slow = head
+for slow != fast {
+    slow, fast = slow.Next, fast.Next
+}
+return slow 
+```
+
+## [148. Sort List](<https://leetcode.com/problems/sort-list/>)
+
+Sort a linked list in *O*(*n* log *n*) time using constant space complexity.
+
+**Example 1:**
+
+```
+Input: 4->2->1->3
+Output: 1->2->3->4
+```
+
+**Example 2:**
+
+```
+Input: -1->5->3->4->0
+Output: -1->0->3->4->5
+```
+
+**Solution**
+
+(1) Accepted
+
+```go
+func sortList(head *ListNode) *ListNode {
+    if head == nil || head.Next == nil {
+        return head
+    }
+    
+    // Split the list into two parts 
+    slow, fast, pre := head, head, head 
+    for fast != nil && fast.Next != nil {
+        pre = slow
+        slow, fast = slow.Next, fast.Next.Next
+    }
+    pre.Next = nil
+    // Sort each part 
+    l1, l2 := sortList(head), sortList(slow)
+    // Merge
+    return merge(l1, l2)
+}
+
+func merge(l1, l2 *ListNode) *ListNode {
+    l := new(ListNode)
+    p := l
+    for l1 != nil && l2 != nil {
+        if l1.Val < l2.Val {
+            p.Next = l1
+            l1 = l1.Next
+        } else {
+            p.Next = l2
+            l2 = l2.Next
+        }
+        p = p.Next
+    }
+    if l1 != nil {
+        p.Next = l1
+    }
+    if l2 != nil {
+        p.Next = l2
+    }
+    return l.Next
+}
+```
+
+- Time complexity: $$O(nlogn)$$
+- Space complexity: $$O(logn)$$ since the program needs to store stack frames.
+
+(2) Accepted
+
+```go
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+
+// Merge Sort
+func sortList(head *ListNode) *ListNode {
+    if head == nil || head.Next == nil {
+        return head
+    }
+    
+    // Calculate the lenght of list
+    length := 0
+    for p := head; p != nil; p = p.Next {
+        length++
+    }
+    
+    // Bottom-up merge sort
+    dummy := &ListNode{Next: head}
+    for l := 1; l < length; l <<= 1 {
+        cur, tail := dummy.Next, dummy
+        for cur != nil {
+            left := cur
+            right := split(left, l)
+            cur, tail = split(right, l), merge(left, right, tail)
+        }
+    }
+    return dummy.Next
+}
+
+// split the list into two parts
+// while the first part contains first length ndoes
+// and return the second part's head
+func split(head *ListNode, length int) *ListNode {
+    for l := 1; head != nil && l < length; l++ {
+        head = head.Next
+    }
+    if head == nil {
+        return nil
+    }
+    second := head.Next
+    head.Next = nil
+    return second
+}
 
 
+// merge two sorted lists and append it to the head
+// return the tail of merged list
+func merge(l1, l2, head *ListNode) *ListNode {
+    cur := head
+    for l1 != nil && l2 != nil {
+        if l1.Val > l2.Val {
+            cur.Next = l2
+            cur = l2
+            l2 = l2.Next
+        } else {
+            cur.Next = l1
+            cur = l1
+            l1 = l1.Next
+        }
+    }
+    if l1 != nil {
+        cur.Next = l1
+    } else if l2 != nil {
+        cur.Next = l2
+    }
+    // Get the tail
+    for cur.Next != nil {
+        cur = cur.Next
+    }
+    return cur
+}
+```
 
+- Time complexity: $$O(nlogn)$$
+- Space complexity: $$O(1)$$
+
+**Recap**
+
+Bottom-up merge sort can save extra space.
 

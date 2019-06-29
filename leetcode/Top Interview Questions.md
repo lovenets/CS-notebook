@@ -1413,3 +1413,396 @@ func merge(l1, l2, head *ListNode) *ListNode {
 
 Bottom-up merge sort can save extra space.
 
+## [160. Intersection of Two Linked Lists](<https://leetcode.com/problems/intersection-of-two-linked-lists/>)
+
+Write a program to find the node at which the intersection of two singly linked lists begins.
+
+For example, the following two linked lists:
+
+![img](https://assets.leetcode.com/uploads/2018/12/13/160_statement.png)
+
+begin to intersect at node c1.
+
+**Notes:**
+
+- If the two linked lists have no intersection at all, return `null`.
+- The linked lists must retain their original structure after the function returns.
+- You may assume there are no cycles anywhere in the entire linked structure.
+- Your code should preferably run in O(n) time and use only O(1) memory.
+
+**Solution**
+
+(1) Accepted
+
+Very straightforward.
+
+```go
+func getIntersectionNode(headA, headB *ListNode) *ListNode {
+    if headA == nil || headB == nil {
+        return nil
+    }
+    lenOfList := func(head *ListNode) int {
+        l := 0
+        for p := head; p != nil; p = p.Next {
+            l++
+        }
+        return l
+    }
+    len1, len2 := lenOfList(headA), lenOfList(headB)
+    p, q := headA, headB
+    if gap := len1-len2; gap > 0 {
+        for ; gap > 0; gap-- {
+            p = p.Next
+        }
+    } else if gap < 0 {
+        for ; gap < 0; gap++ {
+            q = q.Next
+        }
+    }
+    for p != nil && q != nil {
+        if p == q {
+            return p
+        } else {
+            p, q = p.Next, q.Next
+        }
+    }
+    return nil
+}
+```
+
+- Time complexity: $$O(len1+len2)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted but not satisfied
+
+```go
+func getIntersectionNode(headA, headB *ListNode) *ListNode {
+    if headA == nil || headB == nil {
+        return nil
+    }
+    present := make(map[*ListNode]bool)
+    for p := headA; p != nil; p = p.Next {
+        present[p] = true
+    }
+    for q := headB; q != nil; q = q.Next {
+        if present[q] {
+            return q
+        }
+    }
+    return nil
+}
+```
+
+- Time complexity: $$O(len1+len2)$$
+- Space complexity: $$O(len1)$$
+
+(3) Accepted
+
+```go
+func getIntersectionNode(headA, headB *ListNode) *ListNode {
+    if headA == nil || headB == nil {
+        return nil
+    }
+    a, b := headA, headB
+    for a != b {
+        if a == nil {
+            a = headB
+        } else {
+            a = a.Next
+        }
+        if b == nil {
+            b = headA
+        } else {
+            b = b.Next
+        }
+    }
+    return a
+}
+```
+
+In the for loop, we actually do two iterations. In the first iteration, we will reset the pointer of one linked list to the head of another linked list after it reaches the tail node. In the second iteration, we will move two pointers until they points to the same node. Our operations in first iteration will help us counteract the difference of lengths. 
+
+So if two linked list intersects, the meeting point in second iteration must be the intersection point. If the two linked lists have no intersection at all, then the meeting pointer in second iteration must be the tail node of both lists, which is null.
+
+- Time complexity: $$O(len1+len2)$$
+- Space complexity: $$O(1)$$
+
+## [206. Reverse Linked List](<https://leetcode.com/problems/reverse-linked-list/>)
+
+Reverse a singly linked list.
+
+**Example:**
+
+```
+Input: 1->2->3->4->5->NULL
+Output: 5->4->3->2->1->NULL
+```
+
+**Follow up:**
+
+A linked list can be reversed either iteratively or recursively. Could you implement both?
+
+(1) Accepted
+
+Iterative solution.
+
+```go
+func reverseList(head *ListNode) *ListNode {
+    if head == nil || head.Next == nil {
+        return head
+    }
+    pre, cur := head, head.Next
+    var next *ListNode
+    for cur != nil {
+        next = cur.Next
+        cur.Next = pre
+        pre = cur
+        cur = next
+    }
+    head.Next = nil
+    return pre
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+Recursive solution.
+
+The recursive version is slightly trickier and the key is to work backwards. Assume that the rest of the list had already been reversed, now how do I reverse the front part? Let's assume the list is: n1 → … → nk-1→ nk → nk+1 → … → nm → Ø
+
+Assume from node nk+1 to nm had been reversed and you are at node nk.
+
+n1 → … → nk-1 → **nk** → nk+1 ← … ← nm
+
+We want nk+1’s next node to point to nk. So, `nk.next.next = nk`.
+
+Be very careful that n1's next must point to Ø. If you forget about this, your linked list has a cycle in it. This bug could be caught if you test your code with a linked list of size 2.
+
+```go
+func reverseList(head *ListNode) *ListNode {
+    if head == nil || head.Next == nil {
+        return head
+    }
+    p := reverseList(head.Next)
+    head.Next.Next = head
+    head.Next = nil
+    return p
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$ for stack frames.
+
+**Recap**
+
+This problem is too classic and must be solved without doubt.
+
+## [234. Palindrome Linked List](<https://leetcode.com/problems/palindrome-linked-list/>)
+
+Given a singly linked list, determine if it is a palindrome.
+
+**Example 1:**
+
+```
+Input: 1->2
+Output: false
+```
+
+**Example 2:**
+
+```
+Input: 1->2->2->1
+Output: true
+```
+
+**Follow up:**
+Could you do it in O(n) time and O(1) space?
+
+**Solution**
+
+(1) Accepted
+
+```go
+func isPalindrome(head *ListNode) bool {
+    if head == nil {
+        return true
+    }
+    vals := make([]int, 0)
+    for p := head; p != nil; p = p.Next {
+        vals = append(vals, p.Val)
+    }
+    for i, j := 0, len(vals)-1; i < j; i, j = i+1, j-1 {
+        if vals[i] != vals[j] {
+            return false
+        }
+    }
+    return true
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+(2) Accepted
+
+Reverse the right half and compare two halves.
+
+```go
+func isPalindrome(head *ListNode) bool {
+    if head == nil {
+        return true
+    }
+    slow, fast := head, head
+    for fast != nil && fast.Next != nil {
+        slow, fast = slow.Next, fast.Next.Next
+    }
+    if fast != nil {
+        // odd nodes: let right half smaller
+        slow = slow.Next
+    }
+    for slow, fast = reverse(slow), head; slow != nil; slow, fast = slow.Next, fast.Next {
+        if slow.Val != fast.Val {
+            return false
+        }
+    }
+    return true
+}
+
+func reverse(head *ListNode) *ListNode {
+    if head == nil || head.Next == nil {
+        return head
+    }
+    pre, cur := head, head.Next
+    var next *ListNode
+    for cur != nil {
+        next = cur.Next
+        cur.Next = pre
+        pre = cur
+        cur = next
+    }
+    head.Next = nil
+    return pre
+}
+```
+
+Note that this method modifies input. If that's not allowed, we need to restore the linked list at last.
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+**Recap**
+
+Ask your interview whether you can modify input if you are not sure.
+
+## [237. Delete Node in a Linked List](<https://leetcode.com/problems/delete-node-in-a-linked-list/>)
+
+Write a function to delete a node (except the tail) in a singly linked list, given only access to that node.
+
+Given linked list -- head = [4,5,1,9], which looks like following:
+
+![img](https://assets.leetcode.com/uploads/2018/12/28/237_example.png)
+
+ 
+
+**Example 1:**
+
+```
+Input: head = [4,5,1,9], node = 5
+Output: [4,1,9]
+Explanation: You are given the second node with value 5, the linked list should become 4 -> 1 -> 9 after calling your function.
+```
+
+**Example 2:**
+
+```
+Input: head = [4,5,1,9], node = 1
+Output: [4,5,9]
+Explanation: You are given the third node with value 1, the linked list should become 4 -> 5 -> 9 after calling your function.
+```
+
+**Note:**
+
+- The linked list will have at least two elements.
+- All of the nodes' values will be unique.
+- The given node will not be the tail and it will always be a valid node of the linked list.
+- Do not return anything from your function.
+
+**Solution**
+
+```go
+func deleteNode(node *ListNode) {
+    pre, cur := node, node.Next
+    for ; cur != nil && cur.Next != nil; pre, cur = cur, cur.Next {
+        pre.Val = cur.Val
+    }
+    pre.Val, pre.Next = cur.Val, nil
+}
+```
+
+Actually, we just need to swap the current node with its next...
+
+![img](https://leetcode.com/media/original_images/237_LinkedList3.png)
+
+```go
+func deleteNode(node *ListNode) {
+    node.Val, node.Next = node.Next.Val, node.Next.Next
+}
+```
+
+- Time complexity: $$O(1)$$
+- Space complexity: $$O(1)$$
+
+## [328. Odd Even Linked List](<https://leetcode.com/problems/odd-even-linked-list/>)
+
+Given a singly linked list, group all odd nodes together followed by the even nodes. Please note here we are talking about the node number and not the value in the nodes.
+
+You should try to do it in place. The program should run in O(1) space complexity and O(nodes) time complexity.
+
+**Example 1:**
+
+```
+Input: 1->2->3->4->5->NULL
+Output: 1->3->5->2->4->NULL
+```
+
+**Example 2:**
+
+```
+Input: 2->1->3->5->6->4->7->NULL
+Output: 2->3->6->7->1->5->4->NULL
+```
+
+**Note:**
+
+- The relative order inside both the even and odd groups should remain as it was in the input.
+- The first node is considered odd, the second node even and so on ...
+
+**Solution**
+
+```go
+func oddEvenList(head *ListNode) *ListNode {
+	if head == nil {
+		return head
+	}
+	// two pointers
+	odd, even := head, head.Next
+	evenFirst := head.Next
+	for even != nil && even.Next != nil  {
+		odd.Next = odd.Next.Next
+		even.Next = even.Next.Next
+		odd = odd.Next
+		even = even.Next
+	}
+	odd.Next = evenFirst
+	return head
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+
+

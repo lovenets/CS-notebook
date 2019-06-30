@@ -573,7 +573,7 @@ We will need $$O(n!)$$  extra space to store all permutations which is too much.
 
 (2) Accepted
 
-[Fisher-Yates Algorithm]([https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm](https://en.wikipedia.org/wiki/Fisher–Yates_shuffle#The_modern_algorithm))
+[Fisher-Yates Algorithm]([https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm])
 
 ```go
 type Solution struct {
@@ -979,7 +979,7 @@ func searchMatrix(matrix [][]int, target int) bool {
 
 **Recap**
 
-1. `sort.Ints`will return the index where target **should be** in array.
+1. `sort.Ints`will return the position where target **should be** in array.
 2. Sometimes try to iterate an array reversely and it may help.
 
 ## [238. Product of Array Except Self](<https://leetcode.com/problems/product-of-array-except-self/>)
@@ -1003,7 +1003,7 @@ Could you solve it with constant space complexity? (The output array **does not*
 (1) Accepted
 
 - `left[i]=nums[0]*...*nums[i-1], i > 0`
-- `right[i]=nums[len(nums)-1]*...*nums[i+1]`
+- `right[i]=nums[len(nums)-1]*...*nums[i+1], i >= 0`
 
 ```go
 func productExceptSelf(nums []int) []int {
@@ -1205,7 +1205,7 @@ Can you solve it using *O(1)* (i.e. constant) memory?
 
 ```go
 func hasCycle(head *ListNode) bool {
-    if head == nil {
+    if head == nil || head.Next == nil {
         return false
     }
     // present records whether a node has been found in list
@@ -1230,7 +1230,7 @@ A quite commonly used algorithm for detecting a cycle in a linked list is [Floyd
 
 ```go
 func hasCycle(head *ListNode) bool {
-    if head == nil {
+    if head == nil || head.Next == nil {
         return false
     }
     for slow, fast := head, head; slow != nil && fast != nil && fast.Next != nil; slow, fast = slow.Next, fast.Next.Next {
@@ -1363,7 +1363,7 @@ func sortList(head *ListNode) *ListNode {
 }
 
 // split the list into two parts
-// while the first part contains first length ndoes
+// while the first part contains first n ndoes
 // and return the second part's head
 func split(head *ListNode, length int) *ListNode {
     for l := 1; head != nil && l < length; l++ {
@@ -1705,8 +1705,6 @@ Given linked list -- head = [4,5,1,9], which looks like following:
 
 ![img](https://assets.leetcode.com/uploads/2018/12/28/237_example.png)
 
- 
-
 **Example 1:**
 
 ```
@@ -1782,6 +1780,8 @@ Output: 2->3->6->7->1->5->4->NULL
 
 **Solution**
 
+Just another two-pointer problem.
+
 ```go
 func oddEvenList(head *ListNode) *ListNode {
 	if head == nil {
@@ -1804,5 +1804,1098 @@ func oddEvenList(head *ListNode) *ListNode {
 - Time complexity: $$O(n)$$
 - Space complexity: $$O(1)$$
 
+# Heap & Stack
 
+## [155. Min Stack](<https://leetcode.com/problems/min-stack/>)
+
+Design a stack that supports push, pop, top, and retrieving the minimum element in constant time.
+
+- push(x) -- Push element x onto stack.
+- pop() -- Removes the element on top of the stack.
+- top() -- Get the top element.
+- getMin() -- Retrieve the minimum element in the stack.
+
+**Example:**
+
+```
+MinStack minStack = new MinStack();
+minStack.push(-2);
+minStack.push(0);
+minStack.push(-3);
+minStack.getMin();   --> Returns -3.
+minStack.pop();
+minStack.top();      --> Returns 0.
+minStack.getMin();   --> Returns -2.
+```
+
+**Solution**
+
+(1) Accepted
+
+```go
+type MinStack struct {
+    Data []int
+    Mins []int
+}
+
+
+/** initialize your data structure here. */
+func Constructor() MinStack {
+    return MinStack{make([]int, 0), make([]int, 0)}
+}
+
+
+func (this *MinStack) Push(x int)  {
+    this.Data = append(this.Data, x)
+    if len(this.Mins) == 0 || this.Mins[len(this.Mins)-1] >= x {
+        this.Mins = append(this.Mins, x)
+    }
+}
+
+
+func (this *MinStack) Pop()  {
+    if len(this.Data) == 0 {
+        return
+    }
+    top := this.Data[len(this.Data)-1]
+    this.Data = this.Data[:len(this.Data)-1]
+    if len(this.Mins) > 0 && this.Mins[len(this.Mins)-1] == top {
+        this.Mins = this.Mins[:len(this.Mins)-1]
+    }
+}
+
+
+func (this *MinStack) Top() int {
+    if len(this.Data) == 0 {
+        panic("empty stack")
+    }
+    return this.Data[len(this.Data)-1]
+}
+
+
+func (this *MinStack) GetMin() int {
+    if len(this.Data) == 0 {
+        panic("empty stack")
+    }
+    return this.Mins[len(this.Mins)-1]
+}
+```
+
+(2) Accepted
+
+Only one stack.
+
+```go
+type MinStack struct {
+    Data []int
+    Min  int
+}
+
+
+/** initialize your data structure here. */
+func Constructor() MinStack {
+    return MinStack{make([]int, 0), math.MaxInt64}
+}
+
+
+func (this *MinStack) Push(x int)  {
+    if x <= this.Min {
+        // When updating the minimum, we need to push old minimum too
+        // By doing so, we can resotre minimum to last value when we 
+        // pop current minimum
+        this.Data, this.Min = append(this.Data, this.Min), x
+    }
+    this.Data = append(this.Data, x)
+}
+
+
+func (this *MinStack) Pop()  {
+    if len(this.Data) == 0 {
+        return
+    }
+    top := this.Data[len(this.Data)-1]
+    this.Data = this.Data[:len(this.Data)-1]
+    if top == this.Min {
+        this.Min = this.Data[len(this.Data)-1]
+        this.Data = this.Data[:len(this.Data)-1]
+    }
+}
+
+
+func (this *MinStack) Top() int {
+    if len(this.Data) == 0 {
+        panic("empty stack")
+    }
+    return this.Data[len(this.Data)-1]
+}
+
+
+func (this *MinStack) GetMin() int {
+    if len(this.Data) == 0 {
+        panic("empty stack")
+    }
+    return this.Min
+}
+```
+
+(3) Accepted
+
+Not so straightforward but it does work.
+
+```go
+type MinStack struct {
+    Data []int
+    Mins []int
+}
+
+
+/** initialize your data structure here. */
+func Constructor() MinStack {
+    return MinStack{make([]int, 0), make([]int, 0)}
+}
+
+
+func (this *MinStack) Push(x int)  {
+    this.Data = append(this.Data, x)
+    if len(this.Mins) == 0 || this.Mins[len(this.Mins)-1] > x {
+        this.Mins = append(this.Mins, x)
+    } else {
+        // Push a placeholder number
+        this.Mins = append(this.Mins, this.Mins[len(this.Mins)-1])
+    }
+}
+
+
+func (this *MinStack) Pop()  {
+    if len(this.Data) == 0 {
+        return
+    }
+    this.Data = this.Data[:len(this.Data)-1]
+    // If this.Mins[len(this.Mins)] == this.Data[len(this.Data)1], jsut pop it
+    // if not, this.Mins[len(this.Mins)] is just a placeholder number, pop it too
+    this.Mins = this.Mins[:len(this.Mins)-1]
+}
+
+
+func (this *MinStack) Top() int {
+    if len(this.Data) == 0 {
+        panic("empty stack")
+    }
+    return this.Data[len(this.Data)-1]
+}
+
+
+func (this *MinStack) GetMin() int {
+    if len(this.Data) == 0 {
+        panic("empty stack")
+    }
+    return this.Mins[len(this.Mins)-1]
+}
+```
+
+**Recap**
+
+Make use of the natures of `push`and `pop` to get constant run time.
+
+## [215. Kth Largest Element in an Array](<https://leetcode.com/problems/kth-largest-element-in-an-array/>)
+
+Find the **k**th largest element in an unsorted array. Note that it is the kth largest element in the sorted order, not the kth distinct element.
+
+**Example 1:**
+
+```
+Input: [3,2,1,5,6,4] and k = 2
+Output: 5
+```
+
+**Example 2:**
+
+```
+Input: [3,2,3,1,2,4,5,5,6] and k = 4
+Output: 4
+```
+
+**Note:** 
+You may assume k is always valid, 1 ≤ k ≤ array's length.
+
+**Solution**
+
+(1) Accepted
+
+Very straightforward.
+
+```go
+func findKthLargest(nums []int, k int) int {
+    if len(nums) == 0 {
+        panic("invalid input")
+    }
+    sort.Ints(nums)
+    i := len(nums)-1
+    for j := 0; i >= 0 && j < k-1; i, j = i-1, j+1 {
+    } 
+    return nums[i]
+}
+```
+
+- Time  complexity: $$O(nlog(n))$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+The smart approach for this problem is to use the selection algorithm (based on the partitioning method - the same one as used in quicksort). Notice that quick sort will cost $$O(n^2)$$ time in the worst case. To avoid this, just shuffle input array.
+
+```go
+func findKthLargest(nums []int, k int) int {
+	if len(nums) == 0 {
+		panic("invalid input")
+	}
+	rand.Shuffle(len(nums), func(i, j int) {
+		nums[i], nums[j] = nums[j], nums[i]
+	})
+	k--
+	for low, high := 0, len(nums)-1; low < high; {
+		if tmp := partition(nums[low:high+1])+low; tmp == k {
+			break
+		} else if tmp > k {
+			high = tmp - 1
+		} else {
+			low = tmp + 1
+		}
+	}
+	return nums[k]
+}
+
+func partition(nums []int) int {
+	i, j := 0, len(nums)
+	for pivot := nums[0]; ; {
+		for i++; i < len(nums) && nums[i] > pivot; i++ {
+		}
+		for j--; j >= 0 && nums[j] < pivot; j-- {
+		}
+		if i >= j {
+			break
+		} else {
+			nums[i], nums[j] = nums[j], nums[i]
+		}
+	}
+	nums[0], nums[j] = nums[j], nums[0]
+	return j
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+**Recap**
+
+In quick sort, every time we call `partition`, we will put one element in its right position in the sorted array.
+
+## [295. Find Median from Data Stream](<https://leetcode.com/problems/find-median-from-data-stream/>)
+
+Median is the middle value in an ordered integer list. If the size of the list is even, there is no middle value. So the median is the mean of the two middle value.
+
+For example,
+
+```
+[2,3,4]`, the median is `3
+[2,3]`, the median is `(2 + 3) / 2 = 2.5
+```
+
+Design a data structure that supports the following two operations:
+
+- void addNum(int num) - Add a integer number from the data stream to the data structure.
+- double findMedian() - Return the median of all elements so far.
+
+ 
+
+**Example:**
+
+```
+addNum(1)
+addNum(2)
+findMedian() -> 1.5
+addNum(3) 
+findMedian() -> 2
+```
+
+ 
+
+**Follow up:**
+
+1. If all integer numbers from the stream are between 0 and 100, how would you optimize it?
+2. If 99% of all integer numbers from the stream are between 0 and 100, how would you optimize it?
+
+**Solution**
+
+(1) Time Limit Exceeded
+
+```go
+type MedianFinder struct {
+    Data []int
+}
+
+
+/** initialize your data structure here. */
+func Constructor() MedianFinder {
+    return MedianFinder{make([]int, 0)}
+}
+
+
+func (this *MedianFinder) AddNum(num int)  {
+    this.Data = append(this.Data, num)
+}
+
+
+func (this *MedianFinder) FindMedian() float64 {
+    sort.Ints(this.Data)
+    if len(this.Data)&1 == 0 {
+        // Even 
+        i := len(this.Data) >> 1
+        j := i - 1
+        return float64((this.Data[i]+this.Data[j])) / 2.0
+    } else {
+        // Odd
+        return float64(this.Data[len(this.Data)>>1])
+    }
+}
+
+
+/**
+ * Your MedianFinder object will be instantiated and called as such:
+ * obj := Constructor();
+ * obj.AddNum(num);
+ * param_2 := obj.FindMedian();
+ */
+```
+
+- Time complexity: $$O(nlogn)$$
+- Space complexity: $$O(n)$$
+
+(2) 
+
+Keep two heaps (or priority queues):
+
+- Max-heap `small` has the smaller half of the numbers.
+- Min-heap `large` has the larger half of the numbers.
+
+```go
+type PeekHeap interface {
+    heap.Interface
+    Peek() interface{}
+}
+
+type heapInt []int
+
+func (h heapInt) Len() int {
+	return len(h)
+}
+
+func (h heapInt) Less(i, j int) bool {
+	return h[i] < h[j]
+}
+
+func (h heapInt) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
+}
+
+func (h *heapInt) Peek() interface{} {
+	
+	return (*h)[0]
+}
+
+func (h *heapInt) Push(x interface{}) {
+	*h = append(*h, x.(int))
+}
+
+func (h *heapInt) Pop() interface{} {
+	length := len(*h)
+	res := (*h)[length - 1]
+
+	*h = (*h)[0 : length - 1]
+	return res
+}
+
+type reverse struct {
+    PeekHeap
+}
+
+func (r reverse) Less(i, j int) bool {
+	return r.PeekHeap.Less(j, i)
+}
+
+func Reverse(data PeekHeap) PeekHeap {
+	return &reverse{data}
+}
+
+type MedianFinder struct {
+	maxHeap PeekHeap
+	minHeap PeekHeap
+}
+
+
+/** initialize your data structure here. */
+func Constructor() MedianFinder {
+    minHeap := &heapInt{}
+	maxHeap := Reverse(&heapInt{})
+	heap.Init(minHeap)
+	heap.Init(maxHeap)
+	return MedianFinder{maxHeap, minHeap}
+}
+
+
+func (this *MedianFinder) AddNum(num int)  {
+    heap.Push(this.maxHeap, num)
+    heap.Push(this.minHeap, heap.Pop(this.maxHeap))
+    if this.maxHeap.Len() < this.minHeap.Len() {
+        heap.Push(this.maxHeap, heap.Pop(this.minHeap))
+    }
+}
+
+
+func (this *MedianFinder) FindMedian() float64 {
+	if this.maxHeap.Len() == this.minHeap.Len() {
+		return (float64(this.maxHeap.Peek().(int)) + float64(this.minHeap.Peek().(int))) / 2.0
+	} else {
+		return float64(this.maxHeap.Peek().(int))
+	}
+}
+
+
+/**
+ * Your MedianFinder object will be instantiated and called as such:
+ * obj := Constructor();
+ * obj.AddNum(num);
+ * param_2 := obj.FindMedian();
+ */
+```
+
+- Time complexity: `AddNum`costs $$O(logn)$$ time. `FindMedian` costs $$O(1)$$ time.
+- Space complexity: $$O(n)$$
+
+**Recap**
+
+Try to feel comfortable with [heap pakcage](<https://golang.org/pkg/container/heap/#example__intHeap>). 
+
+## [378. Kth Smallest Element in a Sorted Matrix](<https://leetcode.com/problems/kth-smallest-element-in-a-sorted-matrix/>)
+
+Given a *n* x *n* matrix where each of the rows and columns are sorted in ascending order, find the kth smallest element in the matrix.
+
+Note that it is the kth smallest element in the sorted order, not the kth distinct element.
+
+**Example:**
+
+```
+matrix = [
+   [ 1,  5,  9],
+   [10, 11, 13],
+   [12, 13, 15]
+],
+k = 8,
+
+return 13.
+```
+
+**Note:** 
+You may assume k is always valid, 1 ≤ k ≤ n^2.
+
+**Solution**
+
+(1) Wrong Answer
+
+This solution fails because there may be duplicates in matrix.
+
+```go
+func kthSmallest(matrix [][]int, k int) int {
+    if len(matrix) == 0 || len(matrix[0]) == 0 || len(matrix) != len(matrix[0]) {
+        panic("invalid input")
+    }
+    n := len(matrix)
+    k--
+    r, c := k/n, k%n
+    return matrix[r][c]
+}
+```
+
+```
+Input
+[[1,2],[1,3]]
+2
+Output
+2
+Expected
+1
+```
+
+(2) Accepted
+
+Two steps:
+
+1. Build a min-heap of elements from the first row.
+2. Do the following operations k-1 times :
+   Every time when you poll out the root of heap, you need to know the row number and column number of that element(so we can create a tuple class here), replace that root with the next element from the same column.
+
+In this approach, we actually flat the matrix into an sorted array.
+
+```go
+type MatrixItem struct {
+	Row    int
+	Column int
+	Val    int
+}
+
+type Matrix []*MatrixItem
+
+func (m Matrix) Len() int {
+	return len(m)
+}
+
+func (m Matrix) Less(i, j int) bool {
+	return m[i].Val < m[j].Val
+}
+
+func (m Matrix) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
+func (m *Matrix) Push(x interface{}) {
+	*m = append(*m, x.(*MatrixItem))
+}
+
+func (m *Matrix) Pop() interface{} {
+	peek := (*m)[len(*m)-1]
+	*m = (*m)[:len(*m)-1]
+	return peek
+}
+
+func kthSmallest(matrix [][]int, k int) int {
+	if len(matrix) == 0 || len(matrix[0]) == 0 || len(matrix) != len(matrix[0]) {
+		panic("invalid input")
+	}
+	m := new(Matrix)
+	heap.Init(m)
+	n := len(matrix)
+	for i := 0; i < n; i++ {
+		heap.Push(m, &MatrixItem{0, i, matrix[0][i]})
+	}
+	for k--; k > 0; k-- {
+		peek := heap.Pop(m).(*MatrixItem)
+		if peek.Row < n-1 {
+			heap.Push(m, &MatrixItem{peek.Row + 1, peek.Column, matrix[peek.Row+1][peek.Column]})
+		}
+	}
+	return heap.Pop(m).(*MatrixItem).Val
+}
+```
+
+- Time complexity: $$O(klogn)$$
+- Space complexity: $$O(n)$$
+
+**Recap**
+
+Similar problem: [373. Find K Pairs with Smallest Sums](373. Find K Pairs with Smallest Sums)
+
+## [373. Find K Pairs with Smallest Sums](373. Find K Pairs with Smallest Sums)
+
+You are given two integer arrays **nums1 **and **nums2** sorted in ascending order and an integer **k**.
+
+Define a pair **(u,v)** which consists of one element from the first array and one element from the second array.
+
+Find the k pairs **(u1,v1),(u2,v2) ...(uk,vk)**with the smallest sums.
+
+**Example 1:**
+
+```
+Input: nums1 = [1,7,11], nums2 = [2,4,6], k = 3
+Output: [[1,2],[1,4],[1,6]] 
+Explanation: The first 3 pairs are returned from the sequence: 
+             [1,2],[1,4],[1,6],[7,2],[7,4],[11,2],[7,6],[11,4],[11,6]
+```
+
+**Example 2:**
+
+```
+Input: nums1 = [1,1,2], nums2 = [1,2,3], k = 2
+Output: [1,1],[1,1]
+Explanation: The first 2 pairs are returned from the sequence: 
+             [1,1],[1,1],[1,2],[2,1],[1,2],[2,2],[1,3],[1,3],[2,3]
+```
+
+**Example 3:**
+
+```
+Input: nums1 = [1,2], nums2 = [3], k = 3
+Output: [1,3],[2,3]
+Explanation: All possible pairs are returned from the sequence: [1,3],[2,3]
+```
+
+**Solution**
+
+Generate possible pairs and store them in a min heap/priority queue. Return the first k pairs.
+
+```go
+type Pair struct {
+    IdxInNums1 int
+    IdxInNums2 int
+    Val        int
+}
+
+type PairHeap []Pair
+
+func (ph PairHeap) Len() int {
+    return len(ph)
+}
+
+func (ph PairHeap) Less(i, j int) bool {
+    return ph[i].Val < ph[j].Val
+}
+
+func (ph PairHeap) Swap(i, j int) {
+    ph[i], ph[j] = ph[j], ph[i]
+}
+
+func (ph *PairHeap) Push(x interface{}) {
+    *ph = append(*ph, x.(Pair))
+}
+
+func (ph *PairHeap) Pop() interface{} {
+    root := (*ph)[len(*ph)-1]
+    *ph = (*ph)[:len(*ph)-1]
+    return root
+}
+
+
+func kSmallestPairs(nums1 []int, nums2 []int, k int) [][]int {
+    if len(nums1) == 0 || len(nums2) == 0 {
+        return nil
+    }
+    // Init heap
+    ph := new(PairHeap)
+    heap.Init(ph)
+    for i := 0; i < len(nums2); i++ {
+        heap.Push(ph, Pair{0, i, nums1[0]+nums2[i]})
+    }
+    // Generate ohther pairs and get first k smallest paris
+    res := make([][]int, 0)
+    if k > len(nums1)*len(nums2) {
+        k = len(nums1) * len(nums2)
+    }
+    for i := 0; i < k; i++ {
+        pair := heap.Pop(ph).(Pair)
+        res = append(res, []int{nums1[pair.IdxInNums1], nums2[pair.IdxInNums2]})
+        if pair.IdxInNums1 < len(nums1)-1 {
+            heap.Push(ph, Pair{pair.IdxInNums1+1, pair.IdxInNums2, nums1[pair.IdxInNums1+1]+nums2[pair.IdxInNums2]})
+        }
+    }
+    return res
+}
+```
+
+We can also consider this approach as a multiway merge sort:
+
+![](https://pbs.twimg.com/media/Dg-5jocU0AAI-cC.jpg:small)
+
+- Time complexity: $$O(klogk)$$
+- Space complexity: $$O(len(nums1))$$ or $$O(len(nums2))$$
+
+## [347. Top K Frequent Elements](<https://leetcode.com/problems/top-k-frequent-elements/>)
+
+Given a non-empty array of integers, return the **k** most frequent elements.
+
+**Example 1:**
+
+```
+Input: nums = [1,1,1,2,2,3], k = 2
+Output: [1,2]
+```
+
+**Example 2:**
+
+```
+Input: nums = [1], k = 1
+Output: [1]
+```
+
+**Note:**
+
+- You may assume *k* is always valid, 1 ≤ *k* ≤ number of unique elements.
+- Your algorithm's time complexity **must be** better than O(*n* log *n*), where *n* is the array's size.
+
+**Solution**
+
+```go
+func topKFrequent(nums []int, k int) []int {
+    // Count the frequency of every element
+    numToFreq := make(map[int]int)
+    for i := range nums {
+        numToFreq[nums[i]]++
+    }
+    // Group elements by their frequencies
+    maxFreq := 0
+    freqToNum := make(map[int][]int)
+    for n, f := range numToFreq {
+        if _, ok := freqToNum[f]; !ok {
+            freqToNum[f] = make([]int, 0)
+        } 
+        freqToNum[f] = append(freqToNum[f], n)
+        if f > maxFreq {
+            maxFreq = f
+        }
+    }
+    // Get k most frequent elements
+    res := make([]int, 0)
+    for i := maxFreq; i > 0; i-- {
+        if _, ok := freqToNum[i]; ok {
+            res = append(res, freqToNum[i]...)
+            if len(res) == k {
+                break
+            }
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(m)$$ where m is the number of distinct numbers
+
+## [150. Evaluate Reverse Polish Notation](<https://leetcode.com/problems/evaluate-reverse-polish-notation/>)
+
+Evaluate the value of an arithmetic expression in [Reverse Polish Notation](http://en.wikipedia.org/wiki/Reverse_Polish_notation).
+
+Valid operators are `+`, `-`, `*`, `/`. Each operand may be an integer or another expression.
+
+**Note:**
+
+- Division between two integers should truncate toward zero.
+- The given RPN expression is always valid. That means the expression would always evaluate to a result and there won't be any divide by zero operation.
+
+**Example 1:**
+
+```
+Input: ["2", "1", "+", "3", "*"]
+Output: 9
+Explanation: ((2 + 1) * 3) = 9
+```
+
+**Example 2:**
+
+```
+Input: ["4", "13", "5", "/", "+"]
+Output: 6
+Explanation: (4 + (13 / 5)) = 6
+```
+
+**Example 3:**
+
+```
+Input: ["10", "6", "9", "3", "+", "-11", "*", "/", "*", "17", "+", "5", "+"]
+Output: 22
+Explanation: 
+  ((10 * (6 / ((9 + 3) * -11))) + 17) + 5
+= ((10 * (6 / (12 * -11))) + 17) + 5
+= ((10 * (6 / -132)) + 17) + 5
+= ((10 * 0) + 17) + 5
+= (0 + 17) + 5
+= 17 + 5
+= 22
+```
+
+**Solution**
+
+Accepted
+
+```go
+func evalRPN(tokens []string) int {
+    if len(tokens) == 0 {
+        return 0
+    }
+    calculate := func(a int, b int, op string) int {
+        switch op {
+            case "+":
+                return a + b
+            case "-":
+                return a - b
+            case "*":
+                return a * b
+            case "/":
+                return a / b
+            default:
+                panic("invalid operation")
+        }
+    }
+    stack := make([]int, 0)
+    for _, t := range tokens {
+        if t != "+" && t != "-" && t != "*" && t != "/" {
+            num, _ := strconv.Atoi(t)
+            stack = append(stack, num)
+        } else {
+            tmp := calculate(stack[len(stack)-2], stack[len(stack)-1], t)
+            stack = stack[:len(stack)-2]
+            stack = append(stack, tmp)
+        }
+    }
+    return stack[0]
+}
+```
+
+- Time complexity: $$O(n)$$ where n is the length of `tokens`.
+- Space complexity: $$O(m)$$ where m is the number of operands.
+
+## [227. Basic Calculator II](<https://leetcode.com/problems/basic-calculator-ii/>)
+
+Implement a basic calculator to evaluate a simple expression string.
+
+The expression string contains only **non-negative** integers, `+`, `-`, `*`, `/` operators and empty spaces ``. The integer division should truncate toward zero.
+
+**Example 1:**
+
+```
+Input: "3+2*2"
+Output: 7
+```
+
+**Example 2:**
+
+```
+Input: " 3/2 "
+Output: 1
+```
+
+**Example 3:**
+
+```
+Input: " 3+5 / 2 "
+Output: 5
+```
+
+**Note:**
+
+- You may assume that the given expression is always valid.
+- **Do not** use the `eval` built-in library function.
+
+**Solution**
+
+(1) Wrong Answer
+
+```go
+func calculate(s string) int {
+	// Convert infix expression to postfix expression
+	var sb strings.Builder
+	postfix := make([]string, 0)
+	ops := make([]string, 0)
+	precedence := func(op string) int {
+		switch op {
+		case "+", "-":
+			return 1
+		default:
+			return 2
+		}
+	}
+	for _, r := range strings.TrimSpace(s) {
+		if unicode.IsDigit(r) {
+			sb.WriteRune(r)
+		} else {
+			if sb.Len() > 0 {
+				postfix = append(postfix, sb.String())
+				sb.Reset()
+			}
+			if r != ' ' {
+				if len(ops) > 0 && precedence(string(r)) <= precedence(ops[len(ops)-1]) {
+					postfix = append(postfix, ops[len(ops)-1])
+					ops = ops[:len(ops)-1]
+				}
+				ops = append(ops, string(r))
+			}
+		}
+	}
+	if sb.Len() > 0 {
+		postfix = append(postfix, sb.String())
+	}
+	for i := len(ops) - 1; i >= 0; i-- {
+		postfix = append(postfix, ops[i])
+	}
+	// Evaluate
+	return eval(postfix)
+}
+
+func eval(tokens []string) int {
+    if len(tokens) == 0 {
+        return 0
+    }
+    calculate := func(a int, b int, op string) int {
+        switch op {
+            case "+":
+                return a + b
+            case "-":
+                return a - b
+            case "*":
+                return a * b
+            case "/":
+                return a / b
+            default:
+                panic("invalid operation")
+        }
+    }
+    stack := make([]int, 0)
+    for _, t := range tokens {
+        if t != "+" && t != "-" && t != "*" && t != "/" {
+            num, _ := strconv.Atoi(t)
+            stack = append(stack, num)
+        } else {
+            tmp := calculate(stack[len(stack)-2], stack[len(stack)-1], t)
+            stack = stack[:len(stack)-2]
+            stack = append(stack, tmp)
+        }
+    }
+    return stack[0]
+}
+```
+
+```
+Input
+"1*2-3/4+5*6-7*8+9/10"
+Output
+28
+Expected
+-24
+```
+
+There are not any parentheses in the expression so we can not use [Shunting-yard algorithm](<https://en.wikipedia.org/wiki/Shunting-yard_algorithm>) to generate a postfix expression.
+
+(2) Accepted
+
+```go
+func calculate(s string) int {
+	if len(s) == 0 {
+		return 0
+	}
+	var sb strings.Builder
+	preSign := '+' // leading symbol of previous number
+	stack := make([]int, 0)
+	s = strings.TrimSpace(s)
+	for i, r := range s {
+		if unicode.IsDigit(r) {
+			sb.WriteRune(r)
+		}
+		if (!unicode.IsDigit(r) && r != ' ') || i == len(s)-1 {
+			num, _ := strconv.Atoi(sb.String())
+			sb.Reset()
+			switch preSign {
+			case '+':
+				stack = append(stack, num)
+			case '-':
+				stack = append(stack, -num)
+			case '*':
+				top := stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+				stack = append(stack, top*num)
+			case '/':
+				top := stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+				stack = append(stack, top/num)
+			}
+			preSign = r
+		}
+	}
+	res := 0
+	for i := range stack {
+		res += stack[i]
+	}
+	return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+## [341. Flatten Nested List Iterator](<https://leetcode.com/problems/flatten-nested-list-iterator/>)
+
+Given a nested list of integers, implement an iterator to flatten it.
+
+Each element is either an integer, or a list -- whose elements may also be integers or other lists.
+
+**Example 1:**
+
+```
+Input: [[1,1],2,[1,1]]
+Output: [1,1,2,1,1]
+Explanation: By calling next repeatedly until hasNext returns false, 
+             the order of elements returned by next should be: [1,1,2,1,1].
+```
+
+**Example 2:**
+
+```
+Input: [1,[4,[6]]]
+Output: [1,4,6]
+Explanation: By calling next repeatedly until hasNext returns false, 
+             the order of elements returned by next should be: [1,4,6].
+```
+
+**Solution**
+
+```java
+/**
+ * // This is the interface that allows for creating nested lists.
+ * // You should not implement it, or speculate about its implementation
+ * public interface NestedInteger {
+ *
+ *     // @return true if this NestedInteger holds a single integer, rather than a nested list.
+ *     public boolean isInteger();
+ *
+ *     // @return the single integer that this NestedInteger holds, if it holds a single integer
+ *     // Return null if this NestedInteger holds a nested list
+ *     public Integer getInteger();
+ *
+ *     // @return the nested list that this NestedInteger holds, if it holds a nested list
+ *     // Return null if this NestedInteger holds a single integer
+ *     public List<NestedInteger> getList();
+ * }
+ */
+public class NestedIterator implements Iterator<Integer> {
+    // all single integers
+    private List<Integer> singleIntegers;
+    
+    private Iterator<Integer> iter;
+
+    public NestedIterator(List<NestedInteger> nestedList) {
+        singleIntegers = new LinkedList<>();
+        flatten(nestedList);
+        iter = singleIntegers.iterator();
+    }
+
+    @Override
+    public boolean hasNext() {
+        return iter.hasNext();
+    }
+
+    @Override
+    public Integer next() {
+        return iter.next();
+    }
+
+    // get every single integer from nestedList
+    private void flatten(List<NestedInteger> nestedList) {
+        for (NestedInteger n : nestedList) {
+            if (n.isInteger()) {
+                // if we find an integer, just add it into list
+                singleIntegers.add(n.getInteger());
+            } else {
+                // if we find a nested list, resolve it recursively
+                flatten(n.getList());
+            }
+        }
+    }
+}
+
+/**
+ * Your NestedIterator object will be instantiated and called as such:
+ * NestedIterator i = new NestedIterator(nestedList);
+ * while (i.hasNext()) v[f()] = i.next();
+ */
+```
+
+**Recap**
+
+Solve this problem iteratively using stack?
 

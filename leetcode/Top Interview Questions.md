@@ -2899,3 +2899,1029 @@ public class NestedIterator implements Iterator<Integer> {
 
 Solve this problem iteratively using stack?
 
+# Queue
+
+## [239. Sliding Window Maximum](<https://leetcode.com/problems/sliding-window-maximum/>)
+
+Given an array *nums*, there is a sliding window of size *k* which is moving from the very left of the array to the very right. You can only see the *k* numbers in the window. Each time the sliding window moves right by one position. Return the max sliding window.
+
+**Example:**
+
+```
+Input: nums = [1,3,-1,-3,5,3,6,7], and k = 3
+Output: [3,3,5,5,6,7] 
+Explanation: 
+
+Window position                Max
+---------------               -----
+[1  3  -1] -3  5  3  6  7       3
+ 1 [3  -1  -3] 5  3  6  7       3
+ 1  3 [-1  -3  5] 3  6  7       5
+ 1  3  -1 [-3  5  3] 6  7       5
+ 1  3  -1  -3 [5  3  6] 7       6
+ 1  3  -1  -3  5 [3  6  7]      7
+```
+
+**Note:** 
+You may assume *k* is always valid, 1 ≤ k ≤ input array's size for non-empty array.
+
+**Follow up:**
+Could you solve it in linear time?
+
+**Solution**
+
+(1) Accepted
+
+```go
+func maxSlidingWindow(nums []int, k int) []int {
+	if len(nums) == 0 || k <= 0 || k > len(nums) {
+		return nil
+	}
+	// Find the maximum in the first window
+	dp := make([][]int, 0)
+	curMax, idx := nums[0], 0
+	for i := 1; i < k; i++ {
+		if curMax < nums[i] {
+			curMax, idx = nums[i], i
+		}
+	}
+	dp = append(dp, []int{curMax, idx})
+	// Find the maximums in following windows
+	max := func(l, r int) []int {
+		m, i := nums[l], l
+		for j := l+1; j <= r; j++ {
+			if nums[j] > m {
+				m, i = nums[j], j
+			}
+		}
+		return []int{m, i}
+	}
+	res := []int{dp[0][0]}
+	for l, r := 1, k; r < len(nums); l, r = l+1, r+1 {
+		preCur, idx := dp[l-1][0], dp[l-1][1]
+		if idx >= l && idx <= r {
+            // The max in previous windows is still in current window
+			if nums[r] > preCur {
+				dp = append(dp, []int{nums[r], r})
+			} else {
+				dp = append(dp, dp[l-1])
+			}
+		} else {
+			dp = append(dp, max(l, r))
+		}
+		res = append(res, dp[l][0])
+	}
+	return res
+}
+```
+
+- Time complexity: worst case will cost $$O(mk)$$ where m is the number of windows.
+- Space complexity: $$O(m)$$ where m is the number of windows.
+
+(2) Accepted
+
+At each i, we keep "promising" elements, which are potentially max number in window `[i-(k-1), i]` or any subsequent window. This means
+
+- If an element in the deque and it is out of range, we discard them. We just need to poll from the head, as we are using a deque and elements are ordered as the sequence in the array
+
+- Now only those elements within `[i-(k-1), i]` are in the deque. We then discard elements smaller than `a[i]` from the tail. This is because if `a[x] < a[i] && x < i`, then `a[x]` has no chance to be the "max" in `[i-(k-1), i]`, or any other subsequent window: `a[i]` would always be a better candidate.
+
+- As a result elements in the deque are ordered in both sequence in array and their value. At each step the head of the deque is the max element in `[i-(k-1), i]`.
+
+```go
+func maxSlidingWindow(nums []int, k int) []int {
+	if len(nums) == 0 || k <= 0 || k > len(nums) {
+		return nil
+	}
+    res := make([]int, 0, len(nums)-k+1)
+    deque := make([]int, 0)
+    for i := range nums {
+        l := i - k + 1 // Left-most index of window whose right-most index is i
+        for len(deque) > 0 && deque[0] < l {
+            // Discard out-of-range index
+            deque = deque[1:]
+        }
+        for len(deque) > 0 && nums[deque[len(deque)-1]] < nums[i] {
+            // Discard index at which the element can not be the max in current window
+            deque = deque[:len(deque)-1]
+        }
+        deque = append(deque, i)
+        if l >= 0 {
+            res = append(res, nums[deque[0]])
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+**Recap**
+
+A good way to solve sliding window problems is **utilizing what we've already known**. 
+
+# String
+
+## [125. Valid Palindrome](<https://leetcode.com/problems/valid-palindrome/>)
+
+Given a string, determine if it is a palindrome, considering only alphanumeric characters and ignoring cases.
+
+**Note:** For the purpose of this problem, we define empty string as valid palindrome.
+
+**Example 1:**
+
+```
+Input: "A man, a plan, a canal: Panama"
+Output: true
+```
+
+**Example 2:**
+
+```
+Input: "race a car"
+Output: false
+```
+
+**Solution**
+
+(1) Accepted
+
+```go
+func isPalindrome(s string) bool {
+    if len(s) == 0 {
+        return true
+    }
+    runes := make([]rune, 0)
+    // Extract all letters or digits
+    for _, r := range strings.ToLower(s) {
+        if unicode.IsLetter(r) || unicode.IsDigit(r) {
+            runes = append(runes, r)
+        }
+    }
+    for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+        if runes[i] != runes[j] {
+            return false
+        }
+    }
+    return true
+}
+```
+
+- Time complexity: $$O(n)$$ n is the number of alphanumeric characters.
+- Space complexity: $$O(n)$$
+
+(2) Accepted
+
+```go
+func isPalindrome(s string) bool {
+    if len(s) == 0 {
+        return true
+    }
+    for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+        for i < j && !unicode.IsDigit(rune(s[i])) && !unicode.IsLetter(rune(s[i])) {
+            i++
+        }
+        for i < j && !unicode.IsDigit(rune(s[j])) && !unicode.IsLetter(rune(s[j])) {
+            j--
+        }
+        if s[i] != s[j] {
+            if unicode.IsLetter(rune(s[i])) && unicode.IsLetter(rune(s[j])) {
+                if math.Abs(float64(rune(s[i])-rune(s[j]))) != 32.0 {
+                    return false
+                }
+            } else {
+                return false
+            }
+        }
+    }
+    return true
+}
+```
+
+More concise:
+
+```go
+func isPalindrome(s string) bool {
+    if len(s) == 0 {
+        return true
+    }
+    for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+        for i < j && !unicode.IsDigit(rune(s[i])) && !unicode.IsLetter(rune(s[i])) {
+            i++
+        }
+        for i < j && !unicode.IsDigit(rune(s[j])) && !unicode.IsLetter(rune(s[j])) {
+            j--
+        }
+        if s[i] != s[j] {
+            // Just do ToLower whatever it is an letter or a digit
+            if unicode.ToLower(rune(s[i])) != unicode.ToLower(rune(s[j])) {
+                return false
+            }
+        }
+    }
+    return true
+}
+```
+
+- Time complexity: $$O(len(s))$$
+- Space complexity: $$O(1)$$
+
+## [131. Palindrome Partitioning](<https://leetcode.com/problems/palindrome-partitioning/>)
+
+Given a string *s*, partition *s* such that every substring of the partition is a palindrome.
+
+Return all possible palindrome partitioning of *s*.
+
+**Example:**
+
+```
+Input: "aab"
+Output:
+[
+  ["aa","b"],
+  ["a","a","b"]
+]
+```
+
+**Solution**
+
+First,  here if you want to get all the possible palindrome partition, first a nested for loop to get every possible partitions for a string, then a scanning for all the partitions. That's a $$O(n^2)$$ for partitioning and $$O(n^2)$$ for the scanning of string, totaling at $$O(n^4)$$ just for the partition. However, if we use a 2D array to keep track of any string we have scanned so far, with an addition pair, we can determine whether it's palindrome or not by looking at that pair. This way, the 2D array `dp` contains the possible palindrome partition among all.
+
+Second, based on the prescanned palindrome partitions saved in `dp` array, a simple backtrack/DFS does the job.
+
+```go
+func partition(s string) [][]string {
+	if len(s) == 0 {
+		return nil
+	}
+	dp := make([][]bool, len(s))
+	for i := range dp {
+		dp[i] = make([]bool, len(s))
+	}
+    // Find palindrome
+	for i := 0; i < len(s); i++ {
+		for j := 0; j <= i; j++ {
+			if s[i] == s[j] && (i-j <= 2 || dp[j+1][i-1]) {
+				dp[j][i] = true
+			}
+		}
+	}
+    // Generate partitions
+	res := make([][]string, 0)
+	partition := make([]string, 0)
+	dfs(s, 0, partition, dp, &res)
+	return res
+}
+
+func dfs(s string, pos int, partition []string, dp [][]bool, res *[][]string) {
+	if pos == len(s) {
+        // Note that we need a copy to avoid following recursion's pollution
+		tmp := make([]string, len(partition))
+		copy(tmp, partition)
+		*res = append(*res, tmp)
+		return
+	}
+	for i := pos; i < len(s); i++ {
+		if dp[pos][i] {
+			partition = append(partition, s[pos:i+1])
+			dfs(s, i+1, partition, dp, res)
+			partition = partition[:len(partition)-1]
+		}
+	}
+}
+```
+
+- Time complexity: `dfs` costs $$O(2^n)$$?
+- Space complexity: $$O(n^2)$$
+
+## [139. Word Break](<https://leetcode.com/problems/word-break/>)
+
+Given a **non-empty** string *s* and a dictionary *wordDict* containing a list of **non-empty** words, determine if *s* can be segmented into a space-separated sequence of one or more dictionary words.
+
+**Note:**
+
+- The same word in the dictionary may be reused multiple times in the segmentation.
+- You may assume the dictionary does not contain duplicate words.
+
+**Example 1:**
+
+```
+Input: s = "leetcode", wordDict = ["leet", "code"]
+Output: true
+Explanation: Return true because "leetcode" can be segmented as "leet code".
+```
+
+**Example 2:**
+
+```
+Input: s = "applepenapple", wordDict = ["apple", "pen"]
+Output: true
+Explanation: Return true because "applepenapple" can be segmented as "apple pen apple".
+             Note that you are allowed to reuse a dictionary word.
+```
+
+**Example 3:**
+
+```
+Input: s = "catsandog", wordDict = ["cats", "dog", "sand", "and", "cat"]
+Output: false
+```
+
+**Solution**
+
+A typical DP problem.
+
+```go
+func wordBreak(s string, dict []string) bool {
+	if len(s) == 0 || len(dict) == 0 {
+		return false
+	}
+	// dp[i]: can s[:i] be segmented?
+	dp := make([]bool, len(s)+1)
+	dp[0] = true
+	for i := 1; i <= len(s); i++ {
+		for _, word := range dict {
+			if l := len(word); l <= i {
+				if dp[i-l] && s[i-l:i] == word {
+					dp[i] = true
+					break
+				}
+			}
+		}
+	}
+	return dp[len(s)]
+}
+```
+
+- Time complexity: $$O(len(s)*len(dict))$$
+- Space complexity: $$O(len(s))$$
+
+Or can be done in this way:
+
+```go
+func wordBreak(s string, dict []string) bool {
+	if len(s) == 0 || len(dict) == 0 {
+		return false
+	}
+    contains := func(word string) bool {
+        for i := range dict {
+            if dict[i] == word {
+                return true
+            }
+        }
+        return false
+    } 
+	// dp[i]: can s[:i] be segmented?
+	dp := make([]bool, len(s)+1)
+	dp[0] = true
+	for i := 1; i <= len(s); i++ {
+        for j := 0; j < i; j++ {
+            if dp[j] && contains(s[j:i]) {
+                dp[i] = true
+                break
+            }
+        }
+	}
+	return dp[len(s)]
+}
+```
+
+- Time complexity: $$O(len(s)^2)$$
+- Space complexity: $$O(len(s))$$
+
+**Recap**
+
+For DP problems about *sequences* like arrays or strings, try to think in this way: if we have solved the subproblem in subsequence `[:i]`, can we keep moving on to solve the entire problem?
+
+## [140. Word Break II](<https://leetcode.com/problems/word-break-ii/>)
+
+Given a **non-empty** string *s* and a dictionary *wordDict* containing a list of **non-empty** words, add spaces in *s* to construct a sentence where each word is a valid dictionary word. Return all such possible sentences.
+
+**Note:**
+
+- The same word in the dictionary may be reused multiple times in the segmentation.
+- You may assume the dictionary does not contain duplicate words.
+
+**Example 1:**
+
+```
+Input:
+s = "catsanddog"
+wordDict = ["cat", "cats", "and", "sand", "dog"]
+Output:
+[
+  "cats and dog",
+  "cat sand dog"
+]
+```
+
+**Example 2:**
+
+```
+Input:
+s = "pineapplepenapple"
+wordDict = ["apple", "pen", "applepen", "pine", "pineapple"]
+Output:
+[
+  "pine apple pen apple",
+  "pineapple pen apple",
+  "pine applepen apple"
+]
+Explanation: Note that you are allowed to reuse a dictionary word.
+```
+
+**Example 3:**
+
+```
+Input:
+s = "catsandog"
+wordDict = ["cats", "dog", "sand", "and", "cat"]
+Output:
+[]
+```
+
+**Solution**
+
+This is a DFS problem. Find the first word, then start here to find next... Normal DFS will cause TLE so do memoization. By doing so, we are solving this problem using DP at the same time.
+
+```go
+func wordBreak(s string, wordDict []string) []string {
+    return dfs(s, wordDict, make(map[string][]string))
+}
+
+// dfs segments the whole string s
+// memo is the mapping from a string to its segmentations
+func dfs(s string, wordDict []string, memo map[string][]string) []string {
+    if segs, ok := memo[s]; ok {
+        return segs
+    }
+    segs := make([]string, 0)
+    if len(s) == 0 {
+        segs = append(segs, "")
+        return segs
+    }
+    for _, word := range wordDict {
+        if strings.HasPrefix(s, word) {
+            // Start here to segment subtring 
+            tmp := dfs(s[len(word):], wordDict, memo)
+            for _, seg := range tmp {
+                if len(seg) > 0 {
+                    segs = append(segs, word + " " + seg)
+                } else {
+                    segs = append(segs, word)
+                }
+            }
+        }
+    }
+    memo[s] = segs
+    return segs
+}
+```
+
+## [208. Implement Trie (Prefix Tree)](<https://leetcode.com/problems/implement-trie-prefix-tree/>)
+
+Implement a trie with `insert`, `search`, and `startsWith` methods.
+
+**Example:**
+
+```
+Trie trie = new Trie();
+
+trie.insert("apple");
+trie.search("apple");   // returns true
+trie.search("app");     // returns false
+trie.startsWith("app"); // returns true
+trie.insert("app");   
+trie.search("app");     // returns true
+```
+
+**Note:**
+
+- You may assume that all inputs are consist of lowercase letters `a-z`.
+- All inputs are guaranteed to be non-empty strings.
+
+**Solution**
+
+(1) Accepted
+
+```go
+type Trie struct {
+    IsWord   bool // If this node is the end of a word
+	Children map[uint8]*Trie
+}
+
+func Constructor() Trie {
+    return Trie{Children: make(map[uint8]*Trie)}
+}
+
+
+/** Inserts a word into the trie. */
+func (this *Trie) Insert(word string)  {
+	if len(word) == 0 {
+        this.IsWord = true
+		return
+	}
+	if _, ok := this.Children[word[0]]; !ok {
+        this.Children[word[0]] = &Trie{Children: make(map[uint8]*Trie)}
+	}
+	this.Children[word[0]].Insert(word[1:])
+}
+
+
+/** Returns if the word is in the trie. */
+func (this *Trie) Search(word string) bool {
+    if len(word) == 0 {
+        return this.IsWord
+    }
+    if _, ok := this.Children[word[0]]; !ok {
+        return false
+    } else {
+        return this.Children[word[0]].Search(word[1:])
+    }
+}
+
+
+/** Returns if there is any word in the trie that starts with the given prefix. */
+func (this *Trie) StartsWith(prefix string) bool {
+	if len(prefix) == 0 {
+		return true
+	}
+	if _, ok := this.Children[prefix[0]]; !ok {
+		return false
+	} else {
+		return this.Children[prefix[0]].StartsWith(prefix[1:])
+	}
+}
+```
+
+- Time complexity: $$O(m)$$ where m is the length of word/prefix/
+- Space complexity: `INsert` costs $$O(m)$$ in the worst case.
+
+(2) Accepted
+
+Iteratively.
+
+```go
+type Trie struct {
+    IsWord   bool // If this node is the end of a word
+	Children map[uint8]*Trie
+}
+
+func Constructor() Trie {
+    return Trie{Children: make(map[uint8]*Trie)}
+}
+
+
+/** Inserts a word into the trie. */
+func (this *Trie) Insert(word string)  {
+	if len(word) == 0 {
+		return
+	}
+    node := this
+    for i := range word {
+        if _, ok := node.Children[word[i]]; !ok {
+            node.Children[word[i]] = &Trie{Children: make(map[uint8]*Trie)}
+        }
+        node = node.Children[word[i]]
+    }
+    node.IsWord = true
+}
+
+
+/** Returns if the word is in the trie. */
+func (this *Trie) Search(word string) bool {
+    if len(word) == 0 {
+        return false
+    }
+    node := this
+    for i := range word {
+        if _, ok := node.Children[word[i]]; !ok {
+            return false
+        }
+        node = node.Children[word[i]]
+    }
+    return node.IsWord
+}
+
+
+/** Returns if there is any word in the trie that starts with the given prefix. */
+func (this *Trie) StartsWith(prefix string) bool {
+	if len(prefix) == 0 {
+		return true
+	}
+    node := this
+    for i := range prefix {
+        if _, ok := node.Children[prefix[i]]; !ok {
+            return false
+        }
+        node = node.Children[prefix[i]]
+    }
+    return true
+}
+```
+
+## [212. Word Search II](<https://leetcode.com/problems/word-search-ii/>)
+
+Given a 2D board and a list of words from the dictionary, find all words in the board.
+
+Each word must be constructed from letters of sequentially adjacent cell, where "adjacent" cells are those horizontally or vertically neighboring. The same letter cell may not be used more than once in a word.
+
+ 
+
+**Example:**
+
+```
+Input: 
+board = [
+  ['o','a','a','n'],
+  ['e','t','a','e'],
+  ['i','h','k','r'],
+  ['i','f','l','v']
+]
+words = ["oath","pea","eat","rain"]
+
+Output: ["eat","oath"]
+```
+
+ 
+
+**Note:**
+
+1. All inputs are consist of lowercase letters `a-z`.
+2. The values of `words` are distinct.
+
+**Solution**
+
+(1) Time Limit Exceeded
+
+The most straightforward way is DFS. The code below waste much time on useless work. For example, it will continue searching even though no word in dictionary starts with current string `tmp`.
+
+```go
+func findWords(board [][]byte, words []string) []string {
+    if len(board) == 0 || len(board[0]) == 0 || len(words) == 0 {
+        return nil
+    }
+    dict := make(map[string]bool)
+    for i := range words {
+        dict[words[i]] = true
+    }
+    visited := make([][]bool, len(board))
+    for i := range visited {
+        visited[i] = make([]bool, len(board[0]))
+    }
+    set := make(map[string]bool)
+    for i := range board {
+        for j := range board[i] {
+            dfs(board, dict, i, j, &visited, "", set)
+        }
+    }
+    res := make([]string, 0)
+    for k := range set {
+        res = append(res, k)
+    }
+    return res
+}
+
+func dfs(board [][]byte, dict map[string]bool, i int, j int, visited *[][]bool, tmp string, set map[string]bool) {
+    tmp += string(board[i][j])
+    if dict[tmp] {
+        set[tmp] = true
+    }
+    (*visited)[i][j] = true
+    check := func(x, y int) bool {
+        return x >= 0 && x < len(board) && y >= 0 && y < len(board[0]) && !(*visited)[x][y]
+    } 
+    dir := [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}}
+    for _, d := range dir {
+        x, y := i+d[0], j+d[1]
+        if check(x, y) {
+            dfs(board, dict, x, y, visited, tmp, set)
+        }
+    }
+    (*visited)[i][j] = false
+}
+```
+
+(2) Accepted
+
+Since this is a word search problem, trie may help. 
+
+The code below has some interesting optimizations:
+
+- No `visited`array
+- Store the whole word in trie node so no string concatenation
+- No map/set to avoid duplicates in final answer
+
+```go
+func findWords(board [][]byte, words []string) []string {
+    if len(board) == 0 || len(board[0]) == 0 || len(words) == 0 {
+        return nil
+    }
+    // Build trie
+    trie := &Trie{Next: make(map[byte]*Trie)}
+    for _, w := range words {
+        trie.insert(w)
+    }
+    res := make([]string, 0)
+    for i := range board {
+        for j := range board[i] {
+            dfs(&board, i, j, trie, &res)
+        }
+    }
+    return res
+}
+
+func dfs(board *[][]byte, i int, j int, trie *Trie, res *[]string) {
+    char := (*board)[i][j]
+    next, ok := trie.Next[char]
+    if char == '#' || !ok {
+        return
+    }
+    if len(next.Word) != 0 {
+        *res = append(*res, next.Word)
+        next.Word = "" // de-duplicate
+    }
+    (*board)[i][j] = '#'
+    if i > 0 {
+        dfs(board, i-1, j, next, res)
+    }
+    if j > 0 {
+        dfs(board, i, j-1, next, res)
+    }
+    if i < len(*board)-1 {
+        dfs(board, i+1, j, next, res)
+    }
+    if j < len((*board)[0])-1 {
+        dfs(board, i, j+1, next, res)
+    }
+    (*board)[i][j] = char
+}
+
+type Trie struct {
+    Next map[byte]*Trie
+    Word string
+}
+
+func (t *Trie) insert(word string) {
+	if len(word) == 0 {
+		return
+	}
+    node := t
+    for i := range word {
+        if _, ok := node.Next[word[i]]; !ok {
+            node.Next[word[i]] = &Trie{Next: make(map[byte]*Trie)}
+        }
+        node = node.Next[word[i]]
+    }
+    node.Word = word
+}
+```
+
+**Recap**
+
+In word search problems, trie is a helpful data structure which can optimize time complexity.
+
+## [242. Valid Anagram](<https://leetcode.com/problems/valid-anagram/>)
+
+Given two strings *s* and *t* , write a function to determine if *t* is an anagram of *s*.
+
+**Example 1:**
+
+```
+Input: s = "anagram", t = "nagaram"
+Output: true
+```
+
+**Example 2:**
+
+```
+Input: s = "rat", t = "car"
+Output: false
+```
+
+**Note:**
+You may assume the string contains only lowercase alphabets.
+
+**Follow up:**
+What if the inputs contain unicode characters? How would you adapt your solution to such case?
+
+**Solution**
+
+(1) Accepted
+
+If the inputs only contains letters, a `uint8`slice is enough.
+
+```go
+func isAnagram(s string, t string) bool {
+    if len(s) != len(t) {
+        return false
+    }
+    count := make(map[uint8]int)
+    for i := range s {
+        count[s[i]]++
+        count[t[i]]--
+    }
+    for _, c := range count {
+        if c != 0 {
+            return false
+        }
+    }
+    return true
+}
+```
+
+- Time complexity: $$O(n)$$  where n is the length of string.
+- Space complexity: $$O(n)$$
+
+(2) Accepted
+
+Compare sorted runes.
+
+```go
+func isAnagram(s string, t string) bool {
+	if len(s) != len(t) {
+		return false
+	}
+	sortedRunes := func(str string) []int {
+		runes := make([]int, 0, len(str))
+		for _, r := range str {
+			runes = append(runes, int(r))
+		}
+		sort.Ints(runes)
+		return runes
+	}
+	runes1, runes2 := sortedRunes(s), sortedRunes(t)
+	for i := range runes1 {
+		if runes1[i] != runes2[i] {
+			return false
+		}
+	}
+	return true
+}
+```
+
+- Time complexity: $$O(nlogn)$$  where n is the length of string.
+- Space complexity: $$O(1)$$
+
+**Recap**
+
+If we can solve a problem in one pass, don't do it in tow or more passes.
+
+## [387. First Unique Character in a String](<https://leetcode.com/problems/first-unique-character-in-a-string/>)
+
+Given a string, find the first non-repeating character in it and return it's index. If it doesn't exist, return -1.
+
+**Examples:**
+
+```
+s = "leetcode"
+return 0.
+
+s = "loveleetcode",
+return 2.
+```
+
+**Solution**
+
+(1) Accepted
+
+```go
+func firstUniqChar(s string) int {
+    if len(s) == 0 {
+        return -1
+    }
+    unique := make(map[rune]bool) // If a character is unique in the string
+    for _, r := range s {
+        if _, ok := unique[r]; !ok {
+            unique[r] = true
+        } else {
+            unique[r] = false
+        }
+    }
+    for i, r := range s {
+        if unique[r] {
+            return i
+        }
+    }
+    return -1
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(m)$$ where m is the number of distinct characters
+
+Improvement:
+
+Since we know there are only 26 characters at most, we can use array which is faster and smaller than map.
+
+```go
+func firstUniqChar(s string) int {
+    if len(s) == 0 {
+        return -1
+    }
+    present := make([]int, 26)
+    for _, r := range s {
+        if present[r-'a'] == 0 {
+            present[r-'a'] = 1
+        } else {
+            present[r-'a'] = -1
+        }
+    }
+    for i, r := range s {
+        if present[r-'a'] == 1 {
+            return i
+        }
+    }
+    return -1
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+Just count the frequency of every character in string.
+
+```go
+func firstUniqChar(s string) int {
+    if len(s) == 0 {
+        return -1
+    }
+    present := make([]int, 26)
+    for _, r := range s {
+        present[r-'a']++
+    }
+    for i, r := range s {
+        if present[r-'a'] == 1 {
+            return i
+        }
+    }
+    return -1
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+We can use `strings.Count`:
+
+```go
+func firstUniqChar(s string) int {
+	if len(s) == 0 {
+		return -1
+	}
+	for i := range s {
+		if strings.Count(s, s[i:i+1]) == 1 {
+			return i
+		}
+	}
+	return -1
+}
+```
+
+**Recap**
+
+If possible, use array instead of map which is slower and bigger.
+
+## [344. Reverse String](<https://leetcode.com/problems/reverse-string/>)
+
+Write a function that reverses a string. The input string is given as an array of characters `char[]`.
+
+Do not allocate extra space for another array, you must do this by **modifying the input array in-place** with O(1) extra memory.
+
+You may assume all the characters consist of [printable ascii characters](https://en.wikipedia.org/wiki/ASCII#Printable_characters).
+
+ 
+
+**Example 1:**
+
+```
+Input: ["h","e","l","l","o"]
+Output: ["o","l","l","e","h"]
+```
+
+**Example 2:**
+
+```
+Input: ["H","a","n","n","a","h"]
+Output: ["h","a","n","n","a","H"]
+```
+
+**Solution**
+
+```go
+func reverseString(s []byte)  {
+    if len(s) == 0 {
+        return
+    } 
+    for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+        s[i], s[j] = s[j], s[i]
+    }
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+

@@ -3925,3 +3925,468 @@ func reverseString(s []byte)  {
 - Time complexity: $$O(n)$$
 - Space complexity: $$O(1)$$
 
+# Tree
+
+## [230. Kth Smallest Element in a BST](<https://leetcode.com/problems/kth-smallest-element-in-a-bst/>)
+
+Given a binary search tree, write a function `kthSmallest` to find the **k**th smallest element in it.
+
+**Note:** 
+You may assume k is always valid, 1 ≤ k ≤ BST's total elements.
+
+**Example 1:**
+
+```
+Input: root = [3,1,4,null,2], k = 1
+   3
+  / \
+ 1   4
+  \
+   2
+Output: 1
+```
+
+**Example 2:**
+
+```
+Input: root = [5,3,6,2,4,null,null,1], k = 3
+       5
+      / \
+     3   6
+    / \
+   2   4
+  /
+ 1
+Output: 3
+```
+
+**Follow up:**
+What if the BST is modified (insert/delete operations) often and you need to find the kth smallest frequently? How would you optimize the kth Smallest routine?
+
+**Solution**
+
+(1) Accepted
+
+In-order traversal.
+
+````go
+func kthSmallest(root *TreeNode, k int) int {
+    count, res := k, 0
+    inorder(root, &count, &res)
+    return res
+}
+
+func inorder(root *TreeNode, count *int, res *int) {
+    if root.Left != nil {
+        inorder(root.Left, count, res)
+    }
+    // Stop right at the kth node
+    if *count = *count - 1; *count == 0 {
+        *res = root.Val
+        return
+    }
+    if root.Right != nil {
+        inorder(root.Right, count ,res)
+    }
+}
+````
+
+Also, we can do it iteratively.
+
+```go
+func kthSmallest(root *TreeNode, k int) int {
+    if root = nil || k <= 0 {
+        return -1
+    }
+    stack := make([]*TreeNode, 0)
+    for p := root; p != nil; p = p.Left {
+        stack = append(stack, p)
+    }
+    for k > 0 {
+        p := stack[len(stack)-1]
+        stack = stack[:len(stack)-1]
+        if k--; k == 0 {
+            return p.Val
+        }
+        // Right-child tree
+        for p = p.Right; p != nil; p = p.Left {
+            stack = append(stack, p)
+        }
+    }
+    return -1
+}
+```
+
+- Time complexity: $$O(n)$$ worst
+- Space complexity: $$O(logn)$$
+
+(2) Accepted
+
+Since BST is an implicit sorted sequence, we can binary search it.
+
+```go
+func kthSmallest(root *TreeNode, k int) int {
+    if count := countNodes(root.Left); k <= count {
+        return kthSmallest(root.Left, k)
+    } else if k > count+1 {
+        // 1 is counted as current node
+        return kthSmallest(root.Right, k-count-1)
+    } else {
+        return root.Val
+    }
+}
+
+func countNodes(node *TreeNode) int {
+    if node == nil {
+        return 0
+    }
+    return 1 + countNodes(node.Left) + countNodes(node.Right)
+}
+```
+
+- Time complexity: $$O(logn)$$?
+- Space complexity: $$O(logn)$$?
+
+(3) 
+
+> What if the BST is modified (insert/delete operations) often and you need to find the kth smallest frequently?
+
+We can store nodes' values in an array.
+
+```go
+func kthSmallest(root *TreeNode, k int) int {
+    if root == nil || k <= 0 {
+        return -1
+    }
+    vals := make([]int, 0)
+    inorder(root, &vals)
+    return vals[k-1]
+}
+
+func inorder(root *TreeNode, vals *[]int) {
+    if root == nil {
+        return
+    }
+    inorder(root.Left, vals)
+    *vals = append(*vals, root.Val)
+    inorder(root.Right, vals)
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+**Recap**
+
+If we in-order traverse a BST, we will get a sorted sequence.
+
+## [236. Lowest Common Ancestor of a Binary Tree](<https://leetcode.com/problems/lowest-common-ancestor-of-a-binary-tree/>)
+
+Given a binary tree, find the lowest common ancestor (LCA) of two given nodes in the tree.
+
+According to the [definition of LCA on Wikipedia](https://en.wikipedia.org/wiki/Lowest_common_ancestor): “The lowest common ancestor is defined between two nodes p and q as the lowest node in T that has both p and q as descendants (where we allow **a node to be a descendant of itself**).”
+
+Given the following binary tree:  root = [3,5,1,6,2,0,8,null,null,7,4]
+
+![1](https://assets.leetcode.com/uploads/2018/12/14/binarytree.png)
+
+**Example 1:**
+
+```
+Input: root = [3,5,1,6,2,0,8,null,null,7,4], p = 5, q = 1
+Output: 3
+Explanation: The LCA of nodes 5 and 1 is 3.
+```
+
+**Example 2:**
+
+```
+Input: root = [3,5,1,6,2,0,8,null,null,7,4], p = 5, q = 4
+Output: 5
+Explanation: The LCA of nodes 5 and 4 is 5, since a node can be a descendant of itself according to the LCA definition.
+```
+
+ 
+
+**Note:**
+
+- All of the nodes' values will be unique.
+- p and q are different and both values will exist in the binary tree.
+
+**Solution**
+
+(1) Accepted
+
+We can convert this problem to "Find the Intersection of Two Linked Lists".
+
+```go
+/**
+ * Definition for TreeNode.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *ListNode
+ *     Right *ListNode
+ * }
+ */
+ func lowestCommonAncestor(root, p, q *TreeNode) *TreeNode {
+     if root == nil || p == nil || q == nil {
+         return nil
+     }
+     // Get the paths from to p and q respectively
+     pathToP, pathToQ := make([]*TreeNode, 0), make([]*TreeNode, 0)
+     dfs(root, p, &pathToP)
+     dfs(root, q, &pathToQ)
+     // Find the fisrt common node of two paths from bottom to top
+     if gap := len(pathToP)-len(pathToQ); gap > 0 {
+         for ; gap > 0; gap-- {
+             pathToP = pathToP[:len(pathToP)-1]
+         }
+     } else if gap < 0 {
+         for ; gap < 0; gap++ {
+             pathToQ = pathToQ[:len(pathToQ)-1]
+         }
+     }
+     for len(pathToP) > 0 && len(pathToQ) > 0 {
+         if pathToP[len(pathToP)-1] == pathToQ[len(pathToQ)-1] {
+             return pathToP[len(pathToP)-1]
+         }
+         pathToP, pathToQ = pathToP[:len(pathToP)-1], pathToQ[:len(pathToQ)-1]
+     }
+     return root
+}
+
+func dfs(cur *TreeNode, target *TreeNode, path *[]*TreeNode) bool {
+    if cur == nil {
+        return false
+    }
+    *path = append(*path, cur)
+    if cur == target {
+        return true
+    }
+    if dfs(cur.Left, target, path) {
+        return true
+    } else if dfs(cur.Right, target, path) {
+        return true
+    } else {
+        *path = (*path)[:len(*path)-1]
+        return false
+    }
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(logn)$$
+
+(2) Accepted
+
+If the current tree/subtree contains both p and q, then the function result is their LCA. If only one of them is in that subtree, then the result is that one of them. If neither are in that subtree, the result is null.
+
+```go
+func lowestCommonAncestor(root, p, q *TreeNode) *TreeNode {
+    if root == nil || root == p || root == q {
+        return root
+    }
+    left, right := lowestCommonAncestor(root.Left, p, q), lowestCommonAncestor(root.Right, p, q)
+    if left == nil {
+        // Both p and q are in the right subtree
+        return right
+    } else if right == nil {
+        // Both p and q are in the left substree
+        return left
+    }
+    // p and q are in defferent subtrees
+    return root
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+(3) Accepted
+
+To find the lowest common ancestor, we need to find where is `p` and `q` and a way to track their ancestors. A `parent` pointer for each node found is good for the job. After we found both `p` and `q`, we create a set of `p`'s `ancestors`. Then we travel through `q`'s `ancestors`, the first one appears in `p`'s is our answer.
+
+```go
+func lowestCommonAncestor(root, p, q *TreeNode) *TreeNode {
+    if root == nil || p == nil || q == nil {
+        return root
+    }
+    parent := map[*TreeNode]*TreeNode{root: nil}
+    stack := []*TreeNode{root}
+    for {
+        _, ok1 := parent[p]
+        _, ok2 := parent[q]
+        if ok1 && ok2 {
+            break
+        }
+        node := stack[0]
+        stack = stack[1:]
+        if node.Left != nil {
+            parent[node.Left], stack = node, append(stack, node.Left)
+        }
+        if node.Right != nil {
+            parent[node.Right], stack = node, append(stack, node.Right)
+        }
+    }
+    ancestors := make(map[*TreeNode]bool)
+    for p != nil {
+        ancestors[p] = true
+        p = parent[p]
+    }
+    for ; !ancestors[q]; q = parent[q] {
+    }
+    return q
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+## [297. Serialize and Deserialize Binary Tree](<https://leetcode.com/problems/serialize-and-deserialize-binary-tree/>)
+
+Serialization is the process of converting a data structure or object into a sequence of bits so that it can be stored in a file or memory buffer, or transmitted across a network connection link to be reconstructed later in the same or another computer environment.
+
+Design an algorithm to serialize and deserialize a binary tree. There is no restriction on how your serialization/deserialization algorithm should work. You just need to ensure that a binary tree can be serialized to a string and this string can be deserialized to the original tree structure.
+
+**Example:** 
+
+```
+You may serialize the following tree:
+
+    1
+   / \
+  2   3
+     / \
+    4   5
+
+as "[1,2,3,null,null,4,5]"
+```
+
+**Clarification:** The above format is the same as [how LeetCode serializes a binary tree](https://leetcode.com/faq/#binary-tree). You do not necessarily need to follow this format, so please be creative and come up with different approaches yourself.
+
+**Note:** Do not use class member/global/static variables to store states. Your serialize and deserialize algorithms should be stateless.
+
+**Solution**
+
+Just preorder traverse the tree and mark null nodes. For deserializing, we use a Queue to store the pre-order traversal and since we have "X" as null node, we know exactly where to end building subtress.
+
+```go
+func serialize(root *TreeNode) string {
+    var sb strings.Builder
+    buildString(root, sb)
+    return sb.String()
+}
+
+func buildString(root *TreeNode, sb strings.Builder) {
+    if root == nil {
+        sb.WriteString("#,")
+    } else {
+        sb.WriteString(strconv.Itoa(root.Val)).WriteString(",")
+        buildString(node.Left, sb)
+        buildString(node.Right, sb)
+    }
+}
+
+func deserialize(data string) *TreeNode {
+    return buildTree(strings.Split(data, ","))
+}
+
+func buildTree(data []string) *TreeNode {
+    s := data[0]
+    data = data[1:]
+    if s == "#" {
+        return nil
+    } 
+    val, _ := strconv.Atoi(s)
+    node := &TreeNode{Val: val}
+    node.Left = buildTree(data)
+    node.Right = buildTree(data)
+    return node
+}
+```
+
+- Time complexity: $$O(n)$$ for both `serialize`and `deserialize`
+- Space complexity: $$O(n)$$
+
+# Segment Tree
+
+## [218. The Skyline Problem](<https://leetcode.com/problems/the-skyline-problem/>)
+
+A city's skyline is the outer contour of the silhouette formed by all the buildings in that city when viewed from a distance. Now suppose you are **given the locations and height of all the buildings** as shown on a cityscape photo (Figure A), write a program to **output the skyline** formed by these buildings collectively (Figure B).
+
+![Buildings](https://assets.leetcode.com/uploads/2018/10/22/skyline1.png) 
+
+
+
+![Skyline Contour](https://assets.leetcode.com/uploads/2018/10/22/skyline2.png)
+
+
+
+The geometric information of each building is represented by a triplet of integers `[Li, Ri, Hi]`, where `Li` and `Ri` are the x coordinates of the left and right edge of the ith building, respectively, and `Hi` is its height. It is guaranteed that `0 ≤ Li, Ri ≤ INT_MAX`, `0 < Hi ≤ INT_MAX`, and `Ri - Li > 0`. You may assume all buildings are perfect rectangles grounded on an absolutely flat surface at height 0.
+
+For instance, the dimensions of all buildings in Figure A are recorded as: `[ [2 9 10], [3 7 15], [5 12 12], [15 20 10], [19 24 8] ] `.
+
+The output is a list of "**key points**" (red dots in Figure B) in the format of `[ [x1,y1], [x2, y2], [x3, y3], ... ]`that uniquely defines a skyline. **A key point is the left endpoint of a horizontal line segment**. Note that the last key point, where the rightmost building ends, is merely used to mark the termination of the skyline, and always has zero height. Also, the ground in between any two adjacent buildings should be considered part of the skyline contour.
+
+For instance, the skyline in Figure B should be represented as:`[ [2 10], [3 15], [7 12], [12 0], [15 10], [20 8], [24, 0] ]`.
+
+**Notes:**
+
+- The number of buildings in any input list is guaranteed to be in the range `[0, 10000]`.
+- The input list is already sorted in ascending order by the left x position `Li`.
+- The output list must be sorted by the x position.
+- There must be no consecutive horizontal lines of equal height in the output skyline. For instance, `[...[2 3], [4 5], [7 5], [11 5], [12 7]...]` is not acceptable; the three lines of height 5 should be merged into one in the final output as such: `[...[2 3], [4 5], [12 7], ...]`
+
+**Solution**
+
+![](https://raw.githubusercontent.com/hot13399/leetcode-graphic-answer/master/218.%20The%20Skyline%20Problem.jpg)
+
+```java
+class Solution {
+    public List<int[]> getSkyline(int[][] buildings) {
+      int n = buildings.length;  
+      int[][] points = new int[n + n][2];
+      int i = 0;
+      for(int[] b: buildings){
+        points[i] = new int[]{b[0], b[2]}; // start point: +height
+        points[i + 1] = new int[]{b[1], -b[2]}; // end point: -height
+        i += 2;
+      }
+      
+      //sort points by x coordinate
+      Arrays.sort(points, (a, b)->{
+        if(a[0] == b[0]){
+          return b[1] - a[1]; 
+        } else {
+          return a[0] - b[0]; 
+        }
+      });
+      
+      // max height on top
+      PriorityQueue<Integer> maxH = new PriorityQueue<Integer>((a,b)->{
+        return b - a; 
+      });
+      maxH.offer(0);
+      List<int[]> res = new ArrayList();
+        
+      int preH = -1;
+      for(int[] p: points){
+        if(p[1] > 0){
+          maxH.offer(p[1]); 
+        } else {
+          maxH.remove(-p[1]);
+        }
+        
+        int curH = maxH.peek();
+        if(preH == curH) continue;
+        preH = curH;
+        res.add(new int[]{p[0], curH});
+      }
+      return res;
+    }
+}
+```
+
+- Time complexity: $$O(nlogn)$$
+- Space complexity: $$O(n)$$
+

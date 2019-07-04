@@ -4390,3 +4390,752 @@ class Solution {
 - Time complexity: $$O(nlogn)$$
 - Space complexity: $$O(n)$$
 
+# Graph
+
+## [127. Word Loader](https://leetcode,com/problems/word-loader/)
+
+Given two words (*beginWord* and *endWord*), and a dictionary's word list, find the length of shortest transformation sequence from *beginWord* to *endWord*, such that:
+
+1. Only one letter can be changed at a time.
+2. Each transformed word must exist in the word list. Note that *beginWord* is *not* a transformed word.
+
+**Note:**
+
+- Return 0 if there is no such transformation sequence.
+- All words have the same length.
+- All words contain only lowercase alphabetic characters.
+- You may assume no duplicates in the word list.
+- You may assume *beginWord* and *endWord* are non-empty and are not the same.
+
+**Example 1:**
+
+```
+Input:
+beginWord = "hit",
+endWord = "cog",
+wordList = ["hot","dot","dog","lot","log","cog"]
+
+Output: 5
+
+Explanation: As one shortest transformation is "hit" -> "hot" -> "dot" -> "dog" -> "cog",
+return its length 5.
+```
+
+**Example 2:**
+
+```
+Input:
+beginWord = "hit"
+endWord = "cog"
+wordList = ["hot","dot","dog","lot","log"]
+
+Output: 0
+
+Explanation: The endWord "cog" is not in wordList, therefore no possible transformation.
+```
+
+**Solution**
+
+If we fit this problem into graph theory, we may think this is a shortest path problem which can be solved by Dijkstra's algorithm, Floyd's algorithm or whatever. Of course it's true but if we really do it in this way, we may kind of overdo it. Since we can only convert a word to another by changing a letter, the weights of edges in the graph are all 1. That's where BFS come in to solve a shortest path problem.
+
+The idea is simply to start from the `beginWord`, then visit its neighbors, then the non-visited neighbors of its neighbors until we arrive at the `endWord`.
+
+```go
+func ladderLength(beginWord string, endWord string, wordList []string) int {
+    dict := make(map[string]bool)
+    for _, s := range wordList {
+        dict[s] = true
+    }
+    q := []string{beginWord}
+    count := 1
+    for len(q) > 0 {
+        // Currently q stores previous word's all "reachable" words
+        // i.e. a vertex's all adjacent vertices in the graph
+        for num := len(q); num > 0; num-- {
+            cur := q[0]
+            q = q[1:]
+            if cur == endWord {
+                return count
+            }
+            dict[cur] = false // so no need for visited array
+            bytes := []byte(cur)
+            for j := 0; j < len(bytes); j++ {
+                // Change a letter 
+                // i.e. find adjacent vertices in the graph
+                char := bytes[j]
+                for k := 0; k < 26; k++ {
+                    bytes[j] = byte('a'+k)
+                    if w := string(bytes); dict[w] {
+                        q = append(q, w)
+                    }
+                }
+                bytes[j] = char
+            }
+        }
+        count++
+    }
+    return 0
+}
+```
+
+- Time complexity: $$O(nL)$$ where n is the length of word list and L is the length of each word?
+- Space complexity: $$O(n)$$ 
+
+**Recap**
+
+Maybe it's too difficult for an interviewee to solve a problem using Dijkstra's algorithm or whatever in an interview. So try to solve this kind of problems using BFS at first.
+
+## [200. Number of Islands](<https://leetcode.com/problems/number-of-islands/>)
+
+Given a 2d grid map of `'1'`s (land) and `'0'`s (water), count the number of islands. An island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically. You may assume all four edges of the grid are all surrounded by water.
+
+**Example 1:**
+
+```
+Input:
+11110
+11010
+11000
+00000
+
+Output: 1
+```
+
+**Example 2:**
+
+```
+Input:
+11000
+11000
+00100
+00011
+
+Output: 3
+```
+
+**Solution**
+
+(1) Accepted
+
+BFS
+
+```go
+func numIslands(grid [][]byte) int {
+	if len(grid) == 0 || len(grid[0]) == 0 {
+		return 0
+	}
+	count := 0
+	dir := [][]int{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}
+	m, n := len(grid), len(grid[0])
+	for i := range grid {
+		for j := range grid[i] {
+			if grid[i][j] != '0' {
+				count++
+				q := [][]int{{i, j}}
+				grid[i][j] = '0'
+				for len(q) > 0 {
+					cur := q[0]
+					q = q[1:]
+					for _, d := range dir {
+						nextI, nextJ := cur[0]+d[0], cur[1]+d[1]
+						if nextI >= 0 &&
+							nextI < m &&
+							nextJ >= 0 &&
+							nextJ < n &&
+							grid[nextI][nextJ] != '0' {
+							q = append(q, []int{nextI, nextJ})
+							grid[nextI][nextJ] = '0'
+						}
+					}
+				}
+			}
+		}
+	}
+	return count
+}
+```
+
+- Time complexity: $$O(n)$$ where n is the number of grids.
+- Space complexity: $$O(n)$$
+
+(2) Accepted
+
+DFS
+
+```GO
+func numIslands(grid [][]byte) int {
+	if len(grid) == 0 || len(grid[0]) == 0 {
+		return 0
+	}
+	count := 0
+    dir := [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}}
+	for i := range grid {
+		for j := range grid[i] {
+			if grid[i][j] != '0' {
+				count++
+                dfs(&grid, dir, i, j)
+			}
+		}
+	}
+	return count
+}
+
+func dfs(grid *[][]byte, dir [][]int, startI int, startJ int) {
+    (*grid)[startI][startJ] = '0'
+    for _, d := range dir {
+        nextI, nextJ := startI+d[0], startJ+d[1]
+        if nextI >= 0 && nextI < len(*grid) && nextJ >= 0 && nextJ < len((*grid)[0]) && (*grid)[nextI][nextJ] != '0' {
+            dfs(grid, dir, nextI, nextJ)
+        }
+    }
+}
+```
+
+- Time complexity: $$O(n)$$ where n is the number of grids
+- Space complexity: $$O(n)$$
+
+**Recap**
+
+This is a typical connected-component labeling problem which in generally can be solved by DFS or BFS.
+
+## [207. Course Schedule](<https://leetcode.com/problems/course-schedule/>)
+
+There are a total of *n* courses you have to take, labeled from `0` to `n-1`.
+
+Some courses may have prerequisites, for example to take course 0 you have to first take course 1, which is expressed as a pair: `[0,1]`
+
+Given the total number of courses and a list of prerequisite **pairs**, is it possible for you to finish all courses?
+
+**Example 1:**
+
+```
+Input: 2, [[1,0]] 
+Output: true
+Explanation: There are a total of 2 courses to take. 
+             To take course 1 you should have finished course 0. So it is possible.
+```
+
+**Example 2:**
+
+```
+Input: 2, [[1,0],[0,1]]
+Output: false
+Explanation: There are a total of 2 courses to take. 
+             To take course 1 you should have finished course 0, and to take course 0 you should
+             also have finished course 1. So it is impossible.
+```
+
+**Note:**
+
+1. The input prerequisites is a graph represented by **a list of edges**, not adjacency matrices. Read more about [how a graph is represented](https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/representing-graphs).
+2. You may assume that there are no duplicate edges in the input prerequisites.
+
+**Solution**
+
+Of course it's topological sort problem.
+
+```go
+func canFinish(numCourses int, prerequisites [][]int) bool {
+	// adjacency matrix
+	matrix := make([][]int, numCourses)
+	for key, _ := range matrix {
+		matrix[key] = make([]int,numCourses)
+	}
+	// the in degree of vertices,which also means
+	// the number of prerequisites
+	indegree := make([]int, numCourses)
+
+	// construct the directed graph
+	for i := 0; i < len(prerequisites); i++ {
+		ready := prerequisites[i][0]
+		pre := prerequisites[i][1]
+		// in case there are duplicate edges in the input
+		if matrix[pre][ready] == 0 {
+			indegree[ready]++
+		}
+		matrix[pre][ready] = 1
+	}
+
+	// the number of finished courses
+	finished := 0
+	// BFS
+	// the queue stores courses which can be finished
+	queue := make([]int, 0)
+	for i, v := range indegree {
+		if v == 0 {
+			queue = append(queue, i)
+		}
+	}
+	for len(queue) > 0 {
+		c := queue[0]
+		queue = queue[1:]
+		finished++
+		for i := 0; i < numCourses; i++ {
+			if matrix[c][i] != 0 {
+				indegree[i]--
+				// now the course i can be finished
+				if indegree[i] == 0 {
+					queue = append(queue, i)
+				}
+			}
+		}
+	}
+	return finished == numCourses
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+## [210. Course Schedule II](<https://leetcode.com/problems/course-schedule-ii/>)
+
+There are a total of *n* courses you have to take, labeled from `0` to `n-1`.
+
+Some courses may have prerequisites, for example to take course 0 you have to first take course 1, which is expressed as a pair: `[0,1]`
+
+Given the total number of courses and a list of prerequisite **pairs**, return the ordering of courses you should take to finish all courses.
+
+There may be multiple correct orders, you just need to return one of them. If it is impossible to finish all courses, return an empty array.
+
+**Example 1:**
+
+```
+Input: 2, [[1,0]] 
+Output: [0,1]
+Explanation: There are a total of 2 courses to take. To take course 1 you should have finished   
+             course 0. So the correct course order is [0,1] .
+```
+
+**Example 2:**
+
+```
+Input: 4, [[1,0],[2,0],[3,1],[3,2]]
+Output: [0,1,2,3] or [0,2,1,3]
+Explanation: There are a total of 4 courses to take. To take course 3 you should have finished both     
+             courses 1 and 2. Both courses 1 and 2 should be taken after you finished course 0. 
+             So one correct course order is [0,1,2,3]. Another correct ordering is [0,2,1,3] .
+```
+
+**Note:**
+
+1. The input prerequisites is a graph represented by **a list of edges**, not adjacency matrices. Read more about [how a graph is represented](https://www.khanacademy.org/computing/computer-science/algorithms/graph-representation/a/representing-graphs).
+2. You may assume that there are no duplicate edges in the input prerequisites.
+
+**Solution**
+
+```go
+func findOrder(numCourses int, prerequisites [][]int) []int {
+	// all vertices's in-degree
+	in := make([]int, numCourses, numCourses)
+	// the key is the prerequisite
+	pres := make(map[int][]int)
+	for _, val := range prerequisites {
+		in[val[0]]++
+		pres[val[1]] = append(pres[val[1]], val[0])
+	}
+
+	// those can be finished
+	queue := make([]int, 0)
+	for v, i := range in {
+		if i == 0 {
+			queue = append(queue, v)
+		}
+	}
+
+	// finished courses
+	finished := make([]int, 0)
+	for len(queue) > 0 {
+		// pop the queue
+		p := queue[0]
+		queue = queue[1:]
+		finished = append(finished, p)
+		// find courses which can be finished now
+		for _, v := range pres[p] {
+			in[v]--
+			if in[v] == 0 {
+				queue = append(queue, v)
+			}
+		}
+	}
+	if len(finished) == numCourses {
+		return finished
+	} else {
+		return []int{}
+	}
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+# Hash Table
+
+## [171. Excel Sheet Column Number](https://leetcode.com/problems/excel-sheet-column-number/)
+
+Given a column title as appear in an Excel sheet, return its corresponding column number.
+
+For example:
+
+```
+    A -> 1
+    B -> 2
+    C -> 3
+    ...
+    Z -> 26
+    AA -> 27
+    AB -> 28 
+    ...
+```
+
+**Example 1:**
+
+```
+Input: "A"
+Output: 1
+```
+
+**Example 2:**
+
+```
+Input: "AB"
+Output: 28
+```
+
+**Example 3:**
+
+```
+Input: "ZY"
+Output: 701
+```
+
+**Solution**
+
+Actually, this is not a coding question but a brain teaser. You just do the math.
+
+```go
+func titleToNumber(s string) int {
+	if len(s) == 0 {
+		return 0
+	}
+	res := 0
+	for i := 0; i < len(s); i++ {
+		res = res*26 + int(s[i]-'A'+1)
+	}
+	return res
+}
+```
+
+## [454. 4Sum ||](<https://leetcode.com/problems/4sum-ii/>)
+
+Given four lists A, B, C, D of integer values, compute how many tuples `(i, j, k, l)`there are such that `A[i] + B[j] + C[k] + D[l]` is zero.
+
+To make problem a bit easier, all A, B, C, D have same length of N where 0 ≤ N ≤ 500. All integers are in the range of -228 to 228 - 1 and the result is guaranteed to be at most 231 - 1.
+
+**Example:**
+
+```
+Input:
+A = [ 1, 2]
+B = [-2,-1]
+C = [-1, 2]
+D = [ 0, 2]
+
+Output:
+2
+
+Explanation:
+The two tuples are:
+1. (0, 0, 0, 1) -> A[0] + B[0] + C[0] + D[1] = 1 + (-2) + (-1) + 2 = 0
+2. (1, 1, 0, 0) -> A[1] + B[1] + C[0] + D[0] = 2 + (-1) + (-1) + 0 = 0
+```
+
+**Solution**
+
+Just like [2Sum](<https://leetcode.com/problems/two-sum/>). 
+
+```go
+func fourSumCount(A []int, B []int, C []int, D []int) int {
+	memo := make(map[int]int)
+	for i := range C {
+		for j := range D {
+			memo[C[i]+D[j]]++
+		}
+	}
+	res := 0
+	for i := range A {
+		for j := range B {
+			res += memo[-(A[i] + B[j])]
+		}
+	}
+	return res
+}
+```
+
+- Time complexity: $$O(n^2)$$
+- Space complexity: $$O(n^2)$$
+
+**Recap**
+
+So what can a hash table do for us? Store useful temporary values/results and save our time.
+
+## [380. Insert Delete GetRandom O(1)](<https://leetcode.com/problems/insert-delete-getrandom-o1/>)
+
+Design a data structure that supports all following operations in *average* **O(1)** time.
+
+1. `insert(val)`: Inserts an item val to the set if not already present.
+2. `remove(val)`: Removes an item val from the set if present.
+3. `getRandom`: Returns a random element from current set of elements. Each element must have the **same probability** of being returned.
+
+**Example:**
+
+```
+// Init an empty set.
+RandomizedSet randomSet = new RandomizedSet();
+
+// Inserts 1 to the set. Returns true as 1 was inserted successfully.
+randomSet.insert(1);
+
+// Returns false as 2 does not exist in the set.
+randomSet.remove(2);
+
+// Inserts 2 to the set, returns true. Set now contains [1,2].
+randomSet.insert(2);
+
+// getRandom should return either 1 or 2 randomly.
+randomSet.getRandom();
+
+// Removes 1 from the set, returns true. Set now contains [2].
+randomSet.remove(1);
+
+// 2 was already in the set, so return false.
+randomSet.insert(2);
+
+// Since 2 is the only number in the set, getRandom always return 2.
+randomSet.getRandom();
+```
+
+(1) Runtime Error
+
+```go
+
+type RandomizedSet struct {
+	present map[int]int
+	items   []int
+}
+
+
+/** Initialize your data structure here. */
+func Constructor() RandomizedSet {
+    return RandomizedSet{make(map[int]int), make([]int, 0)}
+}
+
+
+/** Inserts a value to the set. Returns true if the set did not already contain the specified element. */
+func (this *RandomizedSet) Insert(val int) bool {
+    if idx, ok := this.present[val]; ok && idx != -1 {
+        return false
+    } else {
+        this.present[val] = len(this.items)
+        this.items = append(this.items, val)
+        return true
+    }
+}
+
+
+/** Removes a value from the set. Returns true if the set contained the specified element. */
+func (this *RandomizedSet) Remove(val int) bool {
+    if idx, ok := this.present[val]; !ok || idx == -1 {
+        return false
+    } else {
+        this.present[val] = -1
+        this.items = append(this.items[:idx], this.items[idx+1:]...)
+        return true
+    }
+}
+
+
+/** Get a random element from the set. */
+func (this *RandomizedSet) GetRandom() int {
+    if n := len(this.items); n == 0 {
+        panic("empty set")
+    } else {
+        return this.items[rand.Intn(n)]
+    }
+}
+
+
+/**
+ * Your RandomizedSet object will be instantiated and called as such:
+ * obj := Constructor();
+ * param_1 := obj.Insert(val);
+ * param_2 := obj.Remove(val);
+ * param_3 := obj.GetRandom();
+ */
+```
+
+What if the item to be removed is not the last one in `items`? After such item is removed, the indices of following items will be altered. 
+
+(2) Accepted
+
+```go
+type RandomizedSet struct {
+	present map[int]int
+	items   []int
+}
+
+
+/** Initialize your data structure here. */
+func Constructor() RandomizedSet {
+    return RandomizedSet{make(map[int]int), make([]int, 0)}
+}
+
+
+/** Inserts a value to the set. Returns true if the set did not already contain the specified element. */
+func (this *RandomizedSet) Insert(val int) bool {
+    if _, ok := this.present[val]; ok {
+        return false
+    } else {
+        this.present[val] = len(this.items)
+        this.items = append(this.items, val)
+        return true
+    }
+}
+
+
+/** Removes a value from the set. Returns true if the set contained the specified element. */
+func (this *RandomizedSet) Remove(val int) bool {
+    if idx, ok := this.present[val]; !ok {
+        return false
+    } else {
+        last := len(this.items)-1 
+        if idx < last {
+            // Assure that we always remove last item 
+            this.present[this.items[last]] = idx
+            this.items[idx], this.items[last] = this.items[last], this.items[idx]
+        }
+        delete(this.present, val)
+        this.items = this.items[:len(this.items)-1]
+        return true
+    }
+}
+
+
+/** Get a random element from the set. */
+func (this *RandomizedSet) GetRandom() int {
+    if n := len(this.items); n == 0 {
+        panic("empty set")
+    } else {
+        return this.items[rand.Intn(n)]
+    }
+}
+```
+
+## [381. Insert Delete GetRandom O(1) - Duplicates allowed](<https://leetcode.com/problems/insert-delete-getrandom-o1-duplicates-allowed/>)
+
+Design a data structure that supports all following operations in *average* **O(1)** time.
+
+Note: Duplicate elements are allowed.
+
+1. `insert(val)`: Inserts an item val to the collection.
+2. `remove(val)`: Removes an item val from the collection if present.
+3. `getRandom`: Returns a random element from current collection of elements. The probability of each element being returned is **linearly related** to the number of same value the collection contains.
+
+**Example:**
+
+```
+// Init an empty collection.
+RandomizedCollection collection = new RandomizedCollection();
+
+// Inserts 1 to the collection. Returns true as the collection did not contain 1.
+collection.insert(1);
+
+// Inserts another 1 to the collection. Returns false as the collection contained 1. Collection now contains [1,1].
+collection.insert(1);
+
+// Inserts 2 to the collection, returns true. Collection now contains [1,1,2].
+collection.insert(2);
+
+// getRandom should return 1 with the probability 2/3, and returns 2 with the probability 1/3.
+collection.getRandom();
+
+// Removes 1 from the collection, returns true. Collection now contains [1,2].
+collection.remove(1);
+
+// getRandom should return 1 and 2 both equally likely.
+collection.getRandom();
+```
+
+**Solution**
+
+This is kind of complicated. There are two fields in `RandomizedCollection`:
+
+- a map whose key is the `val`and the value is a slices which contains indices of `val`in the 2d slice we are gonna talk about next
+- a 2d slice where each element is a pair whose first element is `val`itself and second element is index in `map[val]`
+
+For example:
+
+```go
+[][]int{{1, 0}, {2, 0}, {1, 1}}
+map[int][]int{
+    1 :[]int{0, 2},
+    2: []int{1, }
+}
+```
+
+```go
+type RandomizedCollection struct {
+    Indices map[int][]int
+    Items   [][]int
+}
+
+
+/** Initialize your data structure here. */
+func Constructor() RandomizedCollection {
+    return RandomizedCollection{make(map[int][]int), make([][]int, 0)}
+}
+
+
+/** Inserts a value to the collection. Returns true if the collection did not already contain the specified element. */
+func (this *RandomizedCollection) Insert(val int) bool {
+    _, present := this.Indices[val]
+    if !present {
+        this.Indices[val] = make([]int, 0)
+    }
+    this.Indices[val] = append(this.Indices[val], len(this.Items))
+    this.Items = append(this.Items, []int{val, len(this.Indices[val])-1})
+    return !present
+}
+
+
+/** Removes a value from the collection. Returns true if the collection contained the specified element. */
+func (this *RandomizedCollection) Remove(val int) bool {
+    _, present := this.Indices[val]
+    if present {
+        // Firstly, Swap last val in this.Items with last item
+        // and modify index in this.Indices
+        idxOfLastVal := this.Indices[val][len(this.Indices[val])-1]
+        lastItem := this.Items[len(this.Items)-1]
+        this.Indices[lastItem[0]][lastItem[1]] = idxOfLastVal
+        this.Items[idxOfLastVal] = lastItem
+        // Delete index from this.Indices or remove the entry
+        if len(this.Indices[val]) == 1 {
+            delete(this.Indices, val)
+        } else {
+            this.Indices[val] = this.Indices[val][:len(this.Indices[val])-1]
+        }
+        // Remove the last item in this.Items
+        this.Items = this.Items[:len(this.Items)-1]
+    }
+    return present
+}
+
+
+/** Get a random element from the collection. */
+func (this *RandomizedCollection) GetRandom() int {
+    if len(this.Items) == 0 {
+        panic("empty collection")
+    }
+    return this.Items[rand.Intn(len(this.Items))][0]
+}
+```
+

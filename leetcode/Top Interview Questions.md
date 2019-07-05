@@ -5139,7 +5139,7 @@ func (this *RandomizedCollection) GetRandom() int {
 }
 ```
 
-## Simulation
+# Simulation
 
 ## [134. Gas Station](<https://leetcode.com/problems/gas-station/>)
 
@@ -5313,3 +5313,375 @@ func happy(n int) int {
 }
 ```
 
+## [289. Game of Life](<https://leetcode.com/problems/game-of-life/>)
+
+According to the [Wikipedia's article](https://en.wikipedia.org/wiki/Conway's_Game_of_Life): "The **Game of Life**, also known simply as **Life**, is a cellular automaton devised by the British mathematician John Horton Conway in 1970."
+
+Given a *board* with *m* by *n* cells, each cell has an initial state *live* (1) or *dead* (0). Each cell interacts with its [eight neighbors](https://en.wikipedia.org/wiki/Moore_neighborhood)(horizontal, vertical, diagonal) using the following four rules (taken from the above Wikipedia article):
+
+1. Any live cell with fewer than two live neighbors dies, as if caused by under-population.
+2. Any live cell with two or three live neighbors lives on to the next generation.
+3. Any live cell with more than three live neighbors dies, as if by over-population..
+4. Any dead cell with exactly three live neighbors becomes a live cell, as if by reproduction.
+
+Write a function to compute the next state (after one update) of the board given its current state. The next state is created by applying the above rules simultaneously to every cell in the current state, where births and deaths occur simultaneously.
+
+**Example:**
+
+```
+Input: 
+[
+  [0,1,0],
+  [0,0,1],
+  [1,1,1],
+  [0,0,0]
+]
+Output: 
+[
+  [0,0,0],
+  [1,0,1],
+  [0,1,1],
+  [0,1,0]
+]
+```
+
+**Follow up**:
+
+1. Could you solve it in-place? Remember that the board needs to be updated at the same time: You cannot update some cells first and then use their updated values to update other cells.
+2. In this question, we represent the board using a 2D array. In principle, the board is infinite, which would cause problems when the active area encroaches the border of the array. How would you address these problems?
+
+**Solution**
+
+(1) Accepted
+
+Clone the original matrix and simulate the process.
+
+```go
+func gameOfLife(board [][]int)  {
+	rows, cols := len(board), len(board[0])
+	if rows == 0 || cols == 0 {
+		return
+	}
+	dummy := make([][]int, rows)
+	// Don't just copy(dummy, board)!
+    // This will pollute original slices
+	for i := range dummy {
+		dummy[i] = make([]int, cols)
+		for j := range dummy[i] {
+			dummy[i][j] = board[i][j]
+		}
+	}
+	dir := [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {1, 1}, {-1, 1}, {-1, -1}, {1, -1}}
+	for i := range dummy {
+		for j := range dummy[i] {
+			live := 0
+			for _, d := range dir {
+				if x, y := i+d[0], j+d[1]; x >= 0 && x < rows && y >= 0 && y < cols {
+					if dummy[x][y] == 1 {
+						live++
+					}
+				}
+			}
+			if dummy[i][j] == 0 && live == 3 {
+				board[i][j] = 1
+			} else if dummy[i][j] == 1 && (live < 2 || live > 3) {
+				board[i][j] = 0
+			}
+		}
+	}
+}
+```
+
+- Time Complexity: $$O(mn)$$
+- Space complexity: $$O(mn)$$
+
+(2)  Accepted
+
+To solve it in place, we use 2 bits to store 2 states:
+
+```
+[2nd bit, 1st bit] = [next state, current state]
+
+- 00 -> 10 (dead -> live)
+- 01 -> 11 (live -> live)
+- 00 -> 00 (dead -> dead)
+- 01 -> 01 (live -> dead)
+```
+
+```go
+func gameOfLife(board [][]int) {
+	rows, cols := len(board), len(board[0])
+	if rows == 0 || cols == 0 {
+		return
+	}
+	dir := [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}}
+	for i := range board {
+		for j := range board[i] {
+			lives := 0
+			for _, d := range dir {
+				if x, y := i+d[0], j+d[1]; x >= 0 && x < rows && y >= 0 && y < cols {
+                    // Get the 1st bit
+                    // If 1st bit is 1, this cell is currently live
+					lives += board[x][y] & 1
+				}
+			}
+            // The 2nd bit by default is 0 
+            // so we only need to consider when the 2nd bit will become 1
+			if board[i][j] == 0 && lives == 3 {
+                // dead -> live
+                // 00 -> 10
+				board[i][j] = 2
+			} else if board[i][j] == 1 && lives >= 2 && lives <= 3 {
+                // live -> live
+                // 01 -> 11
+				board[i][j] = 3
+			}
+		}
+	}
+    // Get the 2nd bit
+	for i := range board {
+		for j := range board[i] {
+			board[i][j] >>= 1
+		}
+	}
+}
+```
+
+- Time Complexity: $$O(mn)$$
+- Space complexity: $$O(1)$$
+
+**Recap**
+
+1. Bit manipulation is always tricky. 
+2. Use `copy`function carefully because the clone one may pollute original one.
+
+## [371. Sum of Two Integers](<https://leetcode.com/problems/sum-of-two-integers/>)
+
+Calculate the sum of two integers *a* and *b*, but you are **not allowed** to use the operator `+` and `-`.
+
+**Example 1:**
+
+```
+Input: a = 1, b = 2
+Output: 3
+```
+
+**Example 2:**
+
+```
+Input: a = -2, b = 3
+Output: 1
+```
+
+**Solution**
+
+Of course this problem should be solved by bit manipulation.
+
+Sum of two bits can be obtained by performing XOR (^) of the two bits. Carry bit can be obtained by performing AND (&) of two bits. Above is simple [Half Adder](http://en.wikipedia.org/wiki/Adder_(electronics)#Half_adder) logic that can be used to add 2 single bits. We can extend this logic for integers. If x and y don’t have set bits at same position(s), then bitwise XOR (^) of x and y gives the sum of x and y. To incorporate common set bits also, bitwise AND (&) is used. Bitwise AND of x and y gives all carry bits. We calculate (x & y) << 1 and add it to x ^ y to get the required result.
+
+```go
+func getSum(x int, y int) int {
+    for y != 0 {
+        // carry contains common set bits of x and y
+        carry := x & y
+        // Sum of bits of x and y where at least one of
+        // the bits is not set
+        x = x^y
+        // Carry is shifted by one so that 
+        // adding it to x gives the required sum
+        y = carry << 1
+    }
+    return x
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+## [414. Fizz Buzz](<https://leetcode.com/problems/fizz-buzz/>)
+
+Write a program that outputs the string representation of numbers from 1 to *n*.
+
+But for multiples of three it should output “Fizz” instead of the number and for the multiples of five output “Buzz”. For numbers which are multiples of both three and five output “FizzBuzz”.
+
+**Example:**
+
+```
+n = 15,
+
+Return:
+[
+    "1",
+    "2",
+    "Fizz",
+    "4",
+    "Buzz",
+    "Fizz",
+    "7",
+    "8",
+    "Fizz",
+    "Buzz",
+    "11",
+    "Fizz",
+    "13",
+    "14",
+    "FizzBuzz"
+]
+```
+
+**Solution**
+
+(1) Accepted
+
+```go
+func fizzBuzz(n int) []string {
+	if n <= 0 {
+		return nil
+	}
+	res := make([]string, 0, n)
+	for i := 1; i <= n; i++ {
+		switch {
+		case i%3 == 0 && i%5 != 0:
+			res = append(res, "Fizz")
+		case i%3 != 0 && i%5 == 0:
+			res = append(res, "Buzz")
+		case i%3 == 0 && i%5 == 0:
+			res = append(res, "FizzBuzz")
+		default:
+			res = append(res, strconv.Itoa(i))
+		}
+	}
+	return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+Mod operation is slow so don's use it.
+
+```go
+func fizzBuzz(n int) []string {
+	if n <= 0 {
+		return nil
+	}
+	res := make([]string, 0, n)
+	for i, fizz, buzz := 1, 0, 0; i <= n; i++ {
+        fizz, buzz = fizz+1, buzz+1
+        if fizz == 3 && buzz == 5 {
+            res = append(res, "FizzBuzz")
+            fizz, buzz = 0, 0
+        } else if fizz == 3 {
+            res = append(res, "Fizz")
+            fizz = 0
+        } else if buzz == 5 {
+            res = append(res, "Buzz")
+            buzz = 0
+        } else {
+            res = append(res, fmt.Sprintf("%d", i))
+        }
+	}
+	return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+## [146. LRU Cache](<https://leetcode.com/problems/lru-cache/>)
+
+Design and implement a data structure for [Least Recently Used (LRU) cache](https://en.wikipedia.org/wiki/Cache_replacement_policies#LRU). It should support the following operations: `get` and `put`.
+
+`get(key)` - Get the value (will always be positive) of the key if the key exists in the cache, otherwise return -1.
+`put(key, value)` - Set or insert the value if the key is not already present. When the cache reached its capacity, it should invalidate the least recently used item before inserting a new item.
+
+The cache is initialized with a **positive**capacity.
+
+**Follow up:**
+Could you do both operations in **O(1)** time complexity?
+
+**Example:**
+
+```
+LRUCache cache = new LRUCache( 2 /* capacity */ );
+
+cache.put(1, 1);
+cache.put(2, 2);
+cache.get(1);       // returns 1
+cache.put(3, 3);    // evicts key 2
+cache.get(2);       // returns -1 (not found)
+cache.put(4, 4);    // evicts key 1
+cache.get(1);       // returns -1 (not found)
+cache.get(3);       // returns 3
+cache.get(4);       // returns 4
+```
+
+**Solution**
+
+Use a double linked list which has a head pointer and a tail pointer. We can both remove a node from such a linked list and add a node to it's tail in $$O(1)$$ time. In the list, least recently visited nodes are close to head.
+
+```go
+type dllNode struct {
+	key  int
+	val  int
+	pre  *dllNode
+	next *dllNode
+}
+
+type LRUCache struct {
+	Capacity int
+	Map      map[int]*dllNode
+	Head     *dllNode
+	Tail     *dllNode
+}
+
+func Constructor(capacity int) LRUCache {
+	head, tail := &dllNode{}, &dllNode{}
+	head.next = tail
+	tail.pre = head
+	return LRUCache{capacity, make(map[int]*dllNode), head, tail}
+}
+
+func (this *LRUCache) Get(key int) int {
+	if node, ok := this.Map[key]; ok {
+		remove(node)
+		add(this.Tail, node)
+		return node.val
+	}
+	return -1
+}
+
+func (this *LRUCache) Put(key int, value int) {
+	if n, ok := this.Map[key]; ok {
+		remove(n)
+	}
+	node := &dllNode{key: key, val: value}
+	add(this.Tail, node)
+	this.Map[key] = node
+	if len(this.Map) > this.Capacity {
+         // Overflow so we need to remove the node
+         // right behind head which is least recently used
+		delete(this.Map, this.Head.next.key)
+		remove(this.Head.next)
+	}
+}
+
+// Remove node from list
+func remove(node *dllNode) {
+	pre, next := node.pre, node.next
+	pre.next = next
+	next.pre = pre
+}
+
+// Add node to list just in front of tail
+func add(tail, node *dllNode) {
+	pre := tail.pre
+	pre.next, tail.pre = node, node
+	node.pre, node.next = pre, tail
+}
+```
+
+- Time complexity: $$O(1)$$
+- Space complexity: $$O(n)$$

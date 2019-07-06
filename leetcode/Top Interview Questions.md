@@ -5685,3 +5685,407 @@ func add(tail, node *dllNode) {
 
 - Time complexity: $$O(1)$$
 - Space complexity: $$O(n)$$
+
+# Sort
+
+## [179. Largest Number](<https://leetcode.com/problems/largest-number/>)
+
+Given a list of non negative integers, arrange them such that they form the largest number.
+
+**Example 1:**
+
+```
+Input: [10,2]
+Output: "210"
+```
+
+**Example 2:**
+
+```
+Input: [3,30,34,5,9]
+Output: "9534330"
+```
+
+**Note:** The result may be very large, so you need to return a string instead of an integer.
+
+**Solution**
+
+```
+String s1 = "9";
+String s2 = "31";
+
+String case1 =  s1 + s2; // 931
+String case2 = s2 + s1; // 319
+```
+
+Apparently, case1 is greater than case2 in terms of value. So, we should always put s1 in front of s2.
+
+```go
+type stringSlice []string
+
+func (ss stringSlice) Len() int {
+	return len(ss)
+}
+
+func (ss stringSlice) Swap(i, j int) {
+	ss[i], ss[j] = ss[j], ss[i]
+}
+
+func (ss stringSlice) Less(i, j int) bool {
+    // e.g., "210" should be greater than "102"
+	return ss[i]+ss[j] > ss[j]+ss[i]
+}
+
+func largestNumber(nums []int) string {
+	if len(nums) == 0 {
+		return ""
+	}
+	strs := make([]string, 0, len(nums))
+	for _, value := range nums {
+		strs = append(strs, strconv.Itoa(value))
+	}
+	sort.Sort(stringSlice(strs))
+    // Corner case
+	if strs[0][0] == '0' {
+		return "0"
+	}
+	return strings.Join(strs, "")
+}
+```
+
+- Time complexity: $$O(nlogn)$$
+- Space complexity: $$O(n)$$
+
+**Recap**
+
+The `Less(i, j)`function of `sort.Interface`means whether the element with index i should sort before the element with index j.
+
+## [342. Wiggle Sort II](<https://leetcode.com/problems/wiggle-sort-ii/>)
+
+Given an unsorted array `nums`, reorder it such that `nums[0] < nums[1] > nums[2] < nums[3]...`.
+
+**Example 1:**
+
+```
+Input: nums = [1, 5, 1, 1, 6, 4]
+Output: One possible answer is [1, 4, 1, 5, 1, 6].
+```
+
+**Example 2:**
+
+```
+Input: nums = [1, 3, 2, 2, 3, 1]
+Output: One possible answer is [2, 3, 1, 3, 1, 2].
+```
+
+**Note:**
+You may assume all input has valid answer.
+
+**Follow Up:**
+Can you do it in O(n) time and/or in-place with O(1) extra space?
+
+**Solution**
+
+(1) Accepted
+
+
+
+```go
+func wiggleSort(nums []int)  {
+	if len(nums) == 0 {
+		return
+	}
+	tmp := make([]int, len(nums))
+	copy(tmp, nums)
+	sort.Ints(tmp)
+	n := len(nums)
+	m := (n+1) >> 1
+	for i, j := m-1, 0; i >= 0 && j < n; i, j = i-1, j+2 {
+		nums[j] = tmp[i]
+	}
+	for i, j := n-1, 1; i >= m && j < n; i, j = i-1, j+2 {
+		nums[j] = tmp[i]
+	}
+}
+```
+
+
+
+# Binary Search
+
+## [162. Find Peak Element](<https://leetcode.com/problems/find-peak-element/>)
+
+A peak element is an element that is greater than its neighbors.
+
+Given an input array `nums`, where `nums[i] ≠ nums[i+1]`, find a peak element and return its index.
+
+The array may contain multiple peaks, in that case return the index to any one of the peaks is fine.
+
+You may imagine that `nums[-1] = nums[n] = -∞`.
+
+**Example 1:**
+
+```
+Input: nums = [1,2,3,1]
+Output: 2
+Explanation: 3 is a peak element and your function should return the index number 2.
+```
+
+**Example 2:**
+
+```
+Input: nums = [1,2,1,3,5,6,4]
+Output: 1 or 5 
+Explanation: Your function can return either index number 1 where the peak element is 2, 
+             or index number 5 where the peak element is 6.
+```
+
+**Note:**
+
+Your solution should be in logarithmic complexity.
+
+(1) Accepted
+
+Straightforward solution costs $$O(n)$$ time.
+
+```go
+func findPeakElement(nums []int) int {
+    if n := len(nums); n <= 1 {
+        return 0
+    } else {
+        for i := 0; i < n; i++ {
+            switch i {
+                case 0:
+                if nums[0] > nums[1] {
+                    return 0
+                }
+                case n-1:
+                if nums[n-1] > nums[n-2] {
+                    return n-1
+                }
+                default:
+                if nums[i] > nums[i-1] && nums[i] > nums[i+1] {
+                    return i
+                }
+            }
+        }
+        return -1
+    }
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+We can view any given sequence in an array as alternating ascending and descending sequences. By making use of this, and the fact that we can return any peak as the result, we can make use of Binary Search to find the required peak element.
+
+If middle element happens to be lying in a descending sequence of numbers (`nums[mid] > nums[mid+1]`), it means that the peak will always lie towards the left of this element. Thus, we reduce the search space to the left of mid (including itself) and perform the same process on left subarray.
+
+If the middle element lies in an ascending sequence of numbers (`nums[mid] < nums[i+1]`), it obviously implies that the peak lies towards the right of this element. Thus, we reduce the search space to the right of mid and perform the same process on the right subarray.
+
+```go
+func findPeakElement(nums []int) int {
+    l, r := 0, len(nums)-1
+    for l < r {
+        mid := l + (r-l)>>1
+        if nums[mid] > nums[mid+1] {
+            r = mid // Note that it's inclusive
+        } else {
+            l = mid + 1
+        }
+    }
+    return l
+}
+```
+
+- Time complexity: $$O(logn)$$
+- Space complexity: $$O(1)$$
+
+## [287. Find the Duplicate Number](<https://leetcode.com/problems/find-the-duplicate-number/>)
+
+Given an array *nums* containing *n* + 1 integers where each integer is between 1 and *n* (inclusive), prove that at least one duplicate number must exist. Assume that there is only one duplicate number, find the duplicate one.
+
+**Example 1:**
+
+```
+Input: [1,3,4,2,2]
+Output: 2
+```
+
+**Example 2:**
+
+```
+Input: [3,1,3,4,2]
+Output: 3
+```
+
+**Note:**
+
+1. You **must not** modify the array (assume the array is read only).
+2. You must use only constant, *O*(1) extra space.
+3. Your runtime complexity should be less than *O*(*n*2).
+4. There is only one duplicate number in the array, but it could be repeated more than once.
+
+**Solution**
+
+(1) Accepted
+
+This problem is similar to detect a cycle and find the entry point in a linked list. So now the only problem left is how we "rearrange" an array as a linked list. Let's say the first node is `nums[0]`and `nums[i]`'s next node is `nums[nums[i]]`. For example, we can see `[1, 3, 4, 2, 2]`as a list like:
+
+```
+1->3->2->4
+       ↖↓
+```
+
+```go
+func findDuplicate(nums []int) int {
+    if len(nums) <= 1 {
+        return -1
+    }
+    slow, fast := nums[0], nums[nums[0]]
+    for slow != fast {
+        slow, fast = nums[slow], nums[nums[fast]]
+    }
+    for fast = 0; fast != slow; {
+        slow, fast = nums[slow], nums[fast]
+    }
+    return fast
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+There are n+1 integers and all integers are between 1 and n (inclusive)  so there must be at least one integer occurring more than once (if no duplicates then there must be only n integers). 
+
+At first the search space is numbers between 1 to n. Each time I select a number `mid` (which is the one in the middle) and count all the numbers equal to or less than `mid`. Then if the `count` is more than `mid`, the search space will be `[1 mid]` otherwise `[mid+1 n]`. I do this until search space is only one number.
+
+Let's say `n=10` and I select `mid=5`. Then I count all the numbers in the array which are less than equal `mid`. If the there are more than `5` numbers that are not greater than `5`, one of them has occurred more than once so we shrink the search space to `[1, 5]`.
+
+```go
+func findDuplicate(nums []int) int {
+    if len(nums) <= 1 {
+        return -1
+    }
+    l, r := 1, len(nums)-1
+    for l < r {
+        mid, count := l + (r-l)>>1, 0
+        for i := range nums {
+            if nums[i] <= mid {
+                count++
+            }
+        }
+        if count <= mid {
+            l = mid + 1
+        } else {
+            r = mid
+        }
+    }
+    return l
+}
+```
+
+- Time complexity: $$O(nlogn)$$
+- Space complexity: $$O(1)$$
+
+## [315. Count of Smaller Numbers After Self](<https://leetcode.com/problems/count-of-smaller-numbers-after-self/>)
+
+You are given an integer array *nums* and you have to return a new *counts* array. The *counts* array has the property where `counts[i]` is the number of smaller elements to the right of `nums[i]`.
+
+**Example:**
+
+```
+Input: [5,2,6,1]
+Output: [2,1,1,0] 
+Explanation:
+To the right of 5 there are 2 smaller elements (2 and 1).
+To the right of 2 there is only 1 smaller element (1).
+To the right of 6 there is 1 smaller element (1).
+To the right of 1 there is 0 smaller element.
+```
+
+**Solution**
+
+(1) Accepted
+
+Brute-Force
+
+```go
+func countSmaller(nums []int) []int {
+    counts := make([]int, len(nums))
+    for i := 0; i < len(nums)-1; i++ {
+        for j := i+1; j < len(nums); j++ {
+            if nums[j] < nums[i] {
+                counts[i]++
+            }
+        }
+    }
+    return counts
+}
+```
+
+- Time complexity: $$O(n^2)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+Every node will maintain a val **sum** recording the total of number on it's left bottom side, **dup** counts the duplication. For example, [3, 2, 2, 6, 1], from back to beginning, we would have:
+
+```
+                1(0, 1)
+                     \
+                     6(3, 1)
+                     /
+                   2(0, 2)
+                       \
+                        3(0, 1)
+```
+
+When we try to insert a number, the total number of smaller number would be **adding dup and sum of the nodes where we turn right**. (?)
+for example, if we insert 5, it should be inserted on the way down to the right of 3, the nodes where we turn right is 1(0,1), 2,(0,2), 3(0,1), so the answer should be (0 + 1)+(0 + 2)+ (0 + 1) = 4
+
+if we insert 7, the right-turning nodes are 1(0,1), 6(3,1), so answer should be (0 + 1) + (3 + 1) = 5
+
+```go
+type Node struct {
+    Left  *Node
+    Right *Node
+    Val   int
+    Sum   int
+    Dup   int
+}
+
+func countSmaller(nums []int) []int {
+    res := make([]int, len(nums))
+    var root *Node
+    // Why from back to front
+    for i := len(nums)-1; i >= 0; i-- {
+        root = insert(nums[i], root, &res, i, 0)
+    }
+    return res
+}
+
+func insert(num int, node *Node, res *[]int, i int, preSum int) *Node {
+    if node == nil {
+        node = &Node{Val: num, Sum: 0, Dup: 1}
+        (*res)[i] = preSum
+    } else if node.Val == num {
+        node.Dup++
+        (*res)[i] = preSum + node.Sum
+    } else if node.Val > num {
+        node.Sum++
+        node.Left = insert(num, node.Left, res, i, preSum)
+    } else {
+        node.Right = insert(num, node.Right, res, i, preSum + node.Dup + node.Sum)
+    }
+    return node
+}
+```
+
+- Time complexity: $$O(nlogn)$$
+- Space complexity: $$O(n)$$
+

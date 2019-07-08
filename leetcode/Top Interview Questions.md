@@ -6309,6 +6309,8 @@ func lengthOfLongestSubstring(s string) int {
 
 # DP
 
+The key point of DP is how we reuse what we got.
+
 ## [124. Binary Tree Maximum Path Sum](<https://leetcode.com/problems/binary-tree-maximum-path-sum/>)
 
 Given a **non-empty** binary tree, find the maximum path sum.
@@ -6699,3 +6701,307 @@ func numSquares(n int) int {
 
 - Time complexity: $$O(n)$$ at worst
 - Space complexity: $$O(1)$$
+
+## [300. Longest Increasing Subsequence](<https://leetcode.com/problems/longest-increasing-subsequence/>)
+
+Given an unsorted array of integers, find the length of longest increasing subsequence.
+
+**Example:**
+
+```
+Input: [10,9,2,5,3,7,101,18]
+Output: 4 
+Explanation: The longest increasing subsequence is [2,3,7,101], therefore the length is 4. 
+```
+
+**Note:**
+
+- There may be more than one LIS combination, it is only necessary for you to return the length.
+- Your algorithm should run in O(*n2*) complexity.
+
+**Follow up:** Could you improve it to O(*n* log *n*) time complexity?
+
+**Solution**
+
+(1) Time Limit Exceeded
+
+For every number in input array, we have two options:
+
+- If it's greater than previous, take it and increment the length of subsequence
+- If is's less than previous, skip it
+
+```go
+func lengthOfLIS(nums []int) int {
+    return helper(nums, math.MinInt64, 0)
+}
+
+func helper(nums []int, pre int, pos int) int {
+    if pos == len(nums) {
+        return 0
+    }
+    taken := 0
+    if nums[pos] > pre {
+        taken = 1 + helper(nums, nums[pos], pos+1)
+    }
+    noTaken := helper(nums, pre, pos+1)
+    return int(math.Max(float64(taken), float64(noTaken)))
+}
+```
+
+- Time complexity: $$O(2^n)$$ because the size of recursion tree will be $$2^n$$ 
+- Space complexity: $$O(n^2)$$
+
+(2) Accepted
+
+In original recursive solution, many calls had to be made again and again with the same parameters. We improve this by using memoization.
+
+```go
+func lengthOfLIS(nums []int) int {
+    // memo[i][j]: the result corresponding to the case
+    // where previous index is i and current index is j
+    memo := make([][]int, len(nums)+1)
+    for i := range memo {
+        arr := make([]int, len(nums))
+        for j := range arr {
+            arr[j] = -1
+        }
+        memo[i] = arr
+    }
+    return helper(nums, &memo, -1, 0)
+}
+
+func helper(nums []int, memo *[][]int, pre int, cur int) int {
+    if cur == len(nums) {
+        return 0
+    }
+    if (*memo)[pre+1][cur] >= 0 {
+        return (*memo)[pre+1][cur]
+    }
+    taken := 0
+    if pre < 0 || nums[cur] > nums[pre] {
+        taken = 1 + helper(nums, memo, cur, cur+1)
+    }
+    noTaken := helper(nums, memo, pre, cur+1)
+    (*memo)[pre+1][cur] = int(math.Max(float64(taken), float64(noTaken)))
+    return (*memo)[pre+1][cur]
+}
+```
+
+- Time complexity: $$O(n^2)$$
+- Space complexity: $$O(n^2)$$
+
+(3) Accepted
+
+Iterative bottom-up solution.
+
+```go
+func lengthOfLIS(nums []int) int {
+    if len(nums) == 0 {
+        return 0
+    }
+    dp := make([]int, len(nums)) // dp[i]: the length of LIS ending at i
+    dp[0], res = 1, 1
+    for i := 1; i < len(nums); i++ {
+        max := 0
+        // Append nums[i] to every possible previous sequence
+        for j := 0; j < i; j++ {
+            if nums[i] > nums[j] {
+                if dp[j] > max {
+                    max = dp[j]
+                }
+            }
+        }
+        if dp[i] = max+1; dp[i] > res {
+            res = dp[i]
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(n^2)$$
+- Space complexity: $$O(n)$$
+
+(4) Accepted
+
+`tails` is an array storing the smallest tail of all increasing subsequences with length `i+1` in `tails[i]`.
+For example, say we have `nums = [4,5,6,3]`, then all the available increasing subsequences are:
+
+```
+len = 1   :      [4], [5], [6], [3]   => tails[0] = 3
+len = 2   :      [4, 5], [5, 6]       => tails[1] = 5
+len = 3   :      [4, 5, 6]            => tails[2] = 6
+```
+
+We can easily prove that tails is a increasing array. Therefore it is possible to do a binary search in tails array to find the one which needs update.
+
+
+Each time we only do one of the two:
+
+```
+(1) if x is larger than all tails, append it, increase the size by 1
+(2) if tails[i-1] < x <= tails[i], update tails[i]
+```
+
+```go
+func lengthOfLIS(nums []int) int {
+    if len(nums) == 0 {
+        return 0
+    }
+    tails := make([]int, len(nums))
+    res := 0
+    for _, n := range nums {
+        left, right := 0, res
+        for left != right {
+            if middle := left + (right-left) >> 2; tails[middle] < n {
+                left = middle + 1
+            } else {
+                right = middle
+            }
+        }
+        tails[left] = n
+        if left == res {
+            res++
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(nlogn)$$
+- Space complexity: $$O(n)$$
+
+## [322. Coin Change](<https://leetcode.com/problems/coin-change/>)
+
+You are given coins of different denominations and a total amount of money *amount*. Write a function to compute the fewest number of coins that you need to make up that amount. If that amount of money cannot be made up by any combination of the coins, return `-1`.
+
+**Example 1:**
+
+```
+Input: coins = [1, 2, 5], amount = 11
+Output: 3 
+Explanation: 11 = 5 + 5 + 1
+```
+
+**Example 2:**
+
+```
+Input: coins = [2], amount = 3
+Output: -1
+```
+
+**Note**:
+You may assume that you have an infinite number of each kind of coin.
+
+**Solution**
+
+(1) Time Limit Exceeded
+
+Suppose we have already found out the best way to sum up to amount `a`, then for the last step, we can choose any coin type which gives us a remainder `r` where `r = a-coins[i]`for all `i`s. For every remainder, go through exactly the same process as before until either the remainder is 0 or less than 0 (meaning not a valid solution).
+
+```go
+func coinChange(coins []int, amount int) int {
+    if len(coins) == -1 || amount < 0 {
+        return -1
+    }
+    return helper(coins, amount)
+}
+
+func helper(coins []int, amount int) int {
+    if amount == 0 {
+        // Found a combination
+        return 0
+    }
+    if amount < 0 {
+        // No valid combination
+        return -1
+    }
+    min := math.MaxInt64
+    for _, c := range coins {
+        // Find a combination for remaining money 
+        if tmp := helper(coins, amount-c); tmp >= 0 && tmp < min {
+            min = tmp + 1
+        }
+    }
+    if min == math.MaxInt64 {
+        return -1
+    } else {
+        return min
+    }
+}
+```
+
+- Time complexity: ?
+- Space complexity: ?
+
+(2) Accepted
+
+Memoized recursion.
+
+```go
+func coinChange(coins []int, amount int) int {
+    if len(coins) == -1 || amount < 0 {
+        return -1
+    }
+    return helper(coins, amount, make(map[int]int))
+}
+
+func helper(coins []int, amount int, memo map[int]int) int {
+    if amount == 0 {
+        // Found a combination
+        return 0
+    }
+    if amount < 0 {
+        // No valid combination
+        return -1
+    }
+    if res, ok := memo[amount]; ok {
+        return res
+    }
+    min := math.MaxInt64
+    for _, c := range coins {
+        // Find a combination for remaining money 
+        if tmp := helper(coins, amount-c, memo); tmp >= 0 && tmp < min {
+            min = tmp + 1
+        }
+    }
+    if min == math.MaxInt64 {
+        memo[amount] = -1
+    } else {
+        memo[amount] = min
+    }
+    return memo[amount]
+}
+```
+
+- Time complexity: $$O(n^2)$$ where n is the number of coins
+- Space complexity: $$O(amount)$$ 
+
+(3)  Accepted
+
+Suppose we have already computed all the minimum counts up to `sum`, what would be the minimum count for `sum+1`? So we can solve it iteratively.
+
+```go
+func coinChange(coins []int, amount int) int {
+    if len(coins) == 0 || amount < 0 {
+        return -1
+    }
+    dp := make([]int, amount+1)
+    for sum := 1; sum <= amount; sum++ {
+        min := -1
+        for _, coin := range coins {
+            if sum >= coin && dp[sum-coin] != -1 {
+                if tmp := dp[sum-coin]+1; min < 0 || tmp < min {
+                    min = tmp
+                }
+            }
+        }
+        dp[sum] = min
+    }
+    return dp[amount]
+}
+```
+
+- Time complexity: $$O(amount*len(coins))$$
+- Space complexity: $$O(amount)$$
+

@@ -6089,3 +6089,613 @@ func insert(num int, node *Node, res *[]int, i int, preSum int) *Node {
 - Time complexity: $$O(nlogn)$$
 - Space complexity: $$O(n)$$
 
+# Sliding Window
+
+## [395. Longest Substring with At Least K Repeating Characters](<https://leetcode.com/problems/longest-substring-with-at-least-k-repeating-characters/>)
+
+Find the length of the longest substring **T**of a given string (consists of lowercase letters only) such that every character in **T**appears no less than *k* times.
+
+**Example 1:**
+
+```
+Input:
+s = "aaabb", k = 3
+
+Output:
+3
+
+The longest substring is "aaa", as 'a' is repeated 3 times.
+```
+
+**Example 2:**
+
+```
+Input:
+s = "ababbc", k = 2
+
+Output:
+5
+
+The longest substring is "ababb", as 'a' is repeated 2 times and 'b' is repeated 3 times.
+```
+
+**Solution**
+
+```go
+func longestSubstring(s string, k int) int {
+    if k <= 0 || len(s) < k {
+        return 0
+    }
+    d := 0
+    for i := 1; i <= 26; i++ {
+        if tmp := nUniqueChars(s, k, i); d < tmp {
+            d = tmp
+        }
+    }
+    return d
+}
+
+// Find the longest substring containing n unique characters each of which 
+// repeats at least k times
+func nUniqueChars(s string, k int, n int) int {
+    count := make([]int, 26)
+    numOfUnique, numOfRepeatingK := 0, 0
+    d := 0
+    for begin, end := 0, 0; end < len(s); {
+        if count[s[end]-'a'] == 0 {
+            numOfUnique++
+        }
+        count[s[end]-'a']++
+        if count[s[end]-'a'] == k {
+            numOfRepeatingK++
+        }
+        end++
+        for numOfUnique > n {
+            if count[s[begin]-'a'] == k {
+                numOfRepeatingK--
+            }
+            count[s[begin]-'a']--
+            if count[s[begin]-'a'] == 0 {
+                numOfUnique--
+            }
+            begin++
+        }
+        if numOfUnique == n && numOfUnique == numOfRepeatingK {
+            if tmp := end-begin; tmp > d {
+                d = tmp
+            }
+        }
+    }
+    return d
+}
+```
+
+- Time complexity: $$O(n)$$?
+- Space complexity: $$O(1)$$
+
+**Recap**
+
+For most substring problem, we are given a string and need to find a substring of it which satisfy some restrictions. There is a template which can solve most of such problems.
+
+```go
+func findSubstring(s string) int {
+    freqOfChar := make([]int, 26)
+  	// Initialize map here
+    counter := 0 // check whether the subtring is valid
+    d := 0 // length of substirng
+    for begin, end := 0, 0; end < len(s); {
+        if freqOfChar[s[end]-'a'] ? {
+            // Modify counter here
+        }
+        end++
+        for ? { // When counter satisfies some conditions
+            // Update d if we want to find minimum 
+            
+            // Increase begin to make subtring valid/invalid again
+            
+            if freqOfChar[s[begin]-'a'] ? {
+                // Modify counter here
+            }
+            begin++
+        }
+        
+        // Update d here if we want to find maximum
+    }
+    return d
+}
+```
+
+One thing needs to be mentioned is that when asked to find maximum substring, we should update maximum after the inner while loop to guarantee that the substring is valid. On the other hand, when asked to find minimum substring, we should update minimum inside the inner while loop.
+
+## [3.Longest Substring Without Repeating Characters](<https://leetcode.com/problems/longest-substring-without-repeating-characters/>)
+
+Given a string, find the length of the **longest substring** without repeating characters.
+
+**Example 1:**
+
+```
+Input: "abcabcbb"
+Output: 3 
+Explanation: The answer is "abc", with the length of 3. 
+```
+
+**Example 2:**
+
+```
+Input: "bbbbb"
+Output: 1
+Explanation: The answer is "b", with the length of 1.
+```
+
+**Example 3:**
+
+```
+Input: "pwwkew"
+Output: 3
+Explanation: The answer is "wke", with the length of 3. 
+             Note that the answer must be a substring, "pwke" is a subsequence and not a substring.
+```
+
+**Solution**
+
+```go
+func lengthOfLongestSubstring(s string) int {
+    if len(s) == 0 {
+        return 0
+    }
+    freqOfChar := make(map[byte]int)
+    numOfUnique := 0
+    d := 0
+    for begin, end := 0, 0; end < len(s); {
+        if freqOfChar[s[end]] > 0 {
+            numOfUnique++
+        }
+        freqOfChar[s[end]]++
+        end++
+        for numOfUnique > 0 {
+            if freqOfChar[s[begin]] > 1 {
+                numOfUnique--
+            }
+            freqOfChar[s[begin]]--
+            begin++
+        }
+        if tmp := end-begin; tmp > d {
+            d = tmp
+        }
+    }
+    return d
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+## 159. Longest Substring with At Most Two Distinct Characters
+
+Given a string S, find the length of the longest substring T that contains at most two distinct characters.
+
+For example, Given S = “eceba”, T is "ece" which its length is 3.
+
+**Solution**
+
+```go
+func lengthOfLongestSubstring(s string) int {
+    m := make(map[byte]int)
+    res := 0
+    counter := 0
+    for begin, end := 0, 0; end < len(s); {
+        if m[s[end]] == 0 {
+            counter++
+        }
+        m[s[end]]++
+        end++
+        for counter > 2 {
+            if m[s[start]] == 1 {
+                counter--
+            }
+            m[ss[start]]--
+            start++
+        }
+        if tmp := end-begin; res < tmp {
+            res = tmp
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+# DP
+
+## [124. Binary Tree Maximum Path Sum](<https://leetcode.com/problems/binary-tree-maximum-path-sum/>)
+
+Given a **non-empty** binary tree, find the maximum path sum.
+
+For this problem, a path is defined as any sequence of nodes from some starting node to any node in the tree along the parent-child connections. The path must contain **at least one node** and does not need to go through the root.
+
+**Example 1:**
+
+```
+Input: [1,2,3]
+
+       1
+      / \
+     2   3
+
+Output: 6
+```
+
+**Example 2:**
+
+```
+Input: [-10,9,20,null,null,15,7]
+
+   -10
+   / \
+  9  20
+    /  \
+   15   7
+
+Output: 42
+```
+
+**Solution**
+
+Accepted
+
+- A path from start to end, goes up on the tree for 0 or more steps, then goes down for 0 or more steps. Once it goes down, it can't go up. Each path has a highest node, which is also the lowest common ancestor of all other nodes on the path.
+- A recursive method `maxPathDown(TreeNode node)` (1) computes the maximum path sum whose node is the input, update maximum if necessary (2) returns the maximum sum of the path that can be reused by input node's parent.
+
+```go
+func maxPathSum(root *TreeNode) int {
+    res := math.MinInt64
+    maxPathDown(root, &res)
+    return res
+}
+
+func maxPathDown(node *TreeNode, res *int) int {
+    if node == nil {
+        return 0
+    }
+    left := 0
+    if tmp := maxPathDown(node.Left, res); tmp > left {
+        left = tmp
+    }
+    right := 0
+    if tmp := maxPathDown(node.Right, res); tmp > right {
+        right = tmp
+    }
+    if tmp := node.Val+left+right; tmp > *res {
+        *res = tmp
+    }
+    // When we return current node to its parent,
+    // we cannot choose both of its subtrees
+    // as a final path
+    if left > right {
+        return node.Val + left
+    } else {
+        return node.Val + right
+    }
+}
+```
+
+- Time complexity: $$O(n)$$ where n is the number of nodes
+- Space complexity: $$O(logn)$$
+
+## [128. Longest Consecutive Sequence](<https://leetcode.com/problems/longest-consecutive-sequence/>)
+
+Given an unsorted array of integers, find the length of the longest consecutive elements sequence.
+
+Your algorithm should run in O(*n*) complexity.
+
+**Example:**
+
+```
+Input: [100, 4, 200, 1, 3, 2]
+Output: 4
+Explanation: The longest consecutive elements sequence is [1, 2, 3, 4]. Therefore its length is 4.
+```
+
+**Solution**
+
+(1) Accepted
+
+First turn the input into a *set* of numbers. Then go through the numbers. If the number x is the start of a streak (i.e., x-1 is not in the set), then test y = x+1, x+2, x+3, ... and stop at the first number y *not* in the set. The length of the streak is then simply y-x and we update our result with that.
+
+```go
+func longestConsecutive(nums []int) int {
+    if len(nums) == 0 {
+        return 0
+    }
+    set := make(map[int]bool)
+    for i := range nums {
+        set[nums[i]] = true
+    }
+    res := 0
+    for start := range set {
+        if !set[start-1] {
+            end := start+1
+            for ; set[end]; end++ {
+            }
+            if tmp := end-start; tmp > res {
+                res = tmp
+            }
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+(2) Accepted
+
+We use a map to associate a sequence' length with it's two ends. For example, for sequence `[1, 2, 3, 4, 5]`, `map[1]`and`map[5]`both equal 5.
+
+1. If `n-1`or `n+1` is in the map, it means there is an existing sequence next to **n**. Variables **left** and **right** will be the length of those two sequences, while **0** means there is no sequence and **n** will be the boundary point later. Store **(left + right + 1)** as the associated value to key **n** into the map.
+2. Use **left** and **right** to locate the other end of the sequences to the left and right of **n** respectively, and replace the value with the new length.
+
+```go
+func longestConsecutive(nums []int) int {
+    if len(nums) == 0 {
+        return 0
+    }
+    res := 0
+    length := make(map[int]int)
+    for _, n := range nums {
+        if _, ok := length[n]; ok {
+            // Skip duplicate
+            continue
+        }
+        left, right := length[n-1], length[n+1]
+        sum := left + 1 + right // The length of sequence where n is in
+        if sum > res {
+            res = sum
+        }
+        // If n has neighbours, extend the length to the boundary(s)
+        length[n-left], length[n+right] = sum, sum
+        // Avoid duplicates
+        length[n] = sum 
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+## [198. House Robber](<https://leetcode.com/problems/house-robber/>)
+
+You are a professional robber planning to rob houses along a street. Each house has a certain amount of money stashed, the only constraint stopping you from robbing each of them is that adjacent houses have security system connected and **it will automatically contact the police if two adjacent houses were broken into on the same night**.
+
+Given a list of non-negative integers representing the amount of money of each house, determine the maximum amount of money you can rob tonight **without alerting the police**.
+
+**Example 1:**
+
+```
+Input: [1,2,3,1]
+Output: 4
+Explanation: Rob house 1 (money = 1) and then rob house 3 (money = 3).
+             Total amount you can rob = 1 + 3 = 4.
+```
+
+**Example 2:**
+
+```
+Input: [2,7,9,3,1]
+Output: 12
+Explanation: Rob house 1 (money = 2), rob house 3 (money = 9) and rob house 5 (money = 1).
+             Total amount you can rob = 2 + 9 + 1 = 12.
+```
+
+**Solution**
+
+(1) Time Limit Exceeded
+
+A robber has 2 options: a) rob current house `i`; b) don't rob current house.
+If an option "a" is selected it means she can't rob previous `i-1` house but can safely proceed to the one before previous `i-2` and gets all cumulative loot that follows.
+
+If an option "b" is selected the robber gets all the possible loot from robbery of `i-1` and all the following buildings.
+
+So, this is a typical DP problem. We firstly try to solve it recursively.
+
+```go
+func rob(nums []int) int {
+    return helper(nums, len(nums)-1)
+}
+
+func helper(nums []int, i int) int {
+    if i < 0 {
+        return 0
+    }
+    op1, op2 := helper(nums, i-2)+nums[i], helper(nums, i-1)
+    if op1 > op2 {
+        return op1
+    } else {
+        return op2
+    }
+}
+```
+
+- Time complexity: ?
+- Space complexity: ?
+
+(2) Accepted
+
+Original recursive algorithm will process the same `i` multiple times and it needs improvement. 
+
+```go
+func rob(nums []int) int {
+    memo := make([]int, len(nums)+1)
+    for i := range memo {
+        memo[i] = -1
+    }
+    return helper(nums, &memo, len(nums)-1)
+}
+
+func helper(nums []int, memo *[]int, i int) int {
+    if i < 0 {
+        return 0
+    }
+    if (*memo)[i] >= 0 {
+        return (*memo)[i]
+    }
+    op1, op2 := helper(nums, memo, i-2)+nums[i], helper(nums, memo, i-1)
+    if op1 > op2 {
+        (*memo)[i] = op1
+    } else {
+        (*memo)[i] = op2
+    }
+    return (*memo)[i]
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$ if we leave call stack alone
+
+(3) Accepted
+
+We can solve the same problem bottom-up iteratively.
+
+```go
+func rob(nums []int) int {
+    if len(nums) == 0 {
+        return 0
+    }
+    memo := make([]int, len(nums)+1)
+    memo[1] = nums[0]
+    for i := 1; i < len(nums); i++ {
+        memo[i+1] = int(math.Max(float64(nums[i]+memo[i-1]), float64(memo[i])))
+    }
+    return memo[len(nums)]
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+(4) Accepted
+
+Actually, we don't need any arrays to store previous results.
+
+```go
+func rob(nums []int) int {
+    if len(nums) == 0 {
+        return 0
+    }
+    pre1, pre2 := 0, 0
+    for _, n := range nums {
+        tmp := pre1
+        pre1 = int(math.Max(float64(pre2+n), float64(pre1)))
+        pre2 = tmp
+    }
+    return pre1
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+**Recap**
+
+In general, most of DP problems can be solved by following steps:
+
+1. Find recursive relation (i.e. what are our choices at every step)
+2. Recursive (top-down)
+3. Recursive + memo (top-down)
+4. Iterative + memo (bottom-up)
+5. Iterative + N variables (bottom-up)
+
+## [279. Perfect Squares](<https://leetcode.com/problems/perfect-squares/>)
+
+Given a positive integer *n*, find the least number of perfect square numbers (for example, `1, 4, 9, 16, ...`) which sum to *n*.
+
+**Example 1:**
+
+```
+Input: n = 12
+Output: 3 
+Explanation: 12 = 4 + 4 + 4.
+```
+
+**Example 2:**
+
+```
+Input: n = 13
+Output: 2
+Explanation: 13 = 4 + 9.
+```
+
+**Solution**
+
+(1) Accepted
+
+For each `i`, it must be the sum of a number (`i-j*j`) and a perfect number (`j*j`). So those perfect numbers which are not greater than `i`are our choices at every step.
+
+```go
+func numSquares(n int) int {
+    if n <= 0 {
+        return 0
+    }
+    // dp[i]: the least number of perfect squares
+    // summing to i
+    // dp[0] = 0
+    dp := make([]int, n+1) 
+    for i := 1; i < n+1; i++ {
+        dp[i] = math.MaxInt64
+    }
+    for i := 1; i < n+1; i++ {
+        for j := 1; j*j <= i; j++ {
+            if tmp := dp[i-j*j]+1; tmp < dp[i] {
+                dp[i] = tmp
+            }
+        }
+    }
+    return dp[n]
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+(2) Accepted
+
+Based on [Lagrange's four-square theorem]([https://en.wikipedia.org/wiki/Lagrange%27s_four-square_theorem](https://en.wikipedia.org/wiki/Lagrange's_four-square_theorem)), there are only four possible results: 1, 2, 3, 4.
+
+```go
+func numSquares(n int) int {
+    if n <= 0 {
+        return 0
+    }
+    isPerfectSquare := func(i int) bool {
+        sqrt := int(math.Sqrt(float64(i)))
+        return sqrt*sqrt == i
+    }
+    if isPerfectSquare(n) {
+        // n is a perfect square
+        return 1
+    }
+    // The result is 4 if and only if n can be 
+    // written in the form of 4^k*(8*m+7)
+    for n&3 == 0 { // n%4 == 0
+        n >>= 2
+    }
+    if n&7 == 7 { // n%8 == 7
+        return 4
+    }
+    // Check whether 2 is the result
+    sqrt := int(math.Sqrt(float64(n)))
+    for i := 1; i <= sqrt; i++ {
+        if isPerfectSquare(n-i*i) {
+            return 2
+        }
+    }
+    return 3
+}
+```
+
+- Time complexity: $$O(n)$$ at worst
+- Space complexity: $$O(1)$$

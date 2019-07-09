@@ -7465,3 +7465,366 @@ func trailingZeroes(n int) int {
 
 - Time complexity: $$O(log_5n)$$
 - Space complexity: $$O(log_5n)$$
+
+## [190. Reverse Bits](<https://leetcode.com/problems/reverse-bits/>)
+
+Reverse bits of a given 32 bits unsigned integer.
+
+**Example 1:**
+
+```
+Input: 00000010100101000001111010011100
+Output: 00111001011110000010100101000000
+Explanation: The input binary string 00000010100101000001111010011100 represents the unsigned integer 43261596, so return 964176192 which its binary representation is 00111001011110000010100101000000.
+```
+
+**Example 2:**
+
+```
+Input: 11111111111111111111111111111101
+Output: 10111111111111111111111111111111
+Explanation: The input binary string 11111111111111111111111111111101 represents the unsigned integer 4294967293, so return 3221225471 which its binary representation is 10101111110010110010011101101001.
+```
+
+**Note:**
+
+- Note that in some languages such as Java, there is no unsigned integer type. In this case, both input and output will be given as signed integer type and should not affect your implementation, as the internal binary representation of the integer is the same whether it is signed or unsigned.
+- In Java, the compiler represents the signed integers using [2's complement notation](https://en.wikipedia.org/wiki/Two's_complement). Therefore, in **Example 2** above the input represents the signed integer `-3` and the output represents the signed integer `-1073741825`.
+
+**Solution**
+
+(1) Accepted
+
+Straightforward solution: extract each bit of input number and construct result.
+
+```go
+func reverseBits(num uint32) uint32 {
+    // Extract each bit
+	bits := make([]uint32, 0, 32)
+	for i := 1; i <= 1<<31; i <<= 1 {
+		if uint32(i)&num == 0 {
+			bits = append(bits, 0)
+		} else {
+			bits = append(bits, 1)
+		}
+	}
+    // Construct result
+	var res uint32
+	for i, b := range bits {
+		res |= b << uint(31-i)
+	}
+	return res
+}
+```
+
+- Time complexity: $$O(1)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+For 8 bit binary number `abcdefgh`, the process is as follow:
+
+`abcdefgh -> efghabcd -> ghefcdab -> hgfedcba`
+
+```go
+func reverseBits(num uint32) uint32 {
+	num = (num >> 16) | (num << 16)
+	num = ((num & 0xff00ff00) >> 8) | ((num & 0x00ff00ff) << 8)
+	num = ((num & 0xf0f0f0f0) >> 4) | ((num & 0x0f0f0f0f) << 4)
+	num = ((num & 0xcccccccc) >> 2) | ((num & 0x33333333) << 2)
+	num = ((num & 0xaaaaaaaa) >> 1) | ((num & 0x55555555) << 1)
+	return num
+}
+```
+
+- Time complexity: $$O(1)$$
+- Space complexity: $$O(1)$$
+
+## [191. Number of 1 Bits](<https://leetcode.com/problems/number-of-1-bits/>)
+
+Write a function that takes an unsigned integer and return the number of '1' bits it has (also known as the [Hamming weight](http://en.wikipedia.org/wiki/Hamming_weight)).
+
+**Example 1:**
+
+```
+Input: 00000000000000000000000000001011
+Output: 3
+Explanation: The input binary string 00000000000000000000000000001011 has a total of three '1' bits.
+```
+
+**Example 2:**
+
+```
+Input: 00000000000000000000000010000000
+Output: 1
+Explanation: The input binary string 00000000000000000000000010000000 has a total of one '1' bit.
+```
+
+**Example 3:**
+
+```
+Input: 11111111111111111111111111111101
+Output: 31
+Explanation: The input binary string 11111111111111111111111111111101 has a total of thirty one '1' bits.
+```
+
+**Note:**
+
+- Note that in some languages such as Java, there is no unsigned integer type. In this case, the input will be given as signed integer type and should not affect your implementation, as the internal binary representation of the integer is the same whether it is signed or unsigned.
+- In Java, the compiler represents the signed integers using [2's complement notation](https://en.wikipedia.org/wiki/Two's_complement). Therefore, in **Example 3** above the input represents the signed integer `-3`.
+
+**Solution**
+
+(1) Accepted
+
+Test every bit one by one.
+
+```go
+func hammingWeight(num uint32) int {
+	res := 0
+	for i := 1; i <= 1<<31; i <<= 1 {
+		if num&uint32(i) != 0 {
+			res++
+		}
+	}
+	return res
+}
+```
+
+- Time complexity: $$O(1)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+We can make the previous algorithm simpler and a little faster. Instead of checking every bit of the number, we repeatedly flip the least-significant 1-bit of the number to 0, and add 1 to the sum. As soon as the number becomes 0, we know that it does not have any more 1-bits, and we return the sum.
+
+The key idea here is to realize that for any number n, doing a bit-wise AND of n and n - 1 flips the least-significant 1-bit in n to 0. 
+
+![](https://leetcode.com/media/original_images/191_Number_Of_Bits.png)
+
+````go
+func hammingWeight(num uint32) int {
+	res := 0
+	for num != 0 {
+		res, num = res+1, num&(num-1)
+	}
+	return res
+}
+````
+
+- Time complexity: $$O(1)$$
+- Space complexity: $$O(1)$$
+
+**Recap**
+
+For any number n, doing a bit-wise AND of n and n - 1 flips the least-significant 1-bit in n to 0. 
+
+## [204. Count Primes](<https://leetcode.com/problems/count-primes/>)
+
+Count the number of prime numbers less than a non-negative number, **n**.
+
+**Example:**
+
+```
+Input: 10
+Output: 4
+Explanation: There are 4 prime numbers less than 10, they are 2, 3, 5, 7.
+```
+
+**Solution**
+
+(1) Accepted
+
+```go
+func countPrimes(n int) int {
+    isPrime := func(x int) bool {
+        for i := 2; i <= int(math.Sqrt(float64(x))); i++ {
+            if x%i == 0 {
+                return false
+            }
+        }
+        return true
+    }
+    res := 0
+    for i := 2; i < n; i++ {
+        if isPrime(i) {
+            res++
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(\sqrt2+\sqrt3+...+\sqrt{n-1})$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+```go
+func countPrimes(n int) int {
+    notPrime := make([]bool, n)
+    res := 0
+    // i: possible factor of n
+    for i := 2; i < n; i++ {
+        if !notPrime[i] {
+            res++
+            for j := 2; i*j < n; j++ {
+                notPrime[i*j] = true
+            }
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(n)$$ ?
+- Space complexity: $$O(n)$$
+
+## [268. Missing Number](<https://leetcode.com/problems/missing-number/>)
+
+Given an array containing *n* distinct numbers taken from `0, 1, 2, ..., n`, find the one that is missing from the array.
+
+**Example 1:**
+
+```
+Input: [3,0,1]
+Output: 2
+```
+
+**Example 2:**
+
+```
+Input: [9,6,4,2,3,5,7,0,1]
+Output: 8
+```
+
+**Note**:
+Your algorithm should run in linear runtime complexity. Could you implement it using only constant extra space complexity?
+
+**Solution**
+
+(1) Accepted
+
+```go
+func missingNumber(nums []int) int {
+    present := make([]int, len(nums)+1)
+    for _, n := range nums {
+        present[n] = 1
+    }
+    var res int
+    for i := range present {
+        if present[i] == 0 {
+            res = i
+            break
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+(2) Accepted
+
+We all know that `a^b^b =a`, which means two XOR operations with the same number will eliminate the number and reveal the original number. In a complete array with no missing numbers, the index and value should be perfectly corresponding, so in a missing array, what left finally is the missing number.
+
+Take `[3, 0, 1]`as example, what we do is calculating `0^(3^0)^(0^1)^(1^2)^3`.
+
+```go
+func missingNumber(nums []int) int {
+    xor, i := 0, 0 
+    for ; i < len(nums); i++ {
+        xor ^= i^nums[i]
+    }
+    return xor ^ i
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+**Recap**
+
+$$a XOR a XOR b = a$$
+
+## [326. Power of Three](<https://leetcode.com/problems/power-of-three/>)
+
+Given an integer, write a function to determine if it is a power of three.
+
+**Example 1:**
+
+```
+Input: 27
+Output: true
+```
+
+**Example 2:**
+
+```
+Input: 0
+Output: false
+```
+
+**Example 3:**
+
+```
+Input: 9
+Output: true
+```
+
+**Example 4:**
+
+```
+Input: 45
+Output: false
+```
+
+**Follow up:**
+Could you do it without using any loop / recursion?
+
+(1) Accepted
+
+```go
+func isPowerOfThree(n int) bool {
+    for i := 0; ; i++ {
+        if tmp := int(math.Pow(3, float64(i))); tmp == n {
+            return true
+        } else if n < tmp {
+            break
+        }
+    } 
+    return false
+}
+```
+
+- Time complexity: $$O(log_3n)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+```go
+func isPowerOfThree(n int) bool {
+    // 1162261467 is 3^19,  3^20 is bigger than int  
+    return n > 0 && 1162261467%n == 0
+}
+```
+
+- Time complexity: $$O(1)$$
+- Space complexity: $$O(1)$$
+
+(3) Accepted
+
+```go
+func isPowerOfThree(n int) bool {
+    if n > 1 {
+        for ; n%3 == 0; n /= 3 {
+        }
+    }
+    return n == 1
+}
+```
+
+- Time complexity: $$O(log_3n)$$
+- Space complexity: $$O(1)$$
+

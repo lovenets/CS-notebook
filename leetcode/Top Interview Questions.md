@@ -7005,3 +7005,463 @@ func coinChange(coins []int, amount int) int {
 - Time complexity: $$O(amount*len(coins))$$
 - Space complexity: $$O(amount)$$
 
+## [329. Longest Increasing Path In a Matrix](<https://leetcode.com/problems/longest-increasing-path-in-a-matrix/>)
+
+Given an integer matrix, find the length of the longest increasing path.
+
+From each cell, you can either move to four directions: left, right, up or down. You may NOT move diagonally or move outside of the boundary (i.e. wrap-around is not allowed).
+
+**Example 1:**
+
+```
+Input: nums = 
+[
+  [9,9,4],
+  [6,6,8],
+  [2,1,1]
+] 
+Output: 4 
+Explanation: The longest increasing path is [1, 2, 6, 9].
+```
+
+**Example 2:**
+
+```
+Input: nums = 
+[
+  [3,4,5],
+  [3,2,6],
+  [2,2,1]
+] 
+Output: 4 
+Explanation: The longest increasing path is [3, 4, 5, 6]. Moving diagonally is not allowed.
+```
+
+**Solution**
+
+(1) Wrong Answer
+
+In this problem, we don't need a `visited`matrix. Actually, `visited`may lead to wrong answer because different paths may contains the same cells.
+
+```go
+func longestIncreasingPath(matrix [][]int) int {
+    if len(matrix) ==  0 || len(matrix[0]) == 0 {
+        return 0
+    }
+    dir := [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}}
+    m, n := len(matrix), len(matrix[0])
+    res := math.MinInt64
+    for i := range matrix {
+        for j := range matrix[0] {
+            visited := make([][]bool, m)
+            for k := range visited {
+                visited[k] = make([]bool, n)
+            }
+            if tmp := dfs(matrix, dir, &visited, i, j); tmp > res {
+                res = tmp
+            }
+        }
+    }
+    return res
+}
+
+func dfs(matrix [][]int, dir [][]int, visited *[][]bool, x int, y int) int {
+    max := math.MinInt64
+    (*visited)[x][y] = true
+    for _, d := range dir {
+        x1, y1 := x+d[0], y+d[1]
+        if x1 >= 0 && x1 < len(matrix) &&
+           y1 >= 0 && y1 < len(matrix[0]) &&
+           !(*visited)[x1][y1] && matrix[x1][y1] > matrix[x][y] {
+               if tmp := dfs(matrix, dir, visited, x1, y1); tmp > max {
+                   max = tmp
+               }
+        }
+    }
+    if max == math.MinInt64 {
+        return 1
+    } else {
+        return 1 + max
+    }
+}
+```
+
+(2) Time Limit Exceeded
+
+All we need to guarantee is `matrix[x1][y1] > matrix[x][y]`.
+
+```go
+func longestIncreasingPath(matrix [][]int) int {
+    if len(matrix) ==  0 || len(matrix[0]) == 0 {
+        return 0
+    }
+    dir := [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}}
+    res := math.MinInt64
+    for i := range matrix {
+        for j := range matrix[0] {
+            if tmp := dfs(matrix, dir, i, j); tmp > res {
+                res = tmp
+            }
+        }
+    }
+    return res
+}
+
+func dfs(matrix [][]int, dir [][]int, x int, y int) int {
+    max := math.MinInt64
+    for _, d := range dir {
+        x1, y1 := x+d[0], y+d[1]
+        if x1 >= 0 && x1 < len(matrix) &&
+           y1 >= 0 && y1 < len(matrix[0]) && 
+           matrix[x1][y1] > matrix[x][y] {
+               if tmp := dfs(matrix, dir, x1, y1); tmp > max {
+                   max = tmp
+               }
+        }
+    }
+    if max == math.MinInt64 {
+        return 1
+    } else {
+        return 1 + max
+    }
+}
+```
+
+- Time complexity: $$O(n^2)$$
+- Space complexity: $$O(n^2)$$
+
+(3) Accepted
+
+Just like other DP problems, we memoize what we got.
+
+```go
+func longestIncreasingPath(matrix [][]int) int {
+    if len(matrix) ==  0 || len(matrix[0]) == 0 {
+        return 0
+    }
+    dir := [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}}
+    // memo[x][y]: the longest increasing path starting from (x, y)
+    memo := make([][]int, len(matrix))
+    for i := range memo {
+        memo[i] = make([]int, len(matrix[0]))
+    }
+    res := 1
+    for i := range matrix {
+        for j := range matrix[0] {
+            if tmp := dfs(matrix, dir, &memo, i, j); tmp > res {
+                res = tmp
+            }
+        }
+    }
+    return res
+}
+
+func dfs(matrix [][]int, dir [][]int, memo *[][]int, x int, y int) int {
+    if (*memo)[x][y] != 0 {
+        return (*memo)[x][y]
+    }
+    max := 1
+    for _, d := range dir {
+        x1, y1 := x+d[0], y+d[1]
+        if x1 >= 0 && x1 < len(matrix) &&
+           y1 >= 0 && y1 < len(matrix[0]) && 
+           matrix[x1][y1] > matrix[x][y] {
+               if tmp := dfs(matrix, dir, memo, x1, y1)+1; tmp > max {
+                   max = tmp
+               }
+        }
+    }
+    (*memo)[x][y] = max
+    return (*memo)[x][y]
+}
+```
+
+- Time complexity: $$O(n^2)$$
+- Space complexity: $$O(n^2)$$
+
+# Math & Bit Manipulation
+
+## [136. Single Number](<https://leetcode.com/problems/single-number/>)
+
+Given a **non-empty** array of integers, every element appears *twice* except for one. Find that single one.
+
+**Note:**
+
+Your algorithm should have a linear runtime complexity. Could you implement it without using extra memory?
+
+**Example 1:**
+
+```
+Input: [2,2,1]
+Output: 1
+```
+
+**Example 2:**
+
+```
+Input: [4,1,2,1,2]
+Output: 4
+```
+
+**Solution**
+
+(1) Accepted
+
+Straightforward solution: use map.
+
+```go
+func singleNumber(nums []int) int {
+    m := make(map[int]int)
+    for i := range nums {
+        m[nums[i]]++
+    }
+    var res int
+    for i := range m {
+        if m[i] == 1 {
+            res = i
+            break
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(m)$$ where m is the number of distinct numbers in the array
+
+(2) Accepted
+
+Say the array is `[2,1,4,5,2,4,1]` then if we preform XOR one by one it will be like this: $$(2 XOR 2) XOR (1 XOR 1) XOR (4 XOR 4) XOR 5 = 5$$.
+
+```go
+func singleNumber(nums []int) int {
+    res := 0
+    for i := range nums {
+        res ^= nums[i]
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+## [149. Max Points on a Line](<https://leetcode.com/problems/max-points-on-a-line/>)
+
+Given *n* points on a 2D plane, find the maximum number of points that lie on the same straight line.
+
+**Example 1:**
+
+```
+Input: [[1,1],[2,2],[3,3]]
+Output: 3
+Explanation:
+^
+|
+|        o
+|     o
+|  o  
++------------->
+0  1  2  3  4
+```
+
+**Example 2:**
+
+```
+Input: [[1,1],[3,2],[5,3],[4,1],[2,3],[1,4]]
+Output: 4
+Explanation:
+^
+|
+|  o
+|     o        o
+|        o
+|  o        o
++------------------->
+0  1  2  3  4  5  6
+```
+
+**NOTE:** input types have been changed on April 15, 2019. Please reset to default code definition to get new method signature.
+
+**Solution**
+
+```go
+func maxPoints(points [][]int) int {
+    n := len(points)
+    if n == 0 {
+        return 0
+    }
+    if n <= 2 {
+        return n
+    }
+    res := 0
+    for i := 0; i < n-1; i++ {
+        slopeToLines := make(map[string]int)
+        overlap, max := 0, 0
+        for j := i+1; j < n; j++ {
+            x, y := points[i][0]-points[j][0], points[i][1]-points[j][1]
+            if x == 0 && y == 0 {
+                overlap++
+                continue
+            }
+            // Write slope in the form of fraction
+            gcd := getGcd(x, y)
+            x, y = x/gcd, y/gcd
+            slope := fmt.Sprintf("%d/%d", x, y)
+            if slopeToLines[slope]++; slopeToLines[slope] > max {
+                max = slopeToLines[slope]
+            }
+        }
+        if tmp := overlap+max+1; tmp > res {
+            res = tmp
+        }
+    }
+    return res
+}
+
+func getGcd(x, y int) int {
+    if y == 0 {
+        return x
+    } else {
+        return getGcd(y, x%y)
+    }
+}
+```
+
+- Time complexity: $$O(n^2)$$
+- Space complexity: $$O(n^2)$$ ?
+
+## [166. Fraction to Recurring Decimal](<https://leetcode.com/problems/fraction-to-recurring-decimal/>)
+
+Given two integers representing the numerator and denominator of a fraction, return the fraction in string format.
+
+If the fractional part is repeating, enclose the repeating part in parentheses.
+
+**Example 1:**
+
+```
+Input: numerator = 1, denominator = 2
+Output: "0.5"
+```
+
+**Example 2:**
+
+```
+Input: numerator = 2, denominator = 1
+Output: "2"
+```
+
+**Example 3:**
+
+```
+Input: numerator = 2, denominator = 3
+Output: "0.(6)"
+```
+
+**Solution**
+
+Use a map to store a remainder and its associated index while doing the division so that whenever a same remainder comes up, we know there is a repeating fractional part.
+
+```go
+func fractionToDecimal(numerator int, denominator int) string {
+    if denominator == 0 {
+        panic("invalid input")
+    }
+    var sb strings.Builder
+    // Set the sign of result
+    if (numerator > 0 && denominator < 0) || (numerator < 0 && denominator > 0) {
+        sb.WriteString("-")
+    }
+    numerator, denominator = int(math.Abs(float64(numerator))), int(math.Abs(float64(denominator))) 
+    // Integral part
+    sb.WriteString(fmt.Sprintf("%d", numerator/denominator))
+    if numerator %= denominator; numerator == 0 {
+        return sb.String()
+    }
+    // Fractional part
+    sb.WriteString(".")
+    idx := make(map[int]int)
+    idx[numerator] = sb.Len()
+    for numerator != 0 {
+        numerator *= 10
+        sb.WriteString(fmt.Sprintf("%d", numerator/denominator))
+        numerator %= denominator
+        if i, ok := idx[numerator]; ok {
+            tmp := sb.String()
+            return fmt.Sprintf("%s(%s)", tmp[:i], tmp[i:])
+        } else {
+            idx[numerator] = sb.Len()
+        }
+    }
+    return sb.String()
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(n)$$
+
+## [172. Factorial Trailing Zeroes](<https://leetcode.com/problems/factorial-trailing-zeroes/>)
+
+Given an integer *n*, return the number of trailing zeroes in *n*!.
+
+**Example 1:**
+
+```
+Input: 3
+Output: 0
+Explanation: 3! = 6, no trailing zero.
+```
+
+**Example 2:**
+
+```
+Input: 5
+Output: 1
+Explanation: 5! = 120, one trailing zero.
+```
+
+**Note:** Your solution should be in logarithmic time complexity.
+
+**Solution**
+
+(1) Wrong Answer
+
+Below code may cause overflow when n is big enough.
+
+```go
+func trailingZeroes(n int) int {
+    factorial := 1
+    for ; n > 0; n-- {
+        factorial *= n
+    }
+    str := strconv.Itoa(factorial)
+    res := 0
+    for i := len(str)-1; i >= 0; i-- {
+        if str[i] != '0' {
+            break
+        }
+        res++
+    }
+    return res
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+All trailing 0 is from factors 5 * 2. But sometimes one number may have several 5 factors, for example, 25 have two 5 factors, 125 have three 5 factors. In the n! operation, factor 2 is always ample. So we just count how many 5 factors in all number from 1 to n.
+
+```go
+func trailingZeroes(n int) int {
+    if n == 0 {
+        return 0
+    } else {
+        return n/5 + trailingZeroes(n/5)
+    }
+}
+```
+
+- Time complexity: $$O(log_5n)$$
+- Space complexity: $$O(log_5n)$$

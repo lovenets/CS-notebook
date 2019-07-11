@@ -59,7 +59,9 @@ Expected:
 
 (2) Accepted
 
-Here we keep 2 values: the max cumulative product UP TO current element starting from SOMEWHERE in the past, and the minimum cumulative product UP TO current element. At each new element, we could either add the new element to the existing product, or start fresh the product from current index (wipe out previous results). If we see a negative number, the "candidate" for max should instead become the previous min product, because a bigger number multiplied by negative becomes smaller, hence the swap them.
+Here we keep 2 values: the max cumulative product UP TO current element starting from SOMEWHERE in the past, and the minimum cumulative product UP TO current element. At each new element, we could either add the new element to the existing product, or start fresh the product from current index (wipe out previous results). 
+
+The key point of this problem is how we handle negative integers. If we see a negative number, the "candidate" for max should instead become the previous min product, because a bigger number multiplied by negative becomes smaller, hence the swap them.
 
 ```go
 func maxProduct(nums []int) int {
@@ -90,7 +92,7 @@ func maxProduct(nums []int) int {
 }
 ```
 
-It would be easier to see the DP structure if we store these 2 values for each index, like `maxProduct[i]`, `minProduct[i]` .
+It would be easier to see the DP structure if we store these 2 values for each index, like `maxProduct[i]`, `minProduct[i]`. 
 
 - Time complexity: $$O(n)$$
 - Space complexity: $$O(1)$$
@@ -160,6 +162,10 @@ func majorityElement(nums []int) int {
 		if count == 0 {
 			res = nums[i]
 		}
+        // Note that here we do not use else-if
+        // because we want to assure that when we
+        // encouter a number for the first time 
+        // count will be set to 1
 		if nums[i] == res {
 			count++
 		} else {
@@ -238,7 +244,7 @@ func rotate(nums []int, k int) {
 
 (2) Accepted
 
-This approach is based on the fact that when we rotate the array k times, k%n*k* elements from the back end of the array come to the front and the rest of the elements from the front shift backwards.
+This approach is based on the fact that when we rotate the array k times, k%n elements from the back end of the array come to the front and the rest of the elements from the front shift backwards.
 
 In this approach, we firstly reverse all the elements of the array. Then, reversing the first k elements followed by reversing the rest n-k elements gives us the required result.
 
@@ -384,7 +390,7 @@ func containsDuplicate(nums []int) bool {
 
 Always try as hard as possible to find out a solution which can solve array problem in one pass.
 
-## [283. More Zeroes](<https://leetcode.com/problems/move-zeroes/>)
+## [283. Move Zeroes](<https://leetcode.com/problems/move-zeroes/>)
 
 Given an array `nums`, write a function to move all `0`'s to the end of it while maintaining the relative order of the non-zero elements.
 
@@ -493,6 +499,26 @@ func moveZeroes(nums []int) {
 ```
 
 - Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+(4) Accepted
+
+```go
+	for i := 0; i < len(nums)-1; i++ {
+		if nums[i] == 0 {
+			// When we find a zero,
+			// we keep moving to find next non-zero
+			for j := i+1; j < len(nums); j++ {
+				if nums[j] != 0 {
+					nums[i], nums[j] = nums[j], nums[i]
+					break
+				}
+			}
+		}
+	}
+```
+
+- Time complexity: $$O(n)$$ ?
 - Space complexity: $$O(1)$$
 
 **Recap**
@@ -3923,6 +3949,65 @@ func reverseString(s []byte)  {
 ```
 
 - Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$
+
+## [28. Implement strStr()](<https://leetcode.com/problems/implement-strstr/>)
+
+Implement [strStr()](http://www.cplusplus.com/reference/cstring/strstr/).
+
+Return the index of the first occurrence of needle in haystack, or **-1** if needle is not part of haystack.
+
+**Example 1:**
+
+```
+Input: haystack = "hello", needle = "ll"
+Output: 2
+```
+
+**Example 2:**
+
+```
+Input: haystack = "aaaaa", needle = "bba"
+Output: -1
+```
+
+**Clarification:**
+
+What should we return when `needle` is an empty string? This is a great question to ask during an interview.
+
+For the purpose of this problem, we will return 0 when `needle` is an empty string. This is consistent to C's [strstr()](http://www.cplusplus.com/reference/cstring/strstr/) and Java's [indexOf()](https://docs.oracle.com/javase/7/docs/api/java/lang/String.html#indexOf(java.lang.String)).
+
+(1) Accepted
+
+Well, since we are not banned from using library function...
+
+````go
+func strStr(haystack string, needle string) int {
+    return strings.Index(haystack, needle)
+}
+````
+
+(2) Accepted
+
+````go
+func strStr(haystack string, needle string) int {
+	for i := 0; ; i++ {
+		for j := 0; ; j++ {
+			if j == len(needle) {
+				return i
+			}
+			if i+j == len(haystack) {
+				return -1
+			}
+			if needle[j] != haystack[i+j] {
+				break
+			}
+		}
+	}
+}
+````
+
+- Time complexity: $$O(len(haystack)*len(needle))$$ at worst
 - Space complexity: $$O(1)$$
 
 # Tree
@@ -7828,3 +7913,66 @@ func isPowerOfThree(n int) bool {
 - Time complexity: $$O(log_3n)$$
 - Space complexity: $$O(1)$$
 
+## [29. Divide Two Integers](<https://leetcode.com/problems/divide-two-integers/>)
+
+Given two integers `dividend` and `divisor`, divide two integers without using multiplication, division and mod operator.
+
+Return the quotient after dividing `dividend` by `divisor`.
+
+The integer division should truncate toward zero.
+
+**Example 1:**
+
+```
+Input: dividend = 10, divisor = 3
+Output: 3
+```
+
+**Example 2:**
+
+```
+Input: dividend = 7, divisor = -3
+Output: -2
+```
+
+**Note:**
+
+- Both dividend and divisor will be 32-bit signed integers.
+- The divisor will never be 0.
+- Assume we are dealing with an environment which could only store integers within the 32-bit signed integer range: [$$−2^{31}$$,  $$2^{31} − 1$$]. For the purpose of this problem, assume that your function returns $$2^{31} − 1$$ when the division result overflows.
+
+**Solution**
+
+The key point is the quotient of a division indicates how many times we can subtract divisor from dividend while keeping dividend non-negative. 
+
+Suppose `dividend = 15` and `divisor = 3`, `15 - 3 > 0`. We now try to subtract more by *shifting* `3` to the left by `1` bit (`6`). Since `15 - 6 > 0`, shift `6` again to `12`. Now `15 - 12 > 0`, shift `12` again to `24`, which is larger than `15`. So we can at most subtract `12` from `15`. Since `12` is obtained by shifting `3` to left twice, it is `1 << 2 = 4` times of `3`. We add `4` to an answer variable (initialized to be `0`). The above process is like `15 = 3 * 4 + 3`. We now get part of the quotient (`4`), with a remaining dividend `3`.
+
+Then we repeat the above process by subtracting `divisor = 3` from the remaining `dividend = 3` and obtain `0`. We are done. In this case, no shift happens. We simply add `1 << 0 = 1` to the answer variable.
+
+```go
+func divide(dividend int, divisor int) int {
+	if dividend == math.MinInt32 && divisor == -1 {
+        // Corner case: overflow
+		return math.MaxInt32
+	}
+	sign := 1
+    if dividend < 0 {
+        dividend, sign = -dividend, -sign
+    }
+    if divisor < 0 {
+        divisor, sign = -divisor, -sign
+    }
+	res := 0
+	for dividend >= divisor {
+		timesOfDivisor, times := divisor, 1
+		for (timesOfDivisor << 1) <= dividend {
+			timesOfDivisor, times = timesOfDivisor<<1, times<<1
+		}
+		dividend, res = dividend-timesOfDivisor, res+times
+	}
+	return res * sign
+}
+```
+
+- Time complexity: $$O(n)$$
+- Space complexity: $$O(1)$$

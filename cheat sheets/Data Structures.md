@@ -107,6 +107,64 @@
 - Tree is a special kind of graph.
 - Graphs can be divided into two groups: directed and undirected graphs.
 
+#### Big O Efficiency
+
+- Traversal: $$O(E+V)$$
+- Shortest Path
+  - Dijkstra: $$O(ElogV)$$, Floyd-Warshall: $$O(n^3)$$, Bellman-Ford/SPFA: $$O(V(V+E))$$
+- Minimum Spanning Tree
+  - Kruskal: $$O(ElogE)$$, Prim: $$O(ElogV)$$
+
+### Heap
+
+#### Definition
+
+- Is a specialized tree-based data structure which is essentially an almost complete tree that satisfies the heap property
+
+#### Key Points
+
+- In a max heap, for any given node C, if P is a parent node of C, then the key (the value) of P is greater than or equal to the key of C.
+- In a *min heap*, the key of P is less than or equal to the key of C.
+- The heap is one maximally efficient implementation of a [priority queue](https://en.wikipedia.org/wiki/Priority_queue).
+
+#### Big O Efficiency
+
+- Insertion: $$O(logn)$$
+- Find-min/max: $$O(1)$$
+- Delete-min/max: $$O(logn)$$
+
+### String
+
+#### Definition
+
+- Is a traditionally a sequence of characters.
+
+#### Key Points
+
+- Is generally considered as a data type and is often implemented as an [array of bytes/words that stores a sequence of elements, typically characters, using some character encoding.
+- Some languages, such as C++ and Ruby, normally allow the contents of a string to be changed after it has been created; these are termed *mutable* strings. 
+- In other languages, such as Java and Python, the value is fixed and a new string must be created if any alteration is to be made; these are termed *immutable* strings.
+
+### Trie
+
+#### Definition
+
+- Is a kind of search tree which aims to search words quickly.
+
+#### Key Points
+
+-  All the descendants of a node have a common prefix of the string associated with that node, and the root is associated with the empty string.
+- A trie can also be used to replace a hash table.
+- A common application of a trie is storing a predictive text or autocomplete dictionary.
+
+#### Big O Efficiency
+
+- Insertion: $$O(logn)$$
+- Search: $$O(logn)$$
+- Delete: $$O(logn)$$
+
+
+
 
 
 

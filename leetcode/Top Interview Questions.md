@@ -817,9 +817,10 @@ func intersect(nums1 []int, nums2 []int) []int {
 - Space complexity: $$O(1)$$
 
 (3) Solution to 3rd follow-up question?
+
 If only nums2 cannot fit in memory, put all elements of nums1 into a map (like Solution 1), read chunks of array that fit into the memory, and record the intersections. 
 
-**Solution**
+**Recap**
 
 Use as little memory as we can. In general, it's unnecessary to use more than one map.
 
@@ -899,8 +900,8 @@ func increasingTriplet(nums []int) bool {
 
 Let's clarify what `small`and `middle`mean:
 
-- `small`: so far best candidate of smallest one in the triplet subsequence
-- `middle`: so far best candidate of middle one in the triplet subsequence
+- `small`: so far *the best* candidate of smallest one in the triplet subsequence
+- `middle`: so far *the best* candidate of middle one in the triplet subsequence
 
 For this problem, above code does work well. Take `[1, 0, 2, 0, -1, 3]`for example:
 

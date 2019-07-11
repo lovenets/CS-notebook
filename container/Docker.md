@@ -242,3 +242,16 @@ $ docker run -p 8080:8080 -it hello-docker-go
 If we want to have it run permanently in the background, replace *-it* with *-d* to run this container in detached mode.
 
 We can browse running containers by executing `docker ps`.
+
+Using volumes is a good way to persist data on host file system. The following example mounts the volume `myvol2` into `/app/` in the container.
+
+```bash
+$ docker run -p 8080:8080 -d --mount source=myvol2,target=/app hello-docker-go
+```
+
+or
+
+```bash
+$ docker run -p 8080:8080 -d -v myvol2:/app hello-docker-go
+```
+

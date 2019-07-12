@@ -157,11 +157,11 @@ func heapify(arr []int, root int) []int {
 
 ### Summary
 
-| ALGORITHM   | IN PLACE           | STABLE             | BEST         | AVERAGE      | WORST               |
-| ----------- | ------------------ | ------------------ | ------------ | ------------ | ------------------- |
-| Merge Sort  | :x:                | :heavy_check_mark: | $$O(n)$$     | $$O(nlogn)$$ | $$O(nlogn)$$        |
-| Quicksort   | :heavy_check_mark: | :x:                | $$O(nlogn)$$ | $$O(nlogn)$$ | $$O(n^2)$$          |
-| Heapsort    | :heavy_check_mark: | :x:                | $$O(n)$$     | $$O(nlogn)$$ | $$O(nlogn)$$        |
-| Bubble Sort | :heavy_check_mark: | :heavy_check_mark: | $$O(n)$$     | $$O(n^2)$$   | $$O(n^2)$$          |
-| Shellsort   | :heavy_check_mark: | :x:                | $$nlog_3n$$  | $$N/A$$      | $$O(n\frac{3}{2})$$ |
+| ALGORITHM   | IN PLACE           | STABLE             | BEST         | AVERAGE      | WORST                |
+| ----------- | ------------------ | ------------------ | ------------ | ------------ | -------------------- |
+| Merge Sort  | :x:                | :heavy_check_mark: | $$O(n)$$     | $$O(nlogn)$$ | $$O(nlogn)$$         |
+| Quicksort   | :heavy_check_mark: | :x:                | $$O(nlogn)$$ | $$O(nlogn)$$ | $$O(n^2)$$           |
+| Heapsort    | :heavy_check_mark: | :x:                | $$O(n)$$     | $$O(nlogn)$$ | $$O(nlogn)$$         |
+| Bubble Sort | :heavy_check_mark: | :heavy_check_mark: | $$O(n)$$     | $$O(n^2)$$   | $$O(n^2)$$           |
+| Shellsort   | :heavy_check_mark: | :x:                | $$nlog_3n$$  | $$N/A$$      | $$O(n^\frac{3}{2})$$ |
 

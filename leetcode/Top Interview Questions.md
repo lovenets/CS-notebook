@@ -1006,7 +1006,7 @@ func searchMatrix(matrix [][]int, target int) bool {
 
 **Recap**
 
-1. `sort.Ints`will return the position where target **should be** in array.
+1. `sort.SearchInts`will return the position where target **should be** in array.
 2. Sometimes try to iterate an array reversely and it may help.
 
 ## [238. Product of Array Except Self](<https://leetcode.com/problems/product-of-array-except-self/>)
@@ -1147,7 +1147,7 @@ func copyRandomListNode(head *RandomListNode) *RandomListNode {
     // 1st round: copy every node and 
     // make them linked to their original nodes
     var next *RandomListNode
-    for iter := head; iter != nil; iter = iter.Next {
+    for iter := head; iter != nil; iter = iter.Next.Next {
         next = iter.Next
         copyNode := &RandomListNode{Label: iter.Label}
         // make the copy one become its original node's next node
@@ -1260,8 +1260,8 @@ func hasCycle(head *ListNode) bool {
     if head == nil || head.Next == nil {
         return false
     }
-    for slow, fast := head, head; slow != nil && fast != nil && fast.Next != nil; slow, fast = slow.Next, fast.Next.Next {
-        if slow == fast {
+    for slow, fast := head, head; fast != nil && fast.Next != nil; {
+        if slow, fast = slow.Next, fast.Next.Next; slow == fast {
             return true
         }
     } 
@@ -5225,6 +5225,89 @@ func (this *RandomizedCollection) GetRandom() int {
 }
 ```
 
+## [36. Valid Sudoku](<https://leetcode.com/problems/valid-sudoku/>)
+
+Determine if a 9x9 Sudoku board is valid. Only the filled cells need to be validated **according to the following rules**:
+
+1. Each row must contain the digits `1-9` without repetition.
+2. Each column must contain the digits `1-9` without repetition.
+3. Each of the 9 `3x3` sub-boxes of the grid must contain the digits `1-9` without repetition.
+
+![img](https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Sudoku-by-L2G-20050714.svg/250px-Sudoku-by-L2G-20050714.svg.png)
+A partially filled sudoku which is valid.
+
+The Sudoku board could be partially filled, where empty cells are filled with the character `'.'`.
+
+**Example 1:**
+
+```
+Input:
+[
+  ["5","3",".",".","7",".",".",".","."],
+  ["6",".",".","1","9","5",".",".","."],
+  [".","9","8",".",".",".",".","6","."],
+  ["8",".",".",".","6",".",".",".","3"],
+  ["4",".",".","8",".","3",".",".","1"],
+  ["7",".",".",".","2",".",".",".","6"],
+  [".","6",".",".",".",".","2","8","."],
+  [".",".",".","4","1","9",".",".","5"],
+  [".",".",".",".","8",".",".","7","9"]
+]
+Output: true
+```
+
+**Example 2:**
+
+```
+Input:
+[
+  ["8","3",".",".","7",".",".",".","."],
+  ["6",".",".","1","9","5",".",".","."],
+  [".","9","8",".",".",".",".","6","."],
+  ["8",".",".",".","6",".",".",".","3"],
+  ["4",".",".","8",".","3",".",".","1"],
+  ["7",".",".",".","2",".",".",".","6"],
+  [".","6",".",".",".",".","2","8","."],
+  [".",".",".","4","1","9",".",".","5"],
+  [".",".",".",".","8",".",".","7","9"]
+]
+Output: false
+Explanation: Same as Example 1, except with the 5 in the top left corner being 
+    modified to 8. Since there are two 8's in the top left 3x3 sub-box, it is invalid.
+```
+
+**Note:**
+
+- A Sudoku board (partially filled) could be valid but is not necessarily solvable.
+- Only the filled cells need to be validated according to the mentioned rules.
+- The given board contain only digits `1-9` and the character `'.'`.
+- The given board size is always `9x9`.
+
+**Solution**
+
+Collect the set of things we see, encoded as strings. 
+
+```go
+func isValidSudoku(board [][]byte) bool {
+    present := make(map[string]bool)
+    for i := range board {
+        for j := range board[i] {
+            if char := board[i][j]; char != '.' {
+                row, col, block := fmt.Sprintf("row %d: %c", i, char), fmt.Sprintf("col %d: %c", j, char), fmt.Sprintf("block %d-%d: %c", i/3, j/3, char)
+                if present[row] || present[col] || present[block] {
+                    return false
+                }
+                present[row], present[col], present[block] = true, true, true
+            }
+        }
+    }
+    return true
+}
+```
+
+- Time complexity: $$O(1)$$ since we always iterate through the whole 9*9 matrix
+- Space complexity: $$O(1)$$ since we will record 9*9 cells at most.
+
 # Simulation
 
 ## [134. Gas Station](<https://leetcode.com/problems/gas-station/>)
@@ -6175,11 +6258,222 @@ func insert(num int, node *Node, res *[]int, i int, preSum int) *Node {
 - Time complexity: $$O(nlogn)$$
 - Space complexity: $$O(n)$$
 
+## [33. Search in Rotated Sorted Array](<https://leetcode.com/problems/search-in-rotated-sorted-array/>)
+
+Suppose an array sorted in ascending order is rotated at some pivot unknown to you beforehand.
+
+(i.e., `[0,1,2,4,5,6,7]` might become `[4,5,6,7,0,1,2]`).
+
+You are given a target value to search. If found in the array return its index, otherwise return `-1`.
+
+You may assume no duplicate exists in the array.
+
+Your algorithm's runtime complexity must be in the order of *O*(log *n*).
+
+**Example 1:**
+
+```
+Input: nums = [4,5,6,7,0,1,2], target = 0
+Output: 4
+```
+
+**Example 2:**
+
+```
+Input: nums = [4,5,6,7,0,1,2], target = 3
+Output: -1
+```
+
+**Solution**
+
+(1) Accepted
+
+```go
+func search(nums []int, target int) int {
+	if len(nums) == 0 {
+		return -1
+	}
+	// Split input array into two sorted ones
+	i := 0
+	for ; i < len(nums)-1; i++ {
+		if nums[i] > nums[i+1] {
+			break
+		}
+	}
+    // Binary search two subarrays respectively
+	if j := sort.SearchInts(nums[:i+1], target); j < i+1 && nums[:i+1][j] == target {
+		return j
+	}
+	if j := sort.SearchInts(nums[i+1:], target); j < len(nums)-i-1 && nums[i+1:][j] == target {
+		return i + 1 + j
+	}
+	return -1
+}
+```
+
+- Time complexity: $$O(n+logn)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+Let's say `nums` looks like this: `[12, 13, 14, 15, 16, 17, 18, 19, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]`
+
+Because it's not fully sorted, we can't do normal binary search. But here comes the trick:
+
+If target is let's say 14, then we adjust nums to this, where "inf" means infinity:
+`[12, 13, 14, 15, 16, 17, 18, 19, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf, inf]`
+
+If target is let's say 7, then we adjust nums to this:
+`[-inf, -inf, -inf, -inf, -inf, -inf, -inf, -inf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]`
+
+And then we can simply do ordinary binary search. Of course we don't actually adjust the whole array. All we need to do is tell whether `target`and `nums[mid]`are both on the same side of `nums[len(nums)-1]`. If they are not on the same side, then move to the target side.
+
+```go
+func search(nums []int, target int) int {
+	if len(nums) == 0 {
+		return -1
+	}
+    n := len(nums)
+    left, right := 0, n-1
+    for left < right {
+        if mid := left + (right-left) >> 1; (nums[mid]-nums[n-1])*(target-nums[n-1]) > 0 {
+            // target and nums[mid] are on the same side
+            if nums[mid] < target {
+                left = mid + 1
+            } else {
+                right = mid
+            }
+        } else {
+            if target <= nums[n-1] {
+                // target is on the left side of nums[n-1]
+                left = mid + 1
+            } else {
+                // target is on the "right" side of nums[n-1]
+                right = mid
+            }
+        }
+    }
+    if nums[left] == target {
+        return left
+    }
+	return -1
+}
+```
+
+- Time complexity: $$O(logn)$$
+- Space complexity: $$O(1)$$
+
+## [34. Find First and Last Position of Element in Sorted Array](<https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/>)
+
+Given an array of integers `nums` sorted in ascending order, find the starting and ending position of a given `target` value.
+
+Your algorithm's runtime complexity must be in the order of *O*(log *n*).
+
+If the target is not found in the array, return `[-1, -1]`.
+
+**Example 1:**
+
+```
+Input: nums = [5,7,7,8,8,10], target = 8
+Output: [3,4]
+```
+
+**Example 2:**
+
+```
+Input: nums = [5,7,7,8,8,10], target = 6
+Output: [-1,-1]
+```
+
+**Solution**
+
+(1) Accepted
+
+````go
+func searchRange(nums []int, target int) []int {
+    if len(nums) == 0 {
+        return []int{-1, -1}
+    }
+    var start, end int
+    if start = sort.SearchInts(nums, target); start < len(nums) && nums[start] == target {
+        // Target found
+        for end = start; end < len(nums) && nums[end] == target; end++ {      
+        }
+        return []int{start ,end-1}
+    } else {
+        return []int{-1, -1}
+    }
+}
+````
+
+- Time complexity: $$O(logn+m)$$ where n is the length of input array and m is the number of target number in array.
+- Space  complexity: $$O(1)$$
+
+Improvement: when target is found, we search target+1 next.
+
+```go
+func searchRange(nums []int, target int) []int {
+    if len(nums) == 0 {
+        return []int{-1, -1}
+    }
+    if start := sort.SearchInts(nums, target); start < len(nums) && nums[start] == target {
+        // Target found
+        return []int{start, sort.SearchInts(nums, target+1)-1}
+    } else {
+        return []int{-1, -1}
+    }
+}
+```
+
+- Time complexity: $$O(logn)$$
+- Space complexity: $$O(1)$$
+
+(2) Accepted
+
+[Detailed explanation](<https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/discuss/14699/Clean-iterative-solution-with-two-binary-searches-(with-explanation)>)
+
+```go
+func searchRange(nums []int, target int) []int {
+    if len(nums) == 0 {
+        return []int{-1, -1}
+    }
+    res := []int{-1, -1}
+    low, high := 0, len(nums)-1
+    // Find the lower boundary
+    for low < high {
+        if mid := low + (high-low)>>1; nums[mid] < target {
+            low = mid + 1
+        } else {
+            high = mid
+        }
+    }
+    // low is supposed to be the index of first target in array
+    if nums[low] != target {
+        return res
+    }
+    res[0] = low
+    // Find the higher boundary
+    for high = len(nums)-1; low < high; {
+        // Notice that `low + (high-low)>>1 + 1` make mid biased to the right
+        if mid := low + (high-low)>>1 + 1; nums[mid] > target {
+            high = mid - 1
+        } else {
+            low = mid
+        }
+    }
+    res[1] = high
+    return res
+}
+```
+
+- Time complexity: $$O(logn)$$
+- Space complexity: $$O(1)$$
+
 # Sliding Window
 
 ## [395. Longest Substring with At Least K Repeating Characters](<https://leetcode.com/problems/longest-substring-with-at-least-k-repeating-characters/>)
 
-Find the length of the longest substring **T**of a given string (consists of lowercase letters only) such that every character in **T**appears no less than *k* times.
+Find the length of the longest substring of a given string (consists of lowercase letters only) such that every character in appears no less than *k* times.
 
 **Example 1:**
 

@@ -159,13 +159,38 @@
 
 #### Big O Efficiency
 
-- Insertion: $$O(logn)$$
-- Search: $$O(logn)$$
-- Delete: $$O(logn)$$
+- Insertion: $O(logn)$
+- Search: $O(logn)$
+- Delete: $O(logn)$
 
+#### Code Template
 
+```go
+type TrieNode struct {
+    Children map[rune]*TrieNode
+    Value    interface{}
+}
 
+func Find(node *TrieNode, key string) interface{} {
+    for _, r := range key {
+        if _, ok := node.Children[r]; !ok {
+            return nil
+        }
+        node = node.Children[r]
+    }
+    return node.Value
+}
 
+func insert(node *TrieNode, key string, value interface{}) {
+    for _, r := range key {
+        if _, ok := node.Children[r]; !ok {
+            node.Children[r] = &TrieNode{Children: make(map[rune]*TrieNode)}
+        }
+        node = node.Children[r]
+    }
+    node.Value = value
+}
+```
 
 
 

@@ -166,3 +166,132 @@ func heapify(arr []int, root int) []int {
 | Bubble Sort | :heavy_check_mark: | :heavy_check_mark: | $$O(n)$$     | $$O(n^2)$$   | $$O(n^2)$$           |
 | Shellsort   | :heavy_check_mark: | :x:                | $$nlog_3n$$  | $$N/A$$      | $$O(n^\frac{3}{2})$$ |
 
+## Search
+
+### Binary Search
+
+#### Definition
+
+- An algorithm finds the position of a target value within a sorted array.
+
+  - Binary search compares the target value to the middle element of the array. 
+
+    - If the target value matches the middle element, its position in the array is returned.
+    - If the target value is less than the middle element, the search continues in the lower half of the array. 
+    - If the target value is greater than the middle element, the search continues in the upper half of the array. 
+
+  - By doing this, the algorithm eliminates the half in which the target value cannot lie in each iteration.
+
+#### Key Points
+
+- It works on sorted arrays.
+
+- Even though the idea is simple, implementing binary search correctly requires attention to some subtleties about its exit conditions and midpoint calculation.
+
+#### Big O Efficiency
+
+- Best Case: $O(1)$
+- Average Case: $O(logn)$
+- Worst Case: $O(logn)$
+
+#### Code Template
+
+```go
+// BinarySearch returns the index of target if it's present in the array
+// if not, return -1
+func BinarySearch(nums []int, target int) int {
+    for low, high := 0, len(nums)-1; low <= high; {
+        if mid := low + (high-low)>>1; nums[mid] == target {
+            return mid
+        } else if nums[mid] < target {
+            low = mid + 1
+        } else {
+            high = mid - 1
+        }
+    }
+    return -1
+}
+```
+
+### Binary Search Tree
+
+#### Definition
+
+- Is a rooted binary tree. The tree additionally satisfies the binary search property, which states that the key in each node must be greater than or equal to any key stored in the left sub-tree, and less than or equal to any key stored in the right sub-tree.
+
+#### Key Points
+
+- Binary search trees are a fundamental data structure used to construct more abstract data structures such as sets, multisets, and associative arrays.
+
+- The major advantage of binary search trees over other data structures is that the related sorting algorithms and search algorithms such as in-order traversal can be very efficient.
+
+- The shape of the binary search tree depends entirely on the order of insertions and deletions, and can become degenerate.
+
+#### Big O Efficiency
+
+- Worst Case:
+
+  - Search: $O(n)$, Insertion: $O(n)$
+
+- Average Case:
+
+  - Seach: $O(logn)$, Insertion: $O(logn)$
+
+#### Code Template
+
+```go
+type BSTNode struct {
+    Key   int
+    Val   int
+    Left  *BSTNode
+    Right *BSTNode
+}
+
+func search(key int, root *BSTNode) int {
+    cur := root
+    for cur != nil {
+        if cur.Key == key {
+            return cur.Val
+        } else if cur.Key < key {
+            cur = cur.Right
+        } else {
+            cur = cur.Left
+        }
+    }
+    return cur
+}
+
+func insert(root *BSTNode, key int, value int) *BSTNode {
+    if root == nil {
+        return &BSTNode{key, value, nil, nil}
+    }
+    if key == root.key {
+        root.Val = value
+    } else if key < root.key {
+        root.Left =  insert(root.Left, key ,value)
+    } else {
+        root.Right = insert(root.Right, key, value)
+    }
+    return root
+}
+```
+
+### AVL Tree
+
+#### Definition
+
+- Is a self-balancing binary search tree.
+
+  - The heights of the two child subtrees of any node differ by at most one; if at any time they differ by more than one, rebalancing is done to restore this property.
+
+#### Key Points
+
+- Lookup, insertion, and deletion all take $O(log n)$ time in both the average and worst cases, where n is the number of nodes in the tree prior to the operation. 
+
+- Insertions and deletions may require the tree to be rebalanced by one or more tree rotations.
+
+#### Big O Efficiency
+
+- Worst Case: $O(logn)$
+- Average Case: $O(logn)$
+

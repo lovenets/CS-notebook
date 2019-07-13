@@ -1109,6 +1109,177 @@ func productExceptSelf(nums []int) []int {
 
 Product or accumulation problem ?
 
+## [46. Permutations](<https://leetcode.com/problems/permutations/>)
+
+Given a collection of **distinct** integers, return all possible permutations.
+
+**Example:**
+
+```
+Input: [1,2,3]
+Output:
+[
+  [1,2,3],
+  [1,3,2],
+  [2,1,3],
+  [2,3,1],
+  [3,1,2],
+  [3,2,1]
+]
+```
+
+**Solution**
+
+A typical backtracking problem.
+
+```go
+func permute(nums []int) [][]int {
+    if len(nums) == 0 {
+        return nil
+    }
+    res, tmp := make([][]int, 0), make([]int, 0, len(nums))
+    backtrack(&res, tmp, nums)
+    return res
+}
+
+func backtrack(res *[][]int, tmp []int, nums []int) {
+    if len(tmp) == len(nums) {
+        *res = append(*res, tmp)
+        return
+    }
+    for i := range nums {
+        // Skip used elements
+        if !contains(tmp, nums[i]) {
+            // copy is important
+            _tmp := make([]int, len(tmp))
+            copy(_tmp, tmp)
+            _tmp = append(_tmp, nums[i])
+            backtrack(res, _tmp, nums)
+        }
+    }
+}
+
+func contains(nums []int, num int) bool {
+    for _, n := range nums {
+        if n == num {
+            return true
+        }
+    }
+    return false
+}
+```
+**Recap**
+
+Many backtracking problems can be solved by the same structure.
+
+```go
+func backtrack(res *[][]int, tmp []int, nums []int) {
+    // condition...
+    for i := start; i < len(nums); i++ {
+        _tmp := make([]int, len(tmp))
+        copy(_tmp, tmp)
+        _tmp = append(_tmp, nums[i])  
+        backtrack(res, _tmp, nums)
+    }
+}
+```
+
+## [39. Combination Sum](https://leetcode.com/problems/combination-sum/)
+
+Given a set of candidate numbers (candidates) (without duplicates) and a target number (target), find all unique combinations in candidates where the candidate numbers sums to target.
+
+The same repeated number may be chosen from candidates unlimited number of times.
+
+Note:
+
+All numbers (including target) will be positive integers.
+The solution set must not contain duplicate combinations.
+Example 1:
+```
+Input: candidates = [2,3,6,7], target = 7,
+A solution set is:
+[
+  [7],
+  [2,2,3]
+]
+```
+Example 2:
+```
+Input: candidates = [2,3,5], target = 8,
+A solution set is:
+[
+  [2,2,2,2],
+  [2,3,3],
+  [3,5]
+]
+```
+**Solution**
+
+```go
+func combinationSum(candidates []int, target int) [][]int {
+    res := make([][]int, 0)
+    sort.Ints(candidates)
+    backtrack(&res, make([]int, 0, len(candidates)), candidates, target, 0)
+    return res
+}
+
+func backtrack(res *[][]int, tmp []int, candidates []int, target int, start int) {
+    if target < 0 {
+        return
+    } else if target == 0 {
+        *res = append(*res, tmp)
+    }
+    for i := start; i < len(candidates); i++ {
+        _tmp := make([]int, len(tmp))
+        copy(_tmp, tmp)
+        _tmp = append(_tmp, candidates[i])
+        backtrack(res, _tmp, candidates, target-candidates[i], i) // Not i + 1 because we can reuse same elements
+    }
+}
+```
+
+## [78. Subsets](https://leetcode.com/problems/subsets/)
+
+Given a set of **distinct** integers, nums, return all possible subsets (the power set).
+
+**Note**: The solution set must not contain duplicate subsets.
+
+Example:
+```
+Input: nums = [1,2,3]
+Output:
+[
+  [3],
+  [1],
+  [2],
+  [1,2,3],
+  [1,3],
+  [2,3],
+  [1,2],
+  []
+]
+```
+**Solution**
+
+```go
+func subsets(nums []int) [][]int {
+    res := make([][]int, 0)
+    sort.Ints(nums)
+    backtrack(&res, make([]int, 0), nums, 0)
+    return res   
+}
+
+func backtrack(res *[][]int, tmp []int, nums []int, start int) {
+    *res = append(*res, tmp)
+    for i := start; i < len(nums); i++ {
+        _tmp := make([]int, len(tmp))
+        copy(_tmp, tmp)
+        _tmp = append(_tmp, nums[i])
+        backtrack(res, _tmp, nums, i+1)
+    }
+}
+```
+
 # Linked List
 
 ## [138. Copy List with Random Pointer](<https://leetcode.com/problems/copy-list-with-random-pointer/>)
@@ -1575,19 +1746,17 @@ Iterative solution.
 
 ```go
 func reverseList(head *ListNode) *ListNode {
-    if head == nil || head.Next == nil {
-        return head
-    }
-    pre, cur := head, head.Next
-    var next *ListNode
-    for cur != nil {
-        next = cur.Next
-        cur.Next = pre
-        pre = cur
-        cur = next
-    }
-    head.Next = nil
-    return pre
+	if head == nil || head.Next == nil {
+		return head
+	}
+	var pre, cur, next *ListNode
+	for pre, cur = head, head.Next; cur != nil; cur = next {
+		next = cur.Next
+		cur.Next = pre
+		pre = cur
+	}
+	head.Next = nil
+	return pre
 }
 ```
 
@@ -1988,6 +2157,7 @@ func (this *MinStack) Push(x int)  {
         this.Mins = append(this.Mins, x)
     } else {
         // Push a placeholder number
+        // Both this.Data and this.Mins should have the same number of elements
         this.Mins = append(this.Mins, this.Mins[len(this.Mins)-1])
     }
 }
@@ -1998,8 +2168,8 @@ func (this *MinStack) Pop()  {
         return
     }
     this.Data = this.Data[:len(this.Data)-1]
-    // If this.Mins[len(this.Mins)] == this.Data[len(this.Data)1], jsut pop it
-    // if not, this.Mins[len(this.Mins)] is just a placeholder number, pop it too
+    // If this.Mins[len(this.Mins)-1] == this.Data[len(this.Data)-1], jsut pop it
+    // if not, this.Mins[len(this.Mins)-1] is just a placeholder number, pop it too
     this.Mins = this.Mins[:len(this.Mins)-1]
 }
 
@@ -2022,7 +2192,7 @@ func (this *MinStack) GetMin() int {
 
 **Recap**
 
-Make use of the natures of `push`and `pop` to get constant run time.
+Make use of the natures of `push`and `pop` to achieve constant run time.
 
 ## [215. Kth Largest Element in an Array](<https://leetcode.com/problems/kth-largest-element-in-an-array/>)
 
@@ -2132,8 +2302,6 @@ Design a data structure that supports the following two operations:
 
 - void addNum(int num) - Add a integer number from the data stream to the data structure.
 - double findMedian() - Return the median of all elements so far.
-
- 
 
 **Example:**
 
@@ -4009,6 +4177,108 @@ func strStr(haystack string, needle string) int {
 ````
 
 - Time complexity: $$O(len(haystack)*len(needle))$$ at worst
+- Space complexity: $$O(1)$$
+
+## [44. Wildcard Matching](<https://leetcode.com/problems/wildcard-matching/>)
+
+Given an input string (`s`) and a pattern (`p`), implement wildcard pattern matching with support for `'?'` and `'*'`.
+
+```
+'?' Matches any single character.
+'*' Matches any sequence of characters (including the empty sequence).
+```
+
+The matching should cover the **entire** input string (not partial).
+
+**Note:**
+
+- `s` could be empty and contains only lowercase letters `a-z`.
+- `p` could be empty and contains only lowercase letters `a-z`, and characters like `?` or `*`.
+
+**Example 1:**
+
+```
+Input:
+s = "aa"
+p = "a"
+Output: false
+Explanation: "a" does not match the entire string "aa".
+```
+
+**Example 2:**
+
+```
+Input:
+s = "aa"
+p = "*"
+Output: true
+Explanation: '*' matches any sequence.
+```
+
+**Example 3:**
+
+```
+Input:
+s = "cb"
+p = "?a"
+Output: false
+Explanation: '?' matches 'c', but the second letter is 'a', which does not match 'b'.
+```
+
+**Example 4:**
+
+```
+Input:
+s = "adceb"
+p = "*a*b"
+Output: true
+Explanation: The first '*' matches the empty sequence, while the second '*' matches the substring "dce".
+```
+
+**Example 5:**
+
+```
+Input:
+s = "acdcb"
+p = "a*c?b"
+Output: false
+```
+
+**Solution**
+
+I don't know why but it works...
+
+```go
+func isMatch(str string, pattern string) bool {
+    s, p, match, start := 0, 0, 0, -1
+    for s < len(str) {
+        if p < len(pattern) && (pattern[p] == '?' || str[s] == pattern[p]) {
+            // Advance both pointers
+            s, p = s+1, p+1
+        } else if p < len(pattern) && pattern[p] == '*' {
+            // Current pattern character is '*'
+            start, match = p, s
+            p++
+        } else if start != -1 {
+            // Current characters don't match but Last pattern character is '*'
+            // advance pattern pointer
+            p = start + 1
+            match++
+            s = match
+        } else {
+            // Neither current pattern character nor last one is '*'
+            return false
+        }
+    }
+    
+    // Check remaining characters in pattern
+    for ; p < len(pattern) && pattern[p] == '*'; p++ {
+    }
+    return p == len(pattern)
+}
+```
+
+- Time complexity: $$O(len(str)+len(pattern))$$
 - Space complexity: $$O(1)$$
 
 # Tree

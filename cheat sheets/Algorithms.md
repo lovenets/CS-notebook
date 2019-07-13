@@ -75,7 +75,7 @@ func merge(arr1, arr2 []int) []int {
 
 #### Big O Efficiency
 
-- Best Case Sort: $$O(log_{10}n)$$
+- Best Case Sort: $$O(logn)$$
 - Average Case Sort: $$O(nlogn)$$
 - Worst Case Sort: $$O(n^2)$$
 
@@ -86,11 +86,12 @@ func QuickSort(arr []int) {
     if len(arr) < 2 {
         return arr
     }
+    // Partition
     left, right := 0, len(arr)-1
     pivot := rand.Intn(len(arr))
     // Move pivot to the end
     arr[pivot], arr[right] = arr[right], arr[pivot]
-    for i  := range arr {
+    for i := range arr {
         if arr[i] < arr[right] {
             arr[left], arr[i] = arr[i], arr[left]
             left++
@@ -98,7 +99,7 @@ func QuickSort(arr []int) {
     }
     // Move pivot to the correct postion
     arr[left], arr[right] = arr[right], arr[left]
-    
+    // Recursion
     QuickSort(arr[:left])
     QuickSort(arr[left+1:])
     return a

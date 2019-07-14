@@ -158,13 +158,13 @@ func heapify(arr []int, root int) []int {
 
 ### Summary
 
-| ALGORITHM   | IN PLACE           | STABLE             | BEST         | AVERAGE      | WORST                |
-| ----------- | ------------------ | ------------------ | ------------ | ------------ | -------------------- |
-| Merge Sort  | :x:                | :heavy_check_mark: | $$O(n)$$     | $$O(nlogn)$$ | $$O(nlogn)$$         |
-| Quicksort   | :heavy_check_mark: | :x:                | $$O(nlogn)$$ | $$O(nlogn)$$ | $$O(n^2)$$           |
-| Heapsort    | :heavy_check_mark: | :x:                | $$O(n)$$     | $$O(nlogn)$$ | $$O(nlogn)$$         |
-| Bubble Sort | :heavy_check_mark: | :heavy_check_mark: | $$O(n)$$     | $$O(n^2)$$   | $$O(n^2)$$           |
-| Shellsort   | :heavy_check_mark: | :x:                | $$nlog_3n$$  | $$N/A$$      | $$O(n^\frac{3}{2})$$ |
+| ALGORITHM   | IN PLACE           | STABLE             | BEST         | AVERAGE    | WORST              |
+|-------------|--------------------|--------------------|--------------|------------|--------------------|
+| Merge Sort  | :x:                | :heavy_check_mark: | $O(n)$       | $O(nlogn)$ | $O(nlogn)$         |
+| Quicksort   | :heavy_check_mark: | :x:                | $O(nlogn)$   | $O(nlogn)$ | $O(n^2)$           |
+| Heapsort    | :heavy_check_mark: | :x:                | $O(n)$       | $O(nlogn)$ | $O(nlogn)$         |
+| Bubble Sort | :heavy_check_mark: | :heavy_check_mark: | $O(n)$       | $O(n^2)$   | $O(n^2)$           |
+| Shellsort   | :heavy_check_mark: | :x:                | $O(nlog_3n)$ | $N/A$      | $O(n^\frac{3}{2})$ |
 
 ## Search
 
@@ -294,4 +294,91 @@ func insert(root *BSTNode, key int, value int) *BSTNode {
 
 - Worst Case: $O(logn)$
 - Average Case: $O(logn)$
+
+#### Summary
+
+| DATA STRUCTURE     | WORST CASE | AVERAGE CASE |
+|--------------------|------------|--------------|
+| Binary Search      | $O(logn)$  | $O(logn)$    |
+| Binary Search Tree | $O(n)$     | $O(logn)$    |
+| AVL                | $O(logn)$  | $O(logn)$    |
+
+## Tree
+
+### Traversal
+
+#### Definition
+
+- Is a form of graph traversal and refers to the process of visiting (checking and/or updating) each node in a tree data structure, exactly once.
+
+#### Key Points
+
+- Such traversals are classified by the order in which the nodes are visited.
+
+  - Pre-order, in-oder, post-order, level-order
+
+- Pre-order traversal while duplicating nodes and edges can make a complete duplicate of a binary tree. It can also be used to make a prefix expression (Polish notation) from expression trees: traverse the expression tree pre-orderly. For example, traversing the depicted arithmetic expression in pre-order yields "+ * 1 - 2 3 + 4 5".
+
+- In-order traversal is very commonly used on binary search trees because it returns values from the underlying set in order, according to the comparator that set up the binary search tree.
+
+- Post-order traversal while deleting or freeing nodes and values can delete or free an entire binary tree. It can also generate a postfix representation (Reverse Polish notation) of a binary tree. Traversing the depicted arithmetic expression in post-order yields "1 2 3 - * 4 5 + +".
+
+#### Big O Efficiency
+
+- $O(n)$
+
+#### Code Template
+
+```go
+type TreeNode struct {
+    Val   interface{}
+    Left  *TreeNode
+    Right *TreeNode
+}
+
+func preorder(root *TreeNode) {
+    if root == nil {
+        return
+    }
+    visit(root)
+    preorder(root.Left)
+    preorder(root.Right)
+}
+
+func inorder(root *TreeNode) {
+    if root == nil {
+        return
+    }
+    inorder(root.Left)
+    visit(root)
+    inorder(root.Right)
+}
+
+func postorder(root *TreeNode) {
+    if root == nil {
+        return
+    }
+    postorder(root.Left)
+    postorder(root.Right)
+    visit(root)
+}
+
+func levelOrder(root *TreeNode) {
+    if root == nil {
+        return
+    }
+    queue := []*TreeNode{root}
+    for len(queue) > 0 {
+        node := queue[0]
+        queue = queue[1:]
+        visit(node)
+        if node.Left != nil {
+            queue = append(queue, node.Left)
+        }
+        if node.Right != nil {
+            queue = append(queue, node.Right)
+        }
+    }
+}
+```
 

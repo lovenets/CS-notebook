@@ -95,6 +95,118 @@
 - Search: $$O(logn)$$
 - Insertion: $$O(logn)$$
 
+### Trie
+
+#### Definition
+
+- Is a kind of search tree which aims to search words quickly.
+
+#### Key Points
+
+-  All the descendants of a node have a common prefix of the string associated with that node, and the root is associated with the empty string.
+- A trie can also be used to replace a hash table.
+- A common application of a trie is storing a predictive text or autocomplete dictionary.
+
+#### Big O Efficiency
+
+- Insertion: $O(logn)$
+- Search: $O(logn)$
+- Delete: $O(logn)$
+
+#### Code Template
+
+```go
+type TrieNode struct {
+    Children map[rune]*TrieNode
+    Value    interface{}
+}
+
+func Find(node *TrieNode, key string) interface{} {
+    for _, r := range key {
+        if _, ok := node.Children[r]; !ok {
+            return nil
+        }
+        node = node.Children[r]
+    }
+    return node.Value
+}
+
+func insert(node *TrieNode, key string, value interface{}) {
+    for _, r := range key {
+        if _, ok := node.Children[r]; !ok {
+            node.Children[r] = &TrieNode{Children: make(map[rune]*TrieNode)}
+        }
+        node = node.Children[r]
+    }
+    node.Value = value
+}
+```
+
+### Union Find
+
+#### Definition
+
+- Is a data structure which tracks a set of elements partitioned into a number of disjoint (non-overlapping) subsets. 
+
+#### Key Points
+
+- It provides near-constant-time operations (bounded by the inverse Ackermann function) to add new sets, to merge existing sets, and to determine whether elements are in the same set.
+
+- Plays a key role in Kruskal's algorithm for finding the minimum spanning tree of a graph.
+
+- Consists of a number of elements each of which stores an id, a parent pointer, and, in efficient algorithms, either a size or a "rank" value.
+
+#### Big O Efficiency
+
+- Search
+  
+  - Average: $O(\alpha(n))$, Worst: $O(\alpha(n))$
+
+- Merge
+
+  - Average: $O(\alpha(n))$, Worst: $O(\alpha(n))$
+
+#### Code Template
+
+```go
+// Union by rank
+type UnionFind struct {
+    Roots []int
+    Rank  []int
+}
+
+// n is the number of elements
+func Init(n int) *UnionFind {
+    roots := make([]int, n)
+    for i := range roots {
+        roots[i] = i
+    }
+    rank := make([]int, n)
+    return &UnionFind{roots, rank}
+}
+
+func (uf *UnionFind) Search(x int) int {
+    if x != uf.Roots[x] {
+        uf.Roots[x] = uf.Search(uf.Roots[x])
+	}
+	return uf.Roots[x]
+}
+
+func (uf *UnionFind) Merge(x, y int) {
+	rx, ry := uf.Search(x), uf.Search(y)
+	if rx != ry {
+		if uf.Rank[rx] < uf.Rank[ry] {
+			rx, ry = ry, rx
+		}
+		uf.Roots[ry] = rx
+		if uf.Rank[rx] == uf.Rank[ry] {
+			uf.Rank[rx]++
+		}
+	}
+}
+```
+
+
 ### Graph
 
 #### Definition
@@ -145,52 +257,7 @@
 - Some languages, such as C++ and Ruby, normally allow the contents of a string to be changed after it has been created; these are termed *mutable* strings. 
 - In other languages, such as Java and Python, the value is fixed and a new string must be created if any alteration is to be made; these are termed *immutable* strings.
 
-### Trie
 
-#### Definition
-
-- Is a kind of search tree which aims to search words quickly.
-
-#### Key Points
-
--  All the descendants of a node have a common prefix of the string associated with that node, and the root is associated with the empty string.
-- A trie can also be used to replace a hash table.
-- A common application of a trie is storing a predictive text or autocomplete dictionary.
-
-#### Big O Efficiency
-
-- Insertion: $O(logn)$
-- Search: $O(logn)$
-- Delete: $O(logn)$
-
-#### Code Template
-
-```go
-type TrieNode struct {
-    Children map[rune]*TrieNode
-    Value    interface{}
-}
-
-func Find(node *TrieNode, key string) interface{} {
-    for _, r := range key {
-        if _, ok := node.Children[r]; !ok {
-            return nil
-        }
-        node = node.Children[r]
-    }
-    return node.Value
-}
-
-func insert(node *TrieNode, key string, value interface{}) {
-    for _, r := range key {
-        if _, ok := node.Children[r]; !ok {
-            node.Children[r] = &TrieNode{Children: make(map[rune]*TrieNode)}
-        }
-        node = node.Children[r]
-    }
-    node.Value = value
-}
-```
 
 
 

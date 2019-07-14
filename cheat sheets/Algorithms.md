@@ -18,9 +18,9 @@
 
 #### Big O Efficiency
 
-- Best Case Sort: $$O(n)$$
-- Average Case Sort: $$O(n log n)$$
-- Worst Case Sort: $$O(nlog n)$$
+- Best Case Sort: $O(n)$
+- Average Case Sort: $O(n log n)$
+- Worst Case Sort: $O(nlog n)$
 
 #### Code Template
 
@@ -75,9 +75,9 @@ func merge(arr1, arr2 []int) []int {
 
 #### Big O Efficiency
 
-- Best Case Sort: $$O(logn)$$
-- Average Case Sort: $$O(nlogn)$$
-- Worst Case Sort: $$O(n^2)$$
+- Best Case Sort: $O(logn)$
+- Average Case Sort: $O(nlogn)$
+- Worst Case Sort: $O(n^2)$
 
 #### Code Template
 
@@ -123,9 +123,9 @@ func QuickSort(arr []int) {
 
 #### Big O Efficiency
 
-- Best Case: $$O(n)$$
-- Average Case: $$O(nlogn)$$
-- Worst Case: $$O(nlogn)$$
+- Best Case: $O(n)$
+- Average Case: $O(nlogn)$
+- Worst Case: $O(nlogn)$
 
 #### Code Template
 

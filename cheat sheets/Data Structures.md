@@ -16,13 +16,13 @@
 #### Big O Efficiency
 
 - Indexing
-  - Linear array: $$O(1)$$, Dynamic array: $$O(1)$$
+  - Linear array: $O(1)$, Dynamic array: $O(1)$
 - Search
-  - Linear array:$$ O(n)$$, Dynamic array: $$O(n)$$
+  - Linear array:$ O(n)$, Dynamic array: $O(n)$
 - Optimized Search 
-  - Linear array: $$O(log n)$$, Dynamic array: $$O(log n)$$
+  - Linear array: $O(log n)$, Dynamic array: $O(log n)$
 - Insertion
-  - Linear array: $$N/A$$ Dynamic array:$$O(n)$$
+  - Linear array: $N/A$ Dynamic array:$O(n)$
 
 ### Linked List
 
@@ -44,10 +44,10 @@
 
 #### Big O Efficiency
 
-- Indexing: O(n)$$
-- Search: $$O(n)$$
-- Optimized Search: $$O(n)$$
-- Insertion: $$O(1)$$
+- Indexing: O(n)$
+- Search: $O(n)$
+- Optimized Search: $O(n)$
+- Insertion: $O(1)$
 
 ### Hash Table
 
@@ -68,9 +68,9 @@
 
 #### Big O Efficiency
 
-- Indexing: $$O(1)$$
-- Search: $$O(1)$$
-- Insertion: $$O(1)$$
+- Indexing: $O(1)$
+- Search: $O(1)$
+- Insertion: $O(1)$
 
 ### Binary Tree
 
@@ -91,9 +91,9 @@
 
 #### Big O Efficiency
 
-- Indexing: $$O(logn)$$
-- Search: $$O(logn)$$
-- Insertion: $$O(logn)$$
+- Indexing: $O(logn)$
+- Search: $O(logn)$
+- Insertion: $O(logn)$
 
 ### Trie
 
@@ -221,11 +221,11 @@ func (uf *UnionFind) Merge(x, y int) {
 
 #### Big O Efficiency
 
-- Traversal: $$O(E+V)$$
+- Traversal: $O(E+V)$
 - Shortest Path
-  - Dijkstra: $$O(ElogV)$$, Floyd-Warshall: $$O(n^3)$$, Bellman-Ford/SPFA: $$O(V(V+E))$$
+  - Dijkstra: $O(ElogV)$, Floyd-Warshall: $O(n^3)$, Bellman-Ford/SPFA: $O(V(V+E))$
 - Minimum Spanning Tree
-  - Kruskal: $$O(ElogE)$$, Prim: $$O(ElogV)$$
+  - Kruskal: $O(ElogE)$, Prim: $O(ElogV)$
 
 ### Heap
 
@@ -241,9 +241,9 @@ func (uf *UnionFind) Merge(x, y int) {
 
 #### Big O Efficiency
 
-- Insertion: $$O(logn)$$
-- Find-min/max: $$O(1)$$
-- Delete-min/max: $$O(logn)$$
+- Insertion: $O(logn)$
+- Find-min/max: $O(1)$
+- Delete-min/max: $O(logn)$
 
 ### String
 

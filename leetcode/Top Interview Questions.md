@@ -94,8 +94,8 @@ func maxProduct(nums []int) int {
 
 It would be easier to see the DP structure if we store these 2 values for each index, like `maxProduct[i]`, `minProduct[i]`. 
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -138,8 +138,8 @@ func majorityElement(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(m)$$ where m is the number of different numbers in the array.
+- Time complexity: $O(n)$
+- Space complexity: $O(m)$ where m is the number of different numbers in the array.
 
 (2) Accepted
 
@@ -150,8 +150,8 @@ func majorityElement(nums []int) int {
 }
 ```
 
-- Time complexity: kind of $$O(nlogn)$$
-- Space complexity: $$O(1)$$
+- Time complexity: kind of $O(nlogn)$
+- Space complexity: $O(1)$
 
 (3) Accepted 
 
@@ -185,8 +185,8 @@ Actually, this is called [Boyer-Moore Majority Vote Algorithm]([https://en.wikip
 
 <https://www.zhihu.com/question/49973163/answer/235921864>
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 ## [189. Rotate Array](<https://leetcode.com/problems/rotate-array/>)
 
@@ -239,8 +239,8 @@ func rotate(nums []int, k int) {
 }
 ```
 
-- Time complexity: $$O(kn)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(kn)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -273,8 +273,8 @@ func rotate(nums []int, k int) {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 (3) Accepted
 
@@ -296,8 +296,8 @@ func rotate(nums []int, k int) {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 ## [217. Contains Duplicates](<https://leetcode.com/problems/contains-duplicate/>)
 
@@ -338,8 +338,8 @@ func containsDuplicate(nums []int) bool {
 }
 ```
 
-- Time complexity: average $$O(nlogn)$$
-- Space complexity: $$O(1)$$
+- Time complexity: average $O(nlogn)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -361,8 +361,8 @@ func containsDuplicate(nums []int) bool {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 (3) Accepted
 
@@ -383,8 +383,8 @@ func containsDuplicate(nums []int) bool {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 **Recap**
 
@@ -433,8 +433,8 @@ func moveZeroes(nums []int) {
 }
 ```
 
-- Time complexity: $$O(n)$$?
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$?
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -458,8 +458,8 @@ func moveZeroes(nums []int) {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 (3) Accepted
 
@@ -498,8 +498,8 @@ func moveZeroes(nums []int) {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 (4) Accepted
 
@@ -518,8 +518,8 @@ func moveZeroes(nums []int) {
 	}
 ```
 
-- Time complexity: $$O(n)$$ ?
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$ ?
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -595,7 +595,7 @@ func (this *Solution) Shuffle() []int {
 }
 ```
 
-We will need $$O(n!)$$  extra space to store all permutations which is too much.
+We will need $O(n!)$  extra space to store all permutations which is too much.
 
 (2) Accepted
 
@@ -630,8 +630,8 @@ func (this *Solution) Shuffle() []int {
 
 `Shuffle`complexity:
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 Improvement: We allocate an extra array to store one permutation in advance instead of allocating one every time we call `Shuffle`.
 
@@ -764,8 +764,8 @@ func intersect(nums1 []int, nums2 []int) []int {
 }
 ```
 
-- Time complexity: $$O(max\{len(nums1), len(nums2)\})$$
-- Space complexity: $$O(n1+n2)$$ where n1 is the number of distinct numbers in `nums1`and n2 is the number of distinct numbers in `nums2`.
+- Time complexity: $O(max\{len(nums1), len(nums2)\})$
+- Space complexity: $O(n1+n2)$ where n1 is the number of distinct numbers in `nums1`and n2 is the number of distinct numbers in `nums2`.
 
 Improvement: only one map
 
@@ -813,8 +813,8 @@ func intersect(nums1 []int, nums2 []int) []int {
 }
 ```
 
-- Time complexity: $$O(n1log(n1)+n2log(n2))$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n1log(n1)+n2log(n2))$
+- Space complexity: $O(1)$
 
 (3) Solution to 3rd follow-up question?
 
@@ -873,8 +873,8 @@ func increasingTriplet(nums []int) bool {
 }
 ````
 
-- Time complexity: $$O(n^3)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n^3)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -924,8 +924,8 @@ Setting `small= -1` is important, yet doesn't change the answer in this case sin
 
 However, **if the problem requires us to return the index, then this code would not work**.
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -978,8 +978,8 @@ func searchMatrix(matrix [][]int, target int) bool {
 }
 ```
 
-- Time complexity: $$O(rows*log(columns))$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(rows*log(columns))$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -1001,8 +1001,8 @@ func searchMatrix(matrix [][]int, target int) bool {
 }
 ```
 
-- Time complexity: $$O(rows+columns)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(rows+columns)$
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -1052,8 +1052,8 @@ func productExceptSelf(nums []int) []int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 Improvement: no extra space
 
@@ -1078,8 +1078,8 @@ func productExceptSelf(nums []int) []int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -1102,8 +1102,8 @@ func productExceptSelf(nums []int) []int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -1379,6 +1379,67 @@ func spiralOrder(matrix [][]int) []int {
 - Time complexity: $O(m*n)$
 - Space complexity: $O(1)$
 
+## [31. Next Permutation](https://leetcode.com/problems/next-permutation/)
+
+Implement next permutation, which rearranges numbers into the lexicographically next greater permutation of numbers.
+
+If such arrangement is not possible, it must rearrange it as the lowest possible order (ie, sorted in ascending order).
+
+The replacement must be in-place and use only constant extra memory.
+
+Here are some examples. Inputs are in the left-hand column and its corresponding outputs are in the right-hand column.
+```
+1,2,3 → 1,3,2
+3,2,1 → 1,2,3
+1,1,5 → 1,5,1
+```
+
+**Solution**
+
+This is an algorithm created by a man named [Narayana Pandita](https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order) in the 14th century.
+
+Let's say the `nums = [2, 3 ,6, 5, 4, 1]` now and here is the solution:
+
+1. From **right to left**, find the first number which is not greater than previous one. In our example it's 3.
+2. We may have two situations:
+
+  - We cannot find the number which means this permutation is the last permutation, we need to rotate back to the first permutation. So we reverse the whole array.
+
+  - We can find the number, then the next step, we will start from right most to leftward, try to find the first number which is larger than 3, in this case it is 4. Then we swap 3 and 4, the list turn to `[2, 4, 6, 5, 3, 1]`. Last, we reverse numbers on the right of 4, we finally get `[2, 4, 1, 3, 5, 6]`.
+
+```go
+func nextPermutation(nums []int)  {
+    n := len(nums)
+    var k int
+    for k = n-2; k >= 0; k-- {
+        if nums[k] < nums[k+1] {
+            break
+        }
+    }
+    if k < 0 {
+        reverse(nums)
+    } else {
+        l := n - 1
+        for ; l > k; l-- {
+            if nums[l] > nums[k] {
+                break
+            }
+        }
+        nums[k], nums[l] = nums[l], nums[k]
+        reverse(nums[k+1:])
+    }
+}
+
+func reverse(nums []int) {
+    for i, j := 0, len(nums)-1; i < j; i, j = i+1, j-1 {
+        nums[i], nums[j] = nums[j], nums[i]
+    } 
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
 # Linked List
 
 ## [138. Copy List with Random Pointer](<https://leetcode.com/problems/copy-list-with-random-pointer/>)
@@ -1453,8 +1514,8 @@ Clarify:
 
 ![138. Copy List with Random Pointer](img/138. Copy List with Random Pointer.jpg)
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 ## [141. Linked List Cycle](<https://leetcode.com/problems/linked-list-cycle/>)
 
@@ -1518,8 +1579,8 @@ func hasCycle(head *ListNode) bool {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 (2) Accepted
 
@@ -1539,8 +1600,8 @@ func hasCycle(head *ListNode) bool {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -1620,8 +1681,8 @@ func merge(l1, l2 *ListNode) *ListNode {
 }
 ```
 
-- Time complexity: $$O(nlogn)$$
-- Space complexity: $$O(logn)$$ since the program needs to store stack frames.
+- Time complexity: $O(nlogn)$
+- Space complexity: $O(logn)$ since the program needs to store stack frames.
 
 (2) Accepted
 
@@ -1703,8 +1764,8 @@ func merge(l1, l2, head *ListNode) *ListNode {
 }
 ```
 
-- Time complexity: $$O(nlogn)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(nlogn)$
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -1767,8 +1828,8 @@ func getIntersectionNode(headA, headB *ListNode) *ListNode {
 }
 ```
 
-- Time complexity: $$O(len1+len2)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(len1+len2)$
+- Space complexity: $O(1)$
 
 (2) Accepted but not satisfied
 
@@ -1790,8 +1851,8 @@ func getIntersectionNode(headA, headB *ListNode) *ListNode {
 }
 ```
 
-- Time complexity: $$O(len1+len2)$$
-- Space complexity: $$O(len1)$$
+- Time complexity: $O(len1+len2)$
+- Space complexity: $O(len1)$
 
 (3) Accepted
 
@@ -1821,8 +1882,8 @@ In the for loop, we actually do two iterations. In the first iteration, we will 
 
 So if two linked list intersects, the meeting point in second iteration must be the intersection point. If the two linked lists have no intersection at all, then the meeting pointer in second iteration must be the tail node of both lists, which is null.
 
-- Time complexity: $$O(len1+len2)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(len1+len2)$
+- Space complexity: $O(1)$
 
 ## [206. Reverse Linked List](<https://leetcode.com/problems/reverse-linked-list/>)
 
@@ -1859,8 +1920,8 @@ func reverseList(head *ListNode) *ListNode {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -1888,8 +1949,8 @@ func reverseList(head *ListNode) *ListNode {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$ for stack frames.
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$ for stack frames.
 
 **Recap**
 
@@ -1938,8 +1999,8 @@ func isPalindrome(head *ListNode) bool {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 (2) Accepted
 
@@ -1985,8 +2046,8 @@ func reverse(head *ListNode) *ListNode {
 
 Note that this method modifies input. If that's not allowed, we need to restore the linked list at last.
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -2045,8 +2106,8 @@ func deleteNode(node *ListNode) {
 }
 ```
 
-- Time complexity: $$O(1)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(1)$
+- Space complexity: $O(1)$
 
 ## [328. Odd Even Linked List](<https://leetcode.com/problems/odd-even-linked-list/>)
 
@@ -2096,8 +2157,8 @@ func oddEvenList(head *ListNode) *ListNode {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 # Heap & Stack
 
@@ -2333,12 +2394,12 @@ func findKthLargest(nums []int, k int) int {
 }
 ```
 
-- Time  complexity: $$O(nlog(n))$$
-- Space complexity: $$O(1)$$
+- Time  complexity: $O(nlog(n))$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
-The smart approach for this problem is to use the selection algorithm (based on the partitioning method - the same one as used in quicksort). Notice that quick sort will cost $$O(n^2)$$ time in the worst case. To avoid this, just shuffle input array.
+The smart approach for this problem is to use the selection algorithm (based on the partitioning method - the same one as used in quicksort). Notice that quick sort will cost $O(n^2)$ time in the worst case. To avoid this, just shuffle input array.
 
 ```go
 func findKthLargest(nums []int, k int) int {
@@ -2379,8 +2440,8 @@ func partition(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -2462,8 +2523,8 @@ func (this *MedianFinder) FindMedian() float64 {
  */
 ```
 
-- Time complexity: $$O(nlogn)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(nlogn)$
+- Space complexity: $O(n)$
 
 (2) 
 
@@ -2563,8 +2624,8 @@ func (this *MedianFinder) FindMedian() float64 {
  */
 ```
 
-- Time complexity: `AddNum`costs $$O(logn)$$ time. `FindMedian` costs $$O(1)$$ time.
-- Space complexity: $$O(n)$$
+- Time complexity: `AddNum`costs $O(logn)$ time. `FindMedian` costs $O(1)$ time.
+- Space complexity: $O(n)$
 
 **Recap**
 
@@ -3362,8 +3423,8 @@ func isPalindrome(s string) bool {
 }
 ```
 
-- Time complexity: $$O(n)$$ n is the number of alphanumeric characters.
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$ n is the number of alphanumeric characters.
+- Space complexity: $O(n)$
 
 (2) Accepted
 
@@ -3418,8 +3479,8 @@ func isPalindrome(s string) bool {
 }
 ```
 
-- Time complexity: $$O(len(s))$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(len(s))$
+- Space complexity: $O(1)$
 
 ## [131. Palindrome Partitioning](<https://leetcode.com/problems/palindrome-partitioning/>)
 
@@ -3440,7 +3501,7 @@ Output:
 
 **Solution**
 
-First,  here if you want to get all the possible palindrome partition, first a nested for loop to get every possible partitions for a string, then a scanning for all the partitions. That's a $$O(n^2)$$ for partitioning and $$O(n^2)$$ for the scanning of string, totaling at $$O(n^4)$$ just for the partition. However, if we use a 2D array to keep track of any string we have scanned so far, with an addition pair, we can determine whether it's palindrome or not by looking at that pair. This way, the 2D array `dp` contains the possible palindrome partition among all.
+First,  here if you want to get all the possible palindrome partition, first a nested for loop to get every possible partitions for a string, then a scanning for all the partitions. That's a $O(n^2)$ for partitioning and $O(n^2)$ for the scanning of string, totaling at $O(n^4)$ just for the partition. However, if we use a 2D array to keep track of any string we have scanned so far, with an addition pair, we can determine whether it's palindrome or not by looking at that pair. This way, the 2D array `dp` contains the possible palindrome partition among all.
 
 Second, based on the prescanned palindrome partitions saved in `dp` array, a simple backtrack/DFS does the job.
 
@@ -3486,8 +3547,8 @@ func dfs(s string, pos int, partition []string, dp [][]bool, res *[][]string) {
 }
 ```
 
-- Time complexity: `dfs` costs $$O(2^n)$$?
-- Space complexity: $$O(n^2)$$
+- Time complexity: `dfs` costs $O(2^n)$?
+- Space complexity: $O(n^2)$
 
 ## [139. Word Break](<https://leetcode.com/problems/word-break/>)
 
@@ -3548,8 +3609,8 @@ func wordBreak(s string, dict []string) bool {
 }
 ```
 
-- Time complexity: $$O(len(s)*len(dict))$$
-- Space complexity: $$O(len(s))$$
+- Time complexity: $O(len(s)*len(dict))$
+- Space complexity: $O(len(s))$
 
 Or can be done in this way:
 
@@ -3581,8 +3642,8 @@ func wordBreak(s string, dict []string) bool {
 }
 ```
 
-- Time complexity: $$O(len(s)^2)$$
-- Space complexity: $$O(len(s))$$
+- Time complexity: $O(len(s)^2)$
+- Space complexity: $O(len(s))$
 
 **Recap**
 
@@ -3749,8 +3810,8 @@ func (this *Trie) StartsWith(prefix string) bool {
 }
 ```
 
-- Time complexity: $$O(m)$$ where m is the length of word/prefix/
-- Space complexity: `INsert` costs $$O(m)$$ in the worst case.
+- Time complexity: $O(m)$ where m is the length of word/prefix/
+- Space complexity: `INsert` costs $O(m)$ in the worst case.
 
 (2) Accepted
 
@@ -4025,8 +4086,8 @@ func isAnagram(s string, t string) bool {
 }
 ```
 
-- Time complexity: $$O(n)$$  where n is the length of string.
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$  where n is the length of string.
+- Space complexity: $O(n)$
 
 (2) Accepted
 
@@ -4055,8 +4116,8 @@ func isAnagram(s string, t string) bool {
 }
 ```
 
-- Time complexity: $$O(nlogn)$$  where n is the length of string.
-- Space complexity: $$O(1)$$
+- Time complexity: $O(nlogn)$  where n is the length of string.
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -4102,8 +4163,8 @@ func firstUniqChar(s string) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(m)$$ where m is the number of distinct characters
+- Time complexity: $O(n)$
+- Space complexity: $O(m)$ where m is the number of distinct characters
 
 Improvement:
 
@@ -4131,8 +4192,8 @@ func firstUniqChar(s string) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -4156,8 +4217,8 @@ func firstUniqChar(s string) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 We can use `strings.Count`:
 
@@ -4216,8 +4277,8 @@ func reverseString(s []byte)  {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 ## [28. Implement strStr()](<https://leetcode.com/problems/implement-strstr/>)
 
@@ -4275,8 +4336,8 @@ func strStr(haystack string, needle string) int {
 }
 ````
 
-- Time complexity: $$O(len(haystack)*len(needle))$$ at worst
-- Space complexity: $$O(1)$$
+- Time complexity: $O(len(haystack)*len(needle))$ at worst
+- Space complexity: $O(1)$
 
 ## [44. Wildcard Matching](<https://leetcode.com/problems/wildcard-matching/>)
 
@@ -4377,8 +4438,8 @@ func isMatch(str string, pattern string) bool {
 }
 ```
 
-- Time complexity: $$O(len(str)+len(pattern))$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(len(str)+len(pattern))$
+- Space complexity: $O(1)$
 
 # Tree
 
@@ -4472,8 +4533,8 @@ func kthSmallest(root *TreeNode, k int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$ worst
-- Space complexity: $$O(logn)$$
+- Time complexity: $O(n)$ worst
+- Space complexity: $O(logn)$
 
 (2) Accepted
 
@@ -4499,8 +4560,8 @@ func countNodes(node *TreeNode) int {
 }
 ```
 
-- Time complexity: $$O(logn)$$?
-- Space complexity: $$O(logn)$$?
+- Time complexity: $O(logn)$?
+- Space complexity: $O(logn)$?
 
 (3) 
 
@@ -4528,8 +4589,8 @@ func inorder(root *TreeNode, vals *[]int) {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 **Recap**
 
@@ -4629,8 +4690,8 @@ func dfs(cur *TreeNode, target *TreeNode, path *[]*TreeNode) bool {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(logn)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(logn)$
 
 (2) Accepted
 
@@ -4654,8 +4715,8 @@ func lowestCommonAncestor(root, p, q *TreeNode) *TreeNode {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 (3) Accepted
 
@@ -4694,8 +4755,8 @@ func lowestCommonAncestor(root, p, q *TreeNode) *TreeNode {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 ## [297. Serialize and Deserialize Binary Tree](<https://leetcode.com/problems/serialize-and-deserialize-binary-tree/>)
 
@@ -4760,8 +4821,8 @@ func buildTree(data []string) *TreeNode {
 }
 ```
 
-- Time complexity: $$O(n)$$ for both `serialize`and `deserialize`
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$ for both `serialize`and `deserialize`
+- Space complexity: $O(n)$
 
 # Segment Tree
 
@@ -4842,8 +4903,8 @@ class Solution {
 }
 ```
 
-- Time complexity: $$O(nlogn)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(nlogn)$
+- Space complexity: $O(n)$
 
 # Graph
 
@@ -4933,8 +4994,8 @@ func ladderLength(beginWord string, endWord string, wordList []string) int {
 }
 ```
 
-- Time complexity: $$O(nL)$$ where n is the length of word list and L is the length of each word?
-- Space complexity: $$O(n)$$ 
+- Time complexity: $O(nL)$ where n is the length of word list and L is the length of each word?
+- Space complexity: $O(n)$ 
 
 **Recap**
 
@@ -5010,8 +5071,8 @@ func numIslands(grid [][]byte) int {
 }
 ```
 
-- Time complexity: $$O(n)$$ where n is the number of grids.
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$ where n is the number of grids.
+- Space complexity: $O(n)$
 
 (2) Accepted
 
@@ -5046,8 +5107,8 @@ func dfs(grid *[][]byte, dir [][]int, startI int, startJ int) {
 }
 ```
 
-- Time complexity: $$O(n)$$ where n is the number of grids
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$ where n is the number of grids
+- Space complexity: $O(n)$
 
 **Recap**
 
@@ -5139,8 +5200,8 @@ func canFinish(numCourses int, prerequisites [][]int) bool {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 ## [210. Course Schedule II](<https://leetcode.com/problems/course-schedule-ii/>)
 
@@ -5220,8 +5281,8 @@ func findOrder(numCourses int, prerequisites [][]int) []int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 # Hash Table
 
@@ -5326,8 +5387,8 @@ func fourSumCount(A []int, B []int, C []int, D []int) int {
 }
 ```
 
-- Time complexity: $$O(n^2)$$
-- Space complexity: $$O(n^2)$$
+- Time complexity: $O(n^2)$
+- Space complexity: $O(n^2)$
 
 **Recap**
 
@@ -5674,8 +5735,8 @@ func isValidSudoku(board [][]byte) bool {
 }
 ```
 
-- Time complexity: $$O(1)$$ since we always iterate through the whole 9*9 matrix
-- Space complexity: $$O(1)$$ since we will record 9*9 cells at most.
+- Time complexity: $O(1)$ since we always iterate through the whole 9*9 matrix
+- Space complexity: $O(1)$ since we will record 9*9 cells at most.
 
 # Simulation
 
@@ -5758,8 +5819,8 @@ func canCompleteCircuit(gas []int, cost []int) int {
 }
 ```
 
-- Time complexity: $$O(n^2)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n^2)$
+- Space complexity: $O(1)$
 
 (2) 
 
@@ -5784,8 +5845,8 @@ func canCompleteCircuit(gas []int, cost []int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -5930,8 +5991,8 @@ func gameOfLife(board [][]int)  {
 }
 ```
 
-- Time Complexity: $$O(mn)$$
-- Space complexity: $$O(mn)$$
+- Time Complexity: $O(mn)$
+- Space complexity: $O(mn)$
 
 (2)  Accepted
 
@@ -5985,8 +6046,8 @@ func gameOfLife(board [][]int) {
 }
 ```
 
-- Time Complexity: $$O(mn)$$
-- Space complexity: $$O(1)$$
+- Time Complexity: $O(mn)$
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -6033,8 +6094,8 @@ func getSum(x int, y int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 ## [414. Fizz Buzz](<https://leetcode.com/problems/fizz-buzz/>)
 
@@ -6093,8 +6154,8 @@ func fizzBuzz(n int) []string {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -6125,8 +6186,8 @@ func fizzBuzz(n int) []string {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 ## [146. LRU Cache](<https://leetcode.com/problems/lru-cache/>)
 
@@ -6158,7 +6219,7 @@ cache.get(4);       // returns 4
 
 **Solution**
 
-Use a double linked list which has a head pointer and a tail pointer. We can both remove a node from such a linked list and add a node to it's tail in $$O(1)$$ time. In the list, least recently visited nodes are close to head.
+Use a double linked list which has a head pointer and a tail pointer. We can both remove a node from such a linked list and add a node to it's tail in $O(1)$ time. In the list, least recently visited nodes are close to head.
 
 ```go
 type dllNode struct {
@@ -6221,8 +6282,8 @@ func add(tail, node *dllNode) {
 }
 ```
 
-- Time complexity: $$O(1)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(1)$
+- Space complexity: $O(n)$
 
 # Sort
 
@@ -6291,8 +6352,8 @@ func largestNumber(nums []int) string {
 }
 ```
 
-- Time complexity: $$O(nlogn)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(nlogn)$
+- Space complexity: $O(n)$
 
 **Recap**
 
@@ -6384,7 +6445,7 @@ Your solution should be in logarithmic complexity.
 
 (1) Accepted
 
-Straightforward solution costs $$O(n)$$ time.
+Straightforward solution costs $O(n)$ time.
 
 ```go
 func findPeakElement(nums []int) int {
@@ -6412,8 +6473,8 @@ func findPeakElement(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -6438,8 +6499,8 @@ func findPeakElement(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(logn)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(logn)$
+- Space complexity: $O(1)$
 
 ## [287. Find the Duplicate Number](<https://leetcode.com/problems/find-the-duplicate-number/>)
 
@@ -6493,8 +6554,8 @@ func findDuplicate(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -6527,8 +6588,8 @@ func findDuplicate(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(nlogn)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(nlogn)$
+- Space complexity: $O(1)$
 
 ## [315. Count of Smaller Numbers After Self](<https://leetcode.com/problems/count-of-smaller-numbers-after-self/>)
 
@@ -6566,8 +6627,8 @@ func countSmaller(nums []int) []int {
 }
 ```
 
-- Time complexity: $$O(n^2)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n^2)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -6624,8 +6685,8 @@ func insert(num int, node *Node, res *[]int, i int, preSum int) *Node {
 }
 ```
 
-- Time complexity: $$O(nlogn)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(nlogn)$
+- Space complexity: $O(n)$
 
 ## [33. Search in Rotated Sorted Array](<https://leetcode.com/problems/search-in-rotated-sorted-array/>)
 
@@ -6680,8 +6741,8 @@ func search(nums []int, target int) int {
 }
 ```
 
-- Time complexity: $$O(n+logn)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n+logn)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -6729,8 +6790,8 @@ func search(nums []int, target int) int {
 }
 ```
 
-- Time complexity: $$O(logn)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(logn)$
+- Space complexity: $O(1)$
 
 ## [34. Find First and Last Position of Element in Sorted Array](<https://leetcode.com/problems/find-first-and-last-position-of-element-in-sorted-array/>)
 
@@ -6775,8 +6836,8 @@ func searchRange(nums []int, target int) []int {
 }
 ````
 
-- Time complexity: $$O(logn+m)$$ where n is the length of input array and m is the number of target number in array.
-- Space  complexity: $$O(1)$$
+- Time complexity: $O(logn+m)$ where n is the length of input array and m is the number of target number in array.
+- Space  complexity: $O(1)$
 
 Improvement: when target is found, we search target+1 next.
 
@@ -6794,8 +6855,8 @@ func searchRange(nums []int, target int) []int {
 }
 ```
 
-- Time complexity: $$O(logn)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(logn)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -6835,8 +6896,8 @@ func searchRange(nums []int, target int) []int {
 }
 ```
 
-- Time complexity: $$O(logn)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(logn)$
+- Space complexity: $O(1)$
 
 # Sliding Window
 
@@ -6919,8 +6980,8 @@ func nUniqueChars(s string, k int, n int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$?
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$?
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -7016,8 +7077,8 @@ func lengthOfLongestSubstring(s string) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 ## 159. Longest Substring with At Most Two Distinct Characters
 
@@ -7053,8 +7114,8 @@ func lengthOfLongestSubstring(s string) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 # DP
 
@@ -7132,8 +7193,8 @@ func maxPathDown(node *TreeNode, res *int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$ where n is the number of nodes
-- Space complexity: $$O(logn)$$
+- Time complexity: $O(n)$ where n is the number of nodes
+- Space complexity: $O(logn)$
 
 ## [128. Longest Consecutive Sequence](<https://leetcode.com/problems/longest-consecutive-sequence/>)
 
@@ -7179,8 +7240,8 @@ func longestConsecutive(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 (2) Accepted
 
@@ -7215,8 +7276,8 @@ func longestConsecutive(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 ## [198. House Robber](<https://leetcode.com/problems/house-robber/>)
 
@@ -7304,8 +7365,8 @@ func helper(nums []int, memo *[]int, i int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$ if we leave call stack alone
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$ if we leave call stack alone
 
 (3) Accepted
 
@@ -7325,8 +7386,8 @@ func rob(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 (4) Accepted
 
@@ -7347,8 +7408,8 @@ func rob(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -7409,8 +7470,8 @@ func numSquares(n int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 (2) Accepted
 
@@ -7448,8 +7509,8 @@ func numSquares(n int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$ at worst
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$ at worst
+- Space complexity: $O(1)$
 
 ## [300. Longest Increasing Subsequence](<https://leetcode.com/problems/longest-increasing-subsequence/>)
 
@@ -7497,8 +7558,8 @@ func helper(nums []int, pre int, pos int) int {
 }
 ```
 
-- Time complexity: $$O(2^n)$$ because the size of recursion tree will be $$2^n$$ 
-- Space complexity: $$O(n^2)$$
+- Time complexity: $O(2^n)$ because the size of recursion tree will be $2^n$ 
+- Space complexity: $O(n^2)$
 
 (2) Accepted
 
@@ -7536,8 +7597,8 @@ func helper(nums []int, memo *[][]int, pre int, cur int) int {
 }
 ```
 
-- Time complexity: $$O(n^2)$$
-- Space complexity: $$O(n^2)$$
+- Time complexity: $O(n^2)$
+- Space complexity: $O(n^2)$
 
 (3) Accepted
 
@@ -7568,8 +7629,8 @@ func lengthOfLIS(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(n^2)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n^2)$
+- Space complexity: $O(n)$
 
 (4) Accepted
 
@@ -7617,8 +7678,8 @@ func lengthOfLIS(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(nlogn)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(nlogn)$
+- Space complexity: $O(n)$
 
 ## [322. Coin Change](<https://leetcode.com/problems/coin-change/>)
 
@@ -7723,8 +7784,8 @@ func helper(coins []int, amount int, memo map[int]int) int {
 }
 ```
 
-- Time complexity: $$O(n^2)$$ where n is the number of coins
-- Space complexity: $$O(amount)$$ 
+- Time complexity: $O(n^2)$ where n is the number of coins
+- Space complexity: $O(amount)$ 
 
 (3)  Accepted
 
@@ -7751,8 +7812,8 @@ func coinChange(coins []int, amount int) int {
 }
 ```
 
-- Time complexity: $$O(amount*len(coins))$$
-- Space complexity: $$O(amount)$$
+- Time complexity: $O(amount*len(coins))$
+- Space complexity: $O(amount)$
 
 ## [329. Longest Increasing Path In a Matrix](<https://leetcode.com/problems/longest-increasing-path-in-a-matrix/>)
 
@@ -7876,8 +7937,8 @@ func dfs(matrix [][]int, dir [][]int, x int, y int) int {
 }
 ```
 
-- Time complexity: $$O(n^2)$$
-- Space complexity: $$O(n^2)$$
+- Time complexity: $O(n^2)$
+- Space complexity: $O(n^2)$
 
 (3) Accepted
 
@@ -8048,12 +8109,12 @@ func singleNumber(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(m)$$ where m is the number of distinct numbers in the array
+- Time complexity: $O(n)$
+- Space complexity: $O(m)$ where m is the number of distinct numbers in the array
 
 (2) Accepted
 
-Say the array is `[2,1,4,5,2,4,1]` then if we preform XOR one by one it will be like this: $$(2 XOR 2) XOR (1 XOR 1) XOR (4 XOR 4) XOR 5 = 5$$.
+Say the array is `[2,1,4,5,2,4,1]` then if we preform XOR one by one it will be like this: $(2 XOR 2) XOR (1 XOR 1) XOR (4 XOR 4) XOR 5 = 5$.
 
 ```go
 func singleNumber(nums []int) int {
@@ -8065,8 +8126,8 @@ func singleNumber(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 ## [149. Max Points on a Line](<https://leetcode.com/problems/max-points-on-a-line/>)
 
@@ -8150,8 +8211,8 @@ func getGcd(x, y int) int {
 }
 ```
 
-- Time complexity: $$O(n^2)$$
-- Space complexity: $$O(n^2)$$ ?
+- Time complexity: $O(n^2)$
+- Space complexity: $O(n^2)$ ?
 
 ## [166. Fraction to Recurring Decimal](<https://leetcode.com/problems/fraction-to-recurring-decimal/>)
 
@@ -8219,8 +8280,8 @@ func fractionToDecimal(numerator int, denominator int) string {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 ## [172. Factorial Trailing Zeroes](<https://leetcode.com/problems/factorial-trailing-zeroes/>)
 
@@ -8268,8 +8329,8 @@ func trailingZeroes(n int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -8285,8 +8346,8 @@ func trailingZeroes(n int) int {
 }
 ```
 
-- Time complexity: $$O(log_5n)$$
-- Space complexity: $$O(log_5n)$$
+- Time complexity: $O(log_5n)$
+- Space complexity: $O(log_5n)$
 
 ## [190. Reverse Bits](<https://leetcode.com/problems/reverse-bits/>)
 
@@ -8339,8 +8400,8 @@ func reverseBits(num uint32) uint32 {
 }
 ```
 
-- Time complexity: $$O(1)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(1)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -8359,8 +8420,8 @@ func reverseBits(num uint32) uint32 {
 }
 ```
 
-- Time complexity: $$O(1)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(1)$
+- Space complexity: $O(1)$
 
 ## [191. Number of 1 Bits](<https://leetcode.com/problems/number-of-1-bits/>)
 
@@ -8413,8 +8474,8 @@ func hammingWeight(num uint32) int {
 }
 ```
 
-- Time complexity: $$O(1)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(1)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -8434,8 +8495,8 @@ func hammingWeight(num uint32) int {
 }
 ````
 
-- Time complexity: $$O(1)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(1)$
+- Space complexity: $O(1)$
 
 **Recap**
 
@@ -8477,8 +8538,8 @@ func countPrimes(n int) int {
 }
 ```
 
-- Time complexity: $$O(\sqrt2+\sqrt3+...+\sqrt{n-1})$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(\sqrt2+\sqrt3+...+\sqrt{n-1})$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -8499,8 +8560,8 @@ func countPrimes(n int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$ ?
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$ ?
+- Space complexity: $O(n)$
 
 ## [268. Missing Number](<https://leetcode.com/problems/missing-number/>)
 
@@ -8544,8 +8605,8 @@ func missingNumber(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 (2) Accepted
 
@@ -8563,12 +8624,12 @@ func missingNumber(nums []int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 **Recap**
 
-$$a XOR a XOR b = a$$
+$a XOR a XOR b = a$
 
 ## [326. Power of Three](<https://leetcode.com/problems/power-of-three/>)
 
@@ -8620,8 +8681,8 @@ func isPowerOfThree(n int) bool {
 }
 ```
 
-- Time complexity: $$O(log_3n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(log_3n)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -8632,8 +8693,8 @@ func isPowerOfThree(n int) bool {
 }
 ```
 
-- Time complexity: $$O(1)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(1)$
+- Space complexity: $O(1)$
 
 (3) Accepted
 
@@ -8647,8 +8708,8 @@ func isPowerOfThree(n int) bool {
 }
 ```
 
-- Time complexity: $$O(log_3n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(log_3n)$
+- Space complexity: $O(1)$
 
 ## [29. Divide Two Integers](<https://leetcode.com/problems/divide-two-integers/>)
 
@@ -8676,7 +8737,7 @@ Output: -2
 
 - Both dividend and divisor will be 32-bit signed integers.
 - The divisor will never be 0.
-- Assume we are dealing with an environment which could only store integers within the 32-bit signed integer range: [$$−2^{31}$$,  $$2^{31} − 1$$]. For the purpose of this problem, assume that your function returns $$2^{31} − 1$$ when the division result overflows.
+- Assume we are dealing with an environment which could only store integers within the 32-bit signed integer range: [$−2^{31}$,  $2^{31} − 1$]. For the purpose of this problem, assume that your function returns $2^{31} − 1$ when the division result overflows.
 
 **Solution**
 
@@ -8711,5 +8772,5 @@ func divide(dividend int, divisor int) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(1)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$

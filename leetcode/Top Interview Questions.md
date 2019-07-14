@@ -1280,6 +1280,105 @@ func backtrack(res *[][]int, tmp []int, nums []int, start int) {
 }
 ```
 
+## [54. Spiral Matrix](https://leetcode.com/problems/spiral-matrix/)
+
+Given a matrix of m x n elements (m rows, n columns), return all elements of the matrix in spiral order.
+
+Example 1:
+```
+Input:
+[
+ [ 1, 2, 3 ],
+ [ 4, 5, 6 ],
+ [ 7, 8, 9 ]
+]
+Output: [1,2,3,6,9,8,7,4,5]
+```
+Example 2:
+```
+Input:
+[
+  [1, 2, 3, 4],
+  [5, 6, 7, 8],
+  [9,10,11,12]
+]
+Output: [1,2,3,4,8,12,11,10,9,5,6,7]
+```
+
+**Solution**
+
+(1) Accepted
+
+Path should turn clockwise whenever it would go out of bounds or into a cell that was previously visited.
+
+As we move through the matrix, our candidate next position is `(cr, cc)`. If the candidate is in the bounds of the matrix and unseen, then it becomes our next position; otherwise, our next position is the one after performing a clockwise turn.
+
+```go
+func spiralOrder(matrix [][]int) []int {
+    if len(matrix) == 0 || len(matrix[0]) == 0 {
+        return nil
+    }
+    m, n := len(matrix), len(matrix[0])
+    total := m * n
+    res, visited := make([]int, total), make([][]bool, m)
+    for i := range visited {
+        visited[i] = make([]bool, n)
+    }
+    dir := [][]int{{0, 1}, {1, 0}, {0, -1}, {-1, 0}} // right -> down -> left -> up
+    for i, r, c, d := 0, 0, 0, 0; i < total; i++ {
+        res[i] = matrix[r][c]
+        visited[r][c] = true
+        if cr, cc := r+dir[d][0], c+dir[d][1]; cr >= 0 && cr < m && cc >= 0 && cc < n && !visited[cr][cc] {
+            r, c = cr, cc
+        } else {
+            d = (d+1) % 4
+            r, c = r+dir[d][0], c+dir[d][1]
+        }
+    } 
+    return res
+}
+```
+
+- Time complexity: $O(m*n)$
+- Space complexity: $O(m*n)$
+
+(2) Accepted
+
+For each layer, we want to iterate through its elements in clockwise order starting from the top left corner. Suppose the current outer layer has top-left coordinates `(r1, c1)` and bottom-right coordinates `(r2, c2)`.
+
+Then, the top row is the set of elements `(r1, c)` for `c = c1,...,c2`, in that order. The rest of the right side is the set of elements `(r, c2)` for `r = r1+1,...,r2`, in that order. Then, if there are four sides to this layer (ie., `r1 < r2` and `c1 < c2`), we iterate through the bottom side and left side as shown in the solutions below.
+
+![54_spiralmatrix](https://leetcode.com/articles/Figures/54_spiralmatrix.png)
+
+```go
+func spiralOrder(matrix [][]int) []int {
+    if len(matrix) == 0 || len(matrix[0]) == 0 {
+        return nil
+    }
+    res := make([]int, 0)
+    for r1, c1, r2, c2 := 0, 0, len(matrix)-1, len(matrix[0])-1; r1 <= r2 && c1 <= c2; r1, c1,r2, c2 = r1+1, c1+1, r2-1, c2-1 {
+        for c := c1; c <= c2; c++ {
+            res = append(res, matrix[r1][c])
+        }
+        for r := r1+1; r <= r2; r++ {
+            res = append(res, matrix[r][c2])
+        }
+        if r1 < r2 && c1 < c2 {
+            for c := c2-1; c > c1; c-- {
+                res = append(res, matrix[r2][c])
+            } 
+            for r := r2; r > r1; r-- {
+                res = append(res, matrix[r][c1])
+            }
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $O(m*n)$
+- Space complexity: $O(1)$
+
 # Linked List
 
 ## [138. Copy List with Random Pointer](<https://leetcode.com/problems/copy-list-with-random-pointer/>)
@@ -2582,20 +2681,20 @@ func kthSmallest(matrix [][]int, k int) int {
 }
 ```
 
-- Time complexity: $$O(klogn)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(klogn)$
+- Space complexity: $O(n)$
 
 **Recap**
 
-Similar problem: [373. Find K Pairs with Smallest Sums](373. Find K Pairs with Smallest Sums)
+Similar problem: [373. Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/)
 
-## [373. Find K Pairs with Smallest Sums](373. Find K Pairs with Smallest Sums)
+## [373. Find K Pairs with Smallest Sums](https://leetcode.com/problems/find-k-pairs-with-smallest-sums/)
 
-You are given two integer arrays **nums1 **and **nums2** sorted in ascending order and an integer **k**.
+You are given two integer arrays **nums1** and **nums2** sorted in ascending order and an integer **k**.
 
 Define a pair **(u,v)** which consists of one element from the first array and one element from the second array.
 
-Find the k pairs **(u1,v1),(u2,v2) ...(uk,vk)**with the smallest sums.
+Find the k pairs **(u1,v1),(u2,v2) ...(uk,vk)** with the smallest sums.
 
 **Example 1:**
 
@@ -2669,7 +2768,7 @@ func kSmallestPairs(nums1 []int, nums2 []int, k int) [][]int {
     for i := 0; i < len(nums2); i++ {
         heap.Push(ph, Pair{0, i, nums1[0]+nums2[i]})
     }
-    // Generate ohther pairs and get first k smallest paris
+    // Generate other pairs and get first k smallest paris on the fly
     res := make([][]int, 0)
     if k > len(nums1)*len(nums2) {
         k = len(nums1) * len(nums2)
@@ -2689,8 +2788,8 @@ We can also consider this approach as a multiway merge sort:
 
 ![](https://pbs.twimg.com/media/Dg-5jocU0AAI-cC.jpg:small)
 
-- Time complexity: $$O(klogk)$$
-- Space complexity: $$O(len(nums1))$$ or $$O(len(nums2))$$
+- Time complexity: $O(klogk)$
+- Space complexity: $O(len(nums1))$ or $O(len(nums2))$
 
 ## [347. Top K Frequent Elements](<https://leetcode.com/problems/top-k-frequent-elements/>)
 
@@ -2750,8 +2849,8 @@ func topKFrequent(nums []int, k int) []int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(m)$$ where m is the number of distinct numbers
+- Time complexity: $O(n)$
+- Space complexity: $O(m)$ where m is the number of distinct numbers
 
 ## [150. Evaluate Reverse Polish Notation](<https://leetcode.com/problems/evaluate-reverse-polish-notation/>)
 
@@ -2833,8 +2932,8 @@ func evalRPN(tokens []string) int {
 }
 ```
 
-- Time complexity: $$O(n)$$ where n is the length of `tokens`.
-- Space complexity: $$O(m)$$ where m is the number of operands.
+- Time complexity: $O(n)$ where n is the length of `tokens`.
+- Space complexity: $O(m)$ where m is the number of operands.
 
 ## [227. Basic Calculator II](<https://leetcode.com/problems/basic-calculator-ii/>)
 
@@ -2967,8 +3066,7 @@ func calculate(s string) int {
 	var sb strings.Builder
 	preSign := '+' // leading symbol of previous number
 	stack := make([]int, 0)
-	s = strings.TrimSpace(s)
-	for i, r := range s {
+	for i, r := range strings.TrimSpace(s) {
 		if unicode.IsDigit(r) {
 			sb.WriteRune(r)
 		}
@@ -3000,8 +3098,8 @@ func calculate(s string) int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 ## [341. Flatten Nested List Iterator](<https://leetcode.com/problems/flatten-nested-list-iterator/>)
 
@@ -3170,8 +3268,8 @@ func maxSlidingWindow(nums []int, k int) []int {
 }
 ```
 
-- Time complexity: worst case will cost $$O(mk)$$ where m is the number of windows.
-- Space complexity: $$O(m)$$ where m is the number of windows.
+- Time complexity: worst case will cost $O(mk)$ where m is the number of windows.
+- Space complexity: $O(m)$ where m is the number of windows.
 
 (2) Accepted
 
@@ -3202,6 +3300,7 @@ func maxSlidingWindow(nums []int, k int) []int {
         }
         deque = append(deque, i)
         if l >= 0 {
+            // Assure this window is valid
             res = append(res, nums[deque[0]])
         }
     }
@@ -3209,8 +3308,8 @@ func maxSlidingWindow(nums []int, k int) []int {
 }
 ```
 
-- Time complexity: $$O(n)$$
-- Space complexity: $$O(n)$$
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 **Recap**
 
@@ -7826,8 +7925,81 @@ func dfs(matrix [][]int, dir [][]int, memo *[][]int, x int, y int) int {
 }
 ```
 
-- Time complexity: $$O(n^2)$$
-- Space complexity: $$O(n^2)$$
+- Time complexity: $O(n^2)$
+- Space complexity: $O(n^2)$
+
+## [53. Maximum Subarray](https://leetcode.com/problems/maximum-subarray/)
+
+Given an integer array nums, find the contiguous subarray (containing at least one number) which has the largest sum and return its sum.
+
+Example:
+```
+Input: [-2,1,-3,4,-1,2,1,-5,4],
+Output: 6
+Explanation: [4,-1,2,1] has the largest sum = 6.
+```
+Follow up:
+
+If you have figured out the O(n) solution, try coding another solution using the divide and conquer approach, which is more subtle.
+
+**Solution**
+
+(1) Accepted
+
+A very typical DP solution. Divide the problem into sub problem which looks like `maxSubArray(int A[], int i)` meaning that the maxSubArray for `A[0:i]` which must has `A[i]` as the end element. Now the connect between the sub problem & the original one becomes clear:
+
+```
+maxSubArray(A, i) = max{maxSubArray(A, i-1) + A[i], A[i]}
+```
+
+```go
+func maxSubArray(nums []int) int {
+    if len(nums) == 0 {
+        return 0
+    }
+    // dp[i]: the largest sum of subarray ending at i
+    dp := make([]int, len(nums))
+    dp[0] = nums[0]
+    res := dp[0]
+    for i := 1; i < len(nums); i++ {
+        if dp[i] = dp[i-1]+nums[i]; dp[i] < nums[i] {
+            dp[i] = nums[i]
+        }
+        if dp[i] > res {
+            res = dp[i]
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+(2) Accepted
+
+Actually, maximum subarray problem can be solved elegantly by [Kadane's algorithm](https://en.wikipedia.org/wiki/Maximum_subarray_problem#Kadane's_algorithm).
+
+```go
+func maxSubArray(nums []int) int {
+    if len(nums) == 0 {
+        return 0
+    }
+    max := nums[0]
+    for i := 1; i < len(nums); i++ {
+        if nums[i-1] > 0 {
+            nums[i] += nums[i-1]
+        }
+        if max < nums[i] {
+            max = nums[i]
+        }
+    }
+    return max
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 # Math & Bit Manipulation
 

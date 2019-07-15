@@ -1440,6 +1440,136 @@ func reverse(nums []int) {
 - Time complexity: $O(n)$
 - Space complexity: $O(1)$
 
+## [56. Merge Intervals](https://leetcode.com/problems/merge-intervals/)
+
+Given a collection of intervals, merge all overlapping intervals.
+
+Example 1:
+```
+Input: [[1,3],[2,6],[8,10],[15,18]]
+Output: [[1,6],[8,10],[15,18]]
+Explanation: Since intervals [1,3] and [2,6] overlaps, merge them into [1,6].
+```
+Example 2:
+```
+Input: [[1,4],[4,5]]
+Output: [[1,5]]
+Explanation: Intervals [1,4] and [4,5] are considered overlapping.
+```
+
+**Solution**
+
+The idea is quite straightforward:
+
+1. Firstly, we sort intervals ascendingly by their left boundaries.
+
+2. For every two neighbouring intervals, let's say they are a and b, we have three options:
+
+- If a contains b, then we discard b.
+- If a overlaps b, we merge them.
+- Else, we keep both.
+
+```go
+type TwoDArray [][]int
+
+func (tda TwoDArray) Len() int {
+    return len(tda)
+}
+
+func (tda TwoDArray) Less(i, j int) bool {
+    return tda[i][0] < tda[j][0]
+}
+
+func (tda TwoDArray) Swap(i, j int) {
+    tda[i], tda[j] = tda[j], tda[i]
+}
+
+func merge(intervals [][]int) [][]int {
+    if len(intervals) == 0 || len(intervals[0]) == 0 {
+        return nil
+    }
+    if len(intervals) == 1 {
+        return intervals
+    }
+    // Sort intervals ascendingly by left boundary of each interval
+    sort.Sort(TwoDArray(intervals))
+    // Test whether a overlaps b
+    overlaps := func(a, b []int) bool {
+        return math.Min(float64(a[1]), float64(b[1]))-math.Max(float64(a[0]), float64(b[0])) >= 0
+    }
+    // Test whether a contains b
+    contains := func(a, b []int) bool {
+        return a[0] <= b[0] && a[1] >= b[1]
+    }
+    res := [][]int{intervals[0]}
+    for i := 1; i < len(intervals); i++ {
+        if pre := res[len(res)-1]; contains(pre, intervals[i]) {
+            // pre contains intervals[i] -> discard intervals[i]
+            continue
+        } else if overlaps(pre, intervals[i]) {
+            // pre overlaps intervals[i] -> merge them
+            res = res[:len(res)-1]
+            res = append(res, []int{pre[0], intervals[i][1]})
+        } else {
+            res = append(res, intervals[i])
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $O(nlogn)$
+- Space complexity: $O(1)$
+
+Improvement: Actually we don't need to take "overlapping" and "containing" as two distinct situations.
+
+```go
+type TwoDArray [][]int
+
+func (tda TwoDArray) Len() int {
+    return len(tda)
+}
+
+func (tda TwoDArray) Less(i, j int) bool {
+    return tda[i][0] < tda[j][0]
+}
+
+func (tda TwoDArray) Swap(i, j int) {
+    tda[i], tda[j] = tda[j], tda[i]
+}
+
+func merge(intervals [][]int) [][]int {
+    if len(intervals) == 0 || len(intervals[0]) == 0 {
+        return nil
+    }
+    if len(intervals) == 1 {
+        return intervals
+    }
+    // Sort intervals ascendingly by left boundary of each interval
+    sort.Sort(TwoDArray(intervals))
+    pre := intervals[0]
+    res := [][]int{pre}
+    for _, interval := range intervals {
+        if interval[0] <= pre[1] {
+            // pre overlaps interval or 
+            // pre contains interval
+            if interval[1] > pre[1] {
+                // Update right boundary if necessary
+                pre[1] = interval[1]
+            }
+        } else {
+            // pre and interval are disjoint
+            pre, res = interval, append(res, interval)
+        }
+    }
+    return res
+}
+```
+
+**Recap**
+
+Let's say we have two intervals `[a, b] (a <= b)` and `[c, d] (c <= d)`. If `c <= b`, they overlap and the length of overlapped section is `min(b, d) - max(a, c)`.
+
 # Linked List
 
 ## [138. Copy List with Random Pointer](<https://leetcode.com/problems/copy-list-with-random-pointer/>)
@@ -3531,17 +3661,15 @@ func partition(s string) [][]string {
 
 func dfs(s string, pos int, partition []string, dp [][]bool, res *[][]string) {
 	if pos == len(s) {
-        // Note that we need a copy to avoid following recursion's pollution
-		tmp := make([]string, len(partition))
-		copy(tmp, partition)
-		*res = append(*res, tmp)
+		*res = append(*res, partition)
 		return
 	}
 	for i := pos; i < len(s); i++ {
 		if dp[pos][i] {
-			partition = append(partition, s[pos:i+1])
-			dfs(s, i+1, partition, dp, res)
-			partition = partition[:len(partition)-1]
+            tmp := make([]string, len(partition))
+            copy(tmp, partition)
+            tmp = append(tmp, s[pos:i+1])
+			dfs(s, i+1, tmp, dp, res)
 		}
 	}
 }
@@ -3592,12 +3720,15 @@ func wordBreak(s string, dict []string) bool {
 	if len(s) == 0 || len(dict) == 0 {
 		return false
 	}
-	// dp[i]: can s[:i] be segmented?
+    // dp[i]: can s[:i] be segmented?
 	dp := make([]bool, len(s)+1)
 	dp[0] = true
 	for i := 1; i <= len(s); i++ {
 		for _, word := range dict {
 			if l := len(word); l <= i {
+                // The index is kinda tricky
+                // Let's say input string is "leetcode", dict is ["leet", "code"]
+                // When i == 4 and word == "leet", i-l == 0 so s[i-l]  == "leet" which does make sense
 				if dp[i-l] && s[i-l:i] == word {
 					dp[i] = true
 					break
@@ -3644,6 +3775,35 @@ func wordBreak(s string, dict []string) bool {
 
 - Time complexity: $O(len(s)^2)$
 - Space complexity: $O(len(s))$
+
+In case we want to make this approach more efficient:
+
+```go
+func wordBreak(s string, dict []string) bool {
+	if len(s) == 0 || len(dict) == 0 {
+		return false
+    }
+    set := make(map[string]bool)
+    for _, word := dict {
+        set[word] = true
+    }
+	// dp[i]: can s[:i] be segmented?
+	dp := make([]bool, len(s)+1)
+	dp[0] = true
+	for i := 1; i <= len(s); i++ {
+        for j := 0; j < i; j++ {
+            if dp[j] && set[s[j:i]] {
+                dp[i] = true
+                break
+            }
+        }
+	}
+	return dp[len(s)]
+}
+```
+
+- Time complexity: $O(len(s)^2)$
+- Space complexity: $O(len(s)+len(dict))$
 
 **Recap**
 
@@ -3698,7 +3858,7 @@ Output:
 
 **Solution**
 
-This is a DFS problem. Find the first word, then start here to find next... Normal DFS will cause TLE so do memoization. By doing so, we are solving this problem using DP at the same time.
+This is a DFS/backtracking problem. Find the first word, then start here to find next... Normal DFS will cause TLE so do memoization. By doing so, we are solving this problem using DP at the same time.
 
 ```go
 func wordBreak(s string, wordDict []string) []string {
@@ -8061,6 +8221,88 @@ func maxSubArray(nums []int) int {
 
 - Time complexity: $O(n)$
 - Space complexity: $O(1)$
+
+# Greedy
+
+## [55. Jump Game](https://leetcode.com/problems/jump-game/)
+
+Given an array of non-negative integers, you are initially positioned at the first index of the array.
+
+Each element in the array represents your maximum jump length at that position.
+
+Determine if you are able to reach the last index.
+
+Example 1:
+```
+Input: [2,3,1,1,4]
+Output: true
+Explanation: Jump 1 step from index 0 to 1, then 3 steps to the last index.
+```
+Example 2:
+```
+Input: [3,2,1,0,4]
+Output: false
+Explanation: You will always arrive at index 3 no matter what. Its maximum
+             jump length is 0, which makes it impossible to reach the last index.
+```
+
+**Solution**
+
+(1) Time Limit Exceeded
+
+Tried to solve this problem by DFS because I thought it was a typical DP problem.
+
+```go
+func canJump(nums []int) bool {
+    if len(nums) == 0 {
+        return false
+    }
+    return dfs(nums, 0)
+}
+
+func dfs(steps []int, start int) bool {
+    if start == len(steps)-1 {
+        return true
+    }
+    for i := 1; i <= steps[start]; i++ {
+        if dfs(steps, start+i) {
+            return true
+        }
+    }
+    return false
+}
+```
+
+- Time complexity: ?
+- Space complexity: ?
+
+(2) Accepted
+
+Actually we can solve this problem by greedy algorithm.
+
+We change this problem into "Can we reach ending point from starting point?". Here starting point is 0 and ending point is `len(nums)-1`. So at every step, we calculate the farthest point we can reach and see if we arrive at or pass ending point. 
+
+```go
+func canJump(nums []int) bool {
+    canReach := 0 // The farthest index we can reach from current index
+    for i := 0; i <= canReach; i++ {
+        if tmp := nums[i]+i; tmp > canReach {
+            canReach = tmp
+        }
+        if canReach >= len(nums)-1 {
+            return true
+        }
+    }
+    return false
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+**Recap**
+
+The key point of greedy algorithm is we always *do our best* at every step.
 
 # Math & Bit Manipulation
 

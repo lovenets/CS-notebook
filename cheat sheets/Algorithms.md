@@ -382,3 +382,187 @@ func levelOrder(root *TreeNode) {
 }
 ```
 
+## Graph
+
+### Traversal
+
+#### Definition
+
+- Is the process of visiting (checking and/or updating) each vertex in a graph.
+  - Such traversals are classified by the order in which the vertices are visited.
+
+#### Key Points
+
+- Tree traversal is a special case of graph traversal.
+- Unlike tree traversal, graph traversal may require that some vertices be visited more than once, since it is not necessarily known before transitioning to a vertex that it has already been explored.
+  
+  - But usually we record each vertex we have visited and by doing so we can assure each vertex is visited exactly once and we can also avoid stucking in any cycles. 
+
+- Traversals are classified by the order in which the vertices are visited.
+
+  - DFS visits the child vertices before visiting the sibling vertices;
+  - BFS visits the sibling bertices before visiting the child vertices.
+
+#### Big O Efficiency
+
+- DFS
+  
+  - Adjacent list: $O(E+V)$, Adjacent matrix: $O(V^2)$
+
+- BFS
+  
+  - Adjacent list: $O(E+V)$, Adjacent matrix: $O(V^2)$  
+
+#### Code Template
+
+```go
+// g is the adjacent matrix
+// g[x][y] == 1 means there is an edge 
+// from vertex i to j
+func dfs(g [][]int, start int) {
+    visited := make([]bool, len(g))
+
+    var helper func(int)
+    helper = func(i int) {
+        for j := range g[i] {
+            if g[i][j] == 1 && !visited[j] {
+                visited[j] = true
+                helper(j)
+            }
+        }
+    }
+
+    helper(start)
+}
+
+func bfs(g [][]int, start int) {
+    visited := make([]bool, len(g))
+    queue := []int{start}
+    visited[start] = true
+    for len(queue) > 0 {
+        i := queue[0]
+        queue = queue[1:]
+        for j := range g[i] {
+            if g[i][j] == 1 && !visited[j] {
+                queue = append(queue, j)
+                visited[j] = true
+            }
+        }
+    }
+}
+```
+
+### Minimum Spanning Tree
+
+#### Definition
+
+- Is a subset of the edges of a connected, edge-weighted undirected graph that connects all the vertices together, without any cycles and with the minimum possible total edge weight.
+
+#### Key Points
+
+- If there are n vertices in the graph, then each spanning tree has n − 1 edges.
+
+- If each edge has a distinct weight then there will be only one, unique minimum spanning tree.
+
+- If the weights are positive, then a minimum spanning tree is in fact a minimum-cost subgraph connecting all vertices. This property can be applied to solve many problems in real world.
+
+  - For example, A minimum spanning tree would be one with the lowest total cost, representing the least expensive path for laying the cable.
+
+- If the minimum cost edge e of a graph is unique, then this edge is included in any MST.
+
+#### Big O Efficiency
+
+- Prim's algorithm
+
+  - Adjacency list: $O(ElogV)$, Adjacency matrix: $O(V^2)$
+
+- Kruskal
+
+  - Adjacency list: $O(ElogV)$, Adjacency matrix: $O(V^2)$
+
+#### Code Template
+
+##### Prim's Algorithm
+
+1. Initialize a tree with a single vertex, chosen arbitrarily from the graph.
+2. Grow the tree by one edge: of the edges that connect the tree to vertices not yet in the tree, find the minimum-weight edge, and transfer it to the tree.
+3. Repeat step 2 (until all vertices are in the tree).
+
+```go
+type Edge struct {
+    From   int
+    To     int
+    Weight int
+}
+
+func kruskal(g []Edge) []Edge {
+    inMST := make([]bool ,len(g)) // Record whether a vertex is already in MST
+    inMST[0] = true
+    res := make([]Edge, 0)
+    for len(res) < len(g)-1 {
+        // Find the edge which connects the tree to a vertex not yet in the tree and has the minimum weight at the same time
+        min := Edge{Weight: math.MaxInt64}
+        for _, e := range g {
+            if inMST[e.From] && !inMST[e.To] && e.Weight < min.Weight {
+                min = e
+            }
+        }
+        res = append(res, min)
+        inMST[e.To] = true
+    }
+    return res
+}
+```
+
+##### Kruskal's Algorithm
+
+1. create a forest F (a set of trees), where each vertex in the graph is a separate tree
+2. create a set S containing all the edges in the graph
+3. while S is nonempty and F is not yet spanning
+  - remove an edge with minimum weight from S
+  - if the removed edge connects two different trees then add it to the forest F, combining two trees into a single tree
+
+```go
+type Edge struct {
+    From   int
+    To     int
+    Weight int
+}
+
+type Edges []Edge
+
+func (e Edges) Len() int {
+    return len(e)
+}
+
+func (e Edges) Less(i, j int) bool {
+    return e[i].Weight < e[j].Weight
+}
+
+func (e Edges) Swap(i, j int) {
+    e[i], e[j] = e[j], e[i]
+}
+
+// Let's say all vertices are marked from 0 to n-1
+func Kruskal(g []Edge) []Edge {
+    // Sort edges ascendingly by their weights
+    sort.Sort(Edges(g))
+    // We will use union find to determine 
+    // if two vertices are already in the same tree
+    uf := union.Init(len(g))
+    
+    mst := make([]Edge, 0, len(g)-1)
+    for _, e := range g {
+        if r1, r2 := uf.Search(e.From), uf.Search(e.To); r1 != r2 {
+            // This edge connects two different trees, 
+            // combine two trees into a single tree
+            uf.Merge(r1, r2)
+            if mst = append(mst, e); len(mst) == len(g)-1 {
+                // If mst has E-1 edges, then we finish the task.
+                break
+            }
+        }
+    }
+    return mst
+}
+```

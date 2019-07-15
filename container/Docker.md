@@ -249,9 +249,90 @@ Using volumes is a good way to persist data on host file system. The following e
 $ docker run -p 8080:8080 -d --mount source=myvol2,target=/app hello-docker-go
 ```
 
-or
+# Service
 
-```bash
-$ docker run -p 8080:8080 -d -v myvol2:/app hello-docker-go
+In a distributed application, different pieces of the app are called “services”. Services are really just “containers in production.” A service only runs one image, but it codifies the way that image runs—what ports it should use, how many replicas of the container should run so the service has the capacity it needs, and so on.
+
+## Configure Service
+
+Scaling a service changes the number of container instances running that piece of software, assigning more computing resources to the service in the process and so on. It’s very easy to define, run, and scale services with the Docker platform -- just write a `docker-compose.yml` file.
+
+Here is an example:
+
+```yaml
+version: "3"
+services:
+  web:
+    # replace username/repo:tag with 
+    # your name and image details to 
+    # pull the image we want to run as a service 
+    image: username/repo:tag
+    deploy:
+      # 5 instances
+      replicas: 5
+      resources:
+        limits:
+          # limit each instance to use 
+          # at most 10% of a single core 
+          # of CPU time and 50MB of RAM
+          cpus: "0.1"
+          memory: 50M
+      restart_policy:
+        # restart immediately if one fails
+        condition: on-failure
+    ports:
+      # map port 4000 on the host
+      # to web's port 80
+      - "4000:80"
+    networks:
+      # instruct web's containers 
+      # to share port 80
+      # via a load-balanced network called webnet
+      - webnet
+networks:
+  # define the webnet network with default settings which is 
+  # load-balanced overlay network
+  webnet:
 ```
 
+## Run App as Service
+
+```bash
+$ docker swarm init
+$ docker stack deploy -c docker-compose.yml appname
+```
+Then we can get the service ID:
+```bash
+$ docker service ls
+```
+
+Look for output for the `web` service, prepended with your app name. The service ID is listed as well, along with the number of replicas, image name, and exposed ports.
+
+A single container running in a service is called a *task*. Tasks are given unique IDs that numerically increment, up to the number of replicas you defined in docker-compose.yml. List the tasks for your service:
+
+```bash
+$ docker service ps servicename
+```
+## Scale the App
+
+We can scale the app easily by modifying `docker-compose.yml` and re-running the `docker stack deploy` command. 
+
+Docker performs an in-place update, no need to tear the stack down first or kill any containers.
+
+## Take Down the App And the Swarm
+
+
+Take the app down with docker stack rm:
+```bash
+$ docker stack rm appname
+```
+Take down the swarm.
+```bash
+$ docker swarm leave --force
+```
+
+# Swarm
+
+A swarm is a group of machines that are running Docker and joined into a cluster. The machines in a swarm can be physical or virtual. After joining a swarm, they are referred to as **nodes**.
+
+Swarm managers are the only machines in a swarm that can execute your commands, or authorize other machines to join the swarm as **workers**.

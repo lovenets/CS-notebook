@@ -566,3 +566,97 @@ func Kruskal(g []Edge) []Edge {
     return mst
 }
 ```
+
+### Shortest Path
+
+#### Definition
+
+- Is the problem of finding a path between two vertices (or nodes) in a graph such that the sum of the weights of its constituent edges is minimized.
+
+#### Key Points
+
+- There are 3 kinds of SP problems:
+
+  - The **single-source shortest path** problem, in which we have to find shortest paths from a source vertex v to all other vertices in the graph.
+  - The **single-destination shortest path** problem, in which we have to find shortest paths from all vertices in the directed graph to a single destination vertex v. This can be reduced to the single-source shortest path problem by reversing the arcs in the directed graph.
+  - The **all-pairs shortest path** problem, in which we have to find shortest paths between every pair of vertices v, v' in the graph.
+
+- Dijkstra's algorithm solves the single-source shortest path problem with **non-negative** edge weight.
+
+- Floyd–Warshall algorithm solves all pairs shortest paths in graphs which contain **no negative cycles**.
+
+- Bellman–Ford algorithm/SPFA solves the single-source problem if edge weights **may be negative**.
+
+- Don't forget BFS can find shortest paths in **unweighted** graphs.
+
+#### Big O Efficiency
+
+- Dijkstra's algorithm: $O(V^2)$
+
+- Floyd-Warshall algorithm: $O(V^3)$
+
+- Bellman-Ford algorithm: $O(VE)$
+
+### Topological Sort
+
+#### Definition
+
+- Is a linear ordering of its vertices such that for every directed edge <u, v> from vertex u to vertex v, u comes before v in the ordering.
+
+#### Key Points
+
+- A topological ordering is possible if and only if the graph has no directed cycles.
+
+- Any DAG has at least one topological ordering.
+
+- The canonical application of topological sorting is in scheduling a sequence of jobs or tasks based on their dependencies.
+
+#### Big O Efficiency
+
+- Kahn's algorithm: $O(V+E)$
+
+#### Code Template
+
+```go
+func KahnTopologicalSort(g [][]int) []int {
+    // Find all "start nodes" which have no incoming edges
+    indegree := make([]int, len(g))
+    for i := range g {
+        for j := range g[i] {
+            if g[i][j] == 1 {
+                indegree[j]++
+            }
+        }
+    }
+    start := make([]int, 0) // set of all nodes with no incoming edge
+    for i := range indegree {
+        if indegree[i] == 0 {
+            start = append(start, i)
+        }
+    }
+
+    sorted := make([]int, 0, len(g)) 
+    for len(start) > 0 {
+        n := start[0]
+        set = start[1:]
+        sorted = append(sorted, n)
+        for m := range g[n] {
+            if g[n][m] == 1 {
+                // Remove edge n to m
+                if indegree[m]--; indegree[m] == 0 {
+                    // If m has no other incoming edges
+                    // then it becomes a start node
+                    start = append(start, m)
+                }
+            }
+        } 
+    }
+
+    if len(sorted) < len(g) {
+        // Graph has at least one cycle
+        return nil
+    } else {
+        return sorted
+    }
+}
+```

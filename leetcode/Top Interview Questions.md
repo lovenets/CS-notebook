@@ -4070,7 +4070,7 @@ Output: ["eat","oath"]
 
 (1) Time Limit Exceeded
 
-The most straightforward way is DFS. The code below waste much time on useless work. For example, it will continue searching even though no word in dictionary starts with current string `tmp`.
+The most straightforward way is DFS. The code below wasted much time on useless work. For example, it continued searching even though no word in dictionary started with current string `tmp`.
 
 ```go
 func findWords(board [][]byte, words []string) []string {
@@ -4232,10 +4232,10 @@ func isAnagram(s string, t string) bool {
     if len(s) != len(t) {
         return false
     }
-    count := make(map[uint8]int)
+    count := make([]uint8, 26)
     for i := range s {
-        count[s[i]]++
-        count[t[i]]--
+        count[s[i]-'a']++
+        count[t[i]-'a']--
     }
     for _, c := range count {
         if c != 0 {
@@ -4247,7 +4247,7 @@ func isAnagram(s string, t string) bool {
 ```
 
 - Time complexity: $O(n)$  where n is the length of string.
-- Space complexity: $O(n)$
+- Space complexity: $O(1)$
 
 (2) Accepted
 
@@ -4702,6 +4702,7 @@ Since BST is an implicit sorted sequence, we can binary search it.
 
 ```go
 func kthSmallest(root *TreeNode, k int) int {
+    // Be careful with all these conditions
     if count := countNodes(root.Left); k <= count {
         return kthSmallest(root.Left, k)
     } else if k > count+1 {
@@ -4870,7 +4871,7 @@ func lowestCommonAncestor(root, p, q *TreeNode) *TreeNode {
         // Both p and q are in the left substree
         return left
     }
-    // p and q are in defferent subtrees
+    // p and q are in different subtrees
     return root
 }
 ```
@@ -4889,6 +4890,7 @@ func lowestCommonAncestor(root, p, q *TreeNode) *TreeNode {
     }
     parent := map[*TreeNode]*TreeNode{root: nil}
     stack := []*TreeNode{root}
+    // level-order traversal
     for {
         _, ok1 := parent[p]
         _, ok2 := parent[q]
@@ -4944,13 +4946,13 @@ as "[1,2,3,null,null,4,5]"
 
 **Solution**
 
-Just preorder traverse the tree and mark null nodes. For deserializing, we use a Queue to store the pre-order traversal and since we have "X" as null node, we know exactly where to end building subtress.
+Just preorder traverse the tree and mark null nodes. For deserializing, we use a queue to store the pre-order traversal and since we have "#" as null node, we know exactly where to end building subtress.
 
 ```go
 func serialize(root *TreeNode) string {
     var sb strings.Builder
     buildString(root, sb)
-    return sb.String()
+    return strings.TrimRight(sb.String(), ",") // Becareful with the abundant tailing ','
 }
 
 func buildString(root *TreeNode, sb strings.Builder) {
@@ -4983,6 +4985,10 @@ func buildTree(data []string) *TreeNode {
 
 - Time complexity: $O(n)$ for both `serialize`and `deserialize`
 - Space complexity: $O(n)$
+
+**Recap**
+
+`strings.Split` will generate empty strings if there are any leading or trailing adundant separators in input string so be careful.
 
 # Segment Tree
 
@@ -6444,6 +6450,93 @@ func add(tail, node *dllNode) {
 
 - Time complexity: $O(1)$
 - Space complexity: $O(n)$
+
+## [62. Unique Paths](https://leetcode.com/problems/unique-paths/)
+
+A robot is located at the top-left corner of a m x n grid (marked 'Start' in the diagram below).
+
+The robot can only move either down or right at any point in time. The robot is trying to reach the bottom-right corner of the grid (marked 'Finish' in the diagram below).
+
+How many possible unique paths are there?
+
+![](https://assets.leetcode.com/uploads/2018/10/22/robot_maze.png)
+
+Above is a 7 x 3 grid. How many possible unique paths are there?
+
+Note: m and n will be at most 100.
+
+Example 1:
+```
+Input: m = 3, n = 2
+Output: 3
+Explanation:
+From the top-left corner, there are a total of 3 ways to reach the bottom-right corner:
+1. Right -> Right -> Down
+2. Right -> Down -> Right
+3. Down -> Right -> Right
+```
+Example 2:
+```
+Input: m = 7, n = 3
+Output: 28
+```
+
+**Solution**
+
+(1) Time Limit Exceeded
+
+I want to change this problem into "How many permutations can be generated from a string which contains duplicates?" because a path can be presented as something like "rrddrr" where "r" means moving right and "d" means moving down.
+
+```go
+func uniquePaths(m int, n int) int {
+    rs, ds := strings.Repeat("r", m-1), strings.Repeat("d", n-1)
+    set := make(map[string]bool)
+    backtrack(rs+ds, "", set, m-1, n-1)
+    return len(set)
+}
+
+func backtrack(s string, tmp string, set map[string]bool, right int, down int) {
+    if len(tmp) == len(s) {
+        set[tmp] = true
+        return
+    }
+    for _, char := range s {
+        // There must be at most m-1 "r"s abd n-1 "d"s
+        if _tmp := fmt.Sprintf("%s%c", tmp, char); strings.Count(_tmp, "r") <= right && strings.Count(_tmp, "d") <= down {
+            backtrack(s, _tmp, set, right, down)
+        }
+    }
+}
+```
+
+- Time complexity: $O((m+n-2)!)$
+- Space complexity: $O((m+n-2)!)$
+
+(2) Accepted
+
+Since the robot can only move right and down, when it arrives at a point, it either arrives from left or above. If we use `dp[i][j]` for the number of unique paths to arrive at the point `(i, j)`, then the state equation is `dp[i][j] = dp[i][j - 1] + dp[i - 1][j]`. Moreover, we have the base cases `dp[0][j] = dp[i][0] = 1` for all valid `i` and `j`.
+
+```go
+func uniquePaths(m int, n int) int {
+    dp := make([][]int, m)
+    for i := range dp {
+        tmp := make([]int, n)
+        for j := range tmp {
+            tmp[j] = 1
+        }
+        dp[i] = tmp
+    }
+    for i := 1; i < m; i++ {
+        for j := 1; j < n; j++ {
+            dp[i][j] = dp[i-1][j] + dp[i][j-1]
+        }
+    }
+    return dp[m-1][n-1]
+}
+```
+
+- Time complexity: $O(mn)$
+- Space complexity: $O(mn)$
 
 # Sort
 
@@ -9015,4 +9108,129 @@ func divide(dividend int, divisor int) int {
 ```
 
 - Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+## [66. Plus One](https://leetcode.com/problems/plus-one/)
+
+Given a non-empty array of digits representing a non-negative integer, plus one to the integer.
+
+The digits are stored such that the most significant digit is at the head of the list, and each element in the array contain a single digit.
+
+You may assume the integer does not contain any leading zero, except the number 0 itself.
+
+Example 1:
+```
+Input: [1,2,3]
+Output: [1,2,4]
+Explanation: The array represents the integer 123.
+```
+Example 2:
+```
+Input: [4,3,2,1]
+Output: [4,3,2,2]
+Explanation: The array represents the integer 4321.
+```
+
+**Solution**
+
+```go
+func plusOne(digits []int) []int {
+    if len(digits) == 0 {
+        return nil
+    }
+    res := make([]int, 0, len(digits)+1)
+    carry := 1
+    for i := len(digits)-1; i >= 0; i-- {
+        if tmp := digits[i]+carry; tmp == 10 {
+            res, carry = append([]int{0}, res...), 1
+        } else {
+            res, carry = append([]int{tmp}, res...), 0
+        }
+    }
+    if carry == 1 {
+        res = append([]int{1}, res...)
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+## [69. Sqrt(x)](https://leetcode.com/problems/sqrtx/)
+
+Implement `int sqrt(int x)`.
+
+Compute and return the square root of x, where x is guaranteed to be a non-negative integer.
+
+Since the return type is an integer, the decimal digits are truncated and only the integer part of the result is returned.
+
+Example 1:
+```
+Input: 4
+Output: 2
+```
+Example 2:
+```
+Input: 8
+Output: 2
+Explanation: The square root of 8 is 2.82842..., and since 
+             the decimal part is truncated, 2 is returned.
+```
+
+**Solution**
+
+(1) Accpeted
+
+```go
+func mySqrt(x int) int {
+    for i := 0; ; i++ {
+        if tmp := i*i; tmp == x {
+            return i
+        } else if tmp > x {
+            return i-1
+        }
+    }
+    return 0
+}
+```
+
+- Time complexity: $O(\sqrt{x})$
+- Space complexity: $O(1)$
+
+(2) Accepted
+
+[Algorithm using Newton's method using only integer division.](https://en.wikipedia.org/wiki/Integer_square_root#Using_only_integer_division)
+
+```go
+func mySqrt(x int) int {
+    if x == 0 {
+        return 0
+    }
+    left, right := 1, math.MaxInt64
+    for {
+        if mid := left + (right-left) >> 1; mid > x/mid {
+            right = mid - 1
+        } else {
+            if mid+1 > x/(mid+1) {
+                return mid
+            }
+            left = mid + 1
+        }
+    }
+}
+```
+
+Below code also works.
+
+```go
+func mySqrt(x int) int {
+    res := x
+    for ; res*res > x; res = (res+x/res) / 2 {   
+    }
+    return res
+}
+```
+
+- Time complexity: $O(\sqrt{x})$
 - Space complexity: $O(1)$

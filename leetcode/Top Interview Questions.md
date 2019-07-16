@@ -8315,6 +8315,111 @@ func maxSubArray(nums []int) int {
 - Time complexity: $O(n)$
 - Space complexity: $O(1)$
 
+## [70. Climbing Stairs](https://leetcode.com/problems/climbing-stairs/)
+
+You are climbing a stair case. It takes n steps to reach to the top.
+
+Each time you can either climb 1 or 2 steps. In how many distinct ways can you climb to the top?
+
+Note: Given n will be a positive integer.
+
+Example 1:
+```
+Input: 2
+Output: 2
+Explanation: There are two ways to climb to the top.
+1. 1 step + 1 step
+2. 2 steps
+```
+Example 2:
+```
+Input: 3
+Output: 3
+Explanation: There are three ways to climb to the top.
+1. 1 step + 1 step + 1 step
+2. 1 step + 2 steps
+3. 2 steps + 1 step
+```
+
+**Solution**
+
+(1) Accepted
+
+If we want to reach `n`th step, we can start from `n-1`th step and take 1 step or start from `n-2`th step and take 2 steps, i.e.,
+
+```
+dp[i] = dp[i-1] + dp[i-2] // there are dp[i] distinct ways to get ith step
+```
+
+```go
+func climbStairs(n int) int {
+    if n <= 0 {
+        return 0
+    }
+    dp := make([]int, n+1)
+    dp[0], dp[1] = 1, 1
+    for i := 2; i <= n; i++ {
+        dp[i] = dp[i-1] + dp[i-2]
+    }
+    return dp[n]
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+(2) Accepted
+
+Same idea as the previous approach but do it in recursive way with memoization.
+
+```go
+func climbStairs(n int) int {
+    if n <= 0 {
+        return 0
+    }
+    memo := make([]int, n+1)
+    return climb(0, n, &memo)
+}
+
+func climb(i int, n int, memo *[]int) int {
+    if i > n {
+        return 0
+    }
+    if i == n {
+        return 1
+    }
+    if (*memo)[i] == 0 {
+        (*memo)[i] = climb(i+1, n, memo) + climb(i+2, n, memo)
+    }
+    return (*memo)[i]
+}
+```
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+(3) Accepted
+
+In the above approach we have used `dp` array where `dp[i]=dp[i-1]+dp[i-2]`. It can be easily analysed that `dp[i]` is nothing but $i_{th}$ fibonacci number.
+
+$Fib(n) = Fib(n-1) + Fib(n-2)$
+
+```go
+func climbStairs(n int) int {
+    if n == 1 {
+        return 1
+    }
+    first, second := 1, 2
+    for i := 3; i <= n; i++ {
+        tmp := first + second 
+        first, second = second, tmp
+    }
+    return second
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
 # Greedy
 
 ## [55. Jump Game](https://leetcode.com/problems/jump-game/)

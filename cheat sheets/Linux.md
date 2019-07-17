@@ -179,6 +179,9 @@ userdel john
 
 # Add the john account to the sales group
 usermod -aG sales john
+
+# Change current user's password
+passwd
 ```
 
 ### File And Directory
@@ -234,6 +237,9 @@ tail file
 
 # Display the last 10 lines of file and "follow" the file as it grows.
 tail -f file
+
+# Display file's attributes like type, owner, etc.
+stat filename
 ```
 
 ### Process Management
@@ -261,7 +267,7 @@ kill pid
 killall processname
 
 # Start program in the background
-program &
+programname &
 
 # Display stopped or background jobs
 bg
@@ -284,6 +290,17 @@ fg n
 | rwx r-x r-x | chmod 755 filename |
 | rw- rw- r-- | chmod 664 filename |
 | rw- r-- r-- | chmod 644 filename |
+
+| Octal | Permission              | rwx | Binary |
+|-------|-------------------------|-----|--------|
+| 7     | read, write and execute | rwx | 111    |
+| 6     | read and write          | rw- | 110    |
+| 5     | read and execute        | r-x | 101    |
+| 4     | read only               | r-- | 100    |
+| 3     | write and execute       | -wx | 011    |
+| 2     | write only              | -w- | 010    |
+| 1     | execute only            | --x | 001    |
+| 0     | none                    | --- | 000    |
 
 ### Networking
 

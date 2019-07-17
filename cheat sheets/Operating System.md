@@ -1,5 +1,13 @@
 **It is the interface between the user and the computer hardware.**
 
+## Duties of OS
+
+- Virtualization
+  - CPU
+  - Memory
+- Concurrency
+- Persistence
+
 ## Types of Operating System (OS)
 
 - Batch OS – A set of similar jobs are stored in the main memory for execution. A job gets assigned to the CPU, only when the execution of the previous job completes.
@@ -59,7 +67,7 @@
 #####  Objectives of process Scheduling Algorithm
 
 - Max CPU utilization (Keep CPU as busy as possible)
-Fair allocation of CPU.
+- Fair allocation of CPU.
 - Max throughput (Number of processes that complete their execution per time unit)
 - Min turnaround time (Time taken by a process to finish execution) 
 - Min waiting time (Time for which a process waits in ready queue) 
@@ -94,16 +102,16 @@ Fair allocation of CPU.
 
 A solution for the critical section problem must satisfy the following three conditions:
 
-- Mutual Exclusion – If a process Pi is executing in its critical section, then no other process is allowed to enter into the critical section.
+- Mutual Exclusion – If a process $P_i$ is executing in its critical section, then no other process is allowed to enter into the critical section.
 - Progress – If no process is executing in the critical section, then the decision of a process to enter a critical section cannot be made by any other process that is executing in its remainder section. The selection of the process cannot be postponed indefinitely.
 - Bounded Waiting – There exists a bound on the number of times other processes can enter into the critical section after a process has made request to access the critical section and before the requested is granted.
 
 ### Synchronization Tools
 
-- A **Semaphore** is an integer variable that is accessed only through two atomic operations, wait () and signal (). An atomic operation is executed in a single CPU time slice without any pre-emption. Semaphores are of two types:
+- A **Semaphore** is an integer variable that is accessed only through two atomic operations, `wait()` and `signal()`. An atomic operation is executed in a single CPU time slice without any preemption. Semaphores are of two types:
 
   - Counting Semaphore – A counting semaphore is an integer variable whose value can range over an unrestricted domain.
-  - Mutex – Binary Semaphores are called Mutex. These can have only two values, 0 or 1. The operations wait () and signal () operate on these in a similar fashion.
+  - Mutex – Binary Semaphores are called Mutex. These can have only two values, 0 or 1. The operations `wait()` and `signal()` operate on these in a similar fashion.
 
 ### Deadlock
 

@@ -1570,6 +1570,263 @@ func merge(intervals [][]int) [][]int {
 
 Let's say we have two intervals `[a, b] (a <= b)` and `[c, d] (c <= d)`. If `c <= b`, they overlap and the length of overlapped section is `min(b, d) - max(a, c)`.
 
+## [73. Set Matrix Zeroes](https://leetcode.com/problems/set-matrix-zeroes/)
+
+Given a m x n matrix, if an element is 0, set its entire row and column to 0. Do it in-place.
+
+Example 1:
+```
+Input: 
+[
+  [1,1,1],
+  [1,0,1],
+  [1,1,1]
+]
+Output: 
+[
+  [1,0,1],
+  [0,0,0],
+  [1,0,1]
+]
+```
+Example 2:
+```
+Input: 
+[
+  [0,1,2,0],
+  [3,4,5,2],
+  [1,3,1,5]
+]
+Output: 
+[
+  [0,0,0,0],
+  [0,4,5,0],
+  [0,3,1,0]
+]
+```
+Follow up:
+
+- A straight forward solution using O(mn) space is probably a bad idea.
+- A simple improvement uses O(m + n) space, but still not the best solution.
+- Could you devise a constant space solution?
+
+**Solution**
+
+(1) Accepted
+
+```go
+func setZeroes(matrix [][]int)  {
+    zeroes := make([][]int, 0) // (i, j) where matrix[i][j] == 0
+    for i := range matrix {
+        for j := range matrix[i] {
+            if matrix[i][j] == 0 {
+                zeroes = append(zeroes, []int{i, j})
+            }
+        }
+    }
+    m, n := len(matrix), len(matrix[0])
+    for _, zero := range zeroes {
+        row, col := zero[0], zero[1]
+        for i := 0; i < n; i++ {
+            matrix[row][i] = 0
+        }
+        for j := 0; j < m; j++ {
+            matrix[j][col] = 0
+        }
+    }
+}
+```
+
+- Time complexity: $O(mXn)$
+- Space complexity: $O(mXn)$ at worst
+
+(2) Accepted
+
+```go
+func setZeroes(matrix [][]int)  {
+    rows := make([]int, 0, len(matrix)) // rows which contain 0s
+    cols := make([]int, 0, len(matrix[0])) // colums which contain 0s
+    for i := range matrix {
+        for j := range matrix[i] {
+            if matrix[i][j] == 0 {
+                rows, cols = append(rows, i), append(cols, j)
+            }
+        }
+    }
+    for _, r := range rows {
+        for i := 0; i < len(matrix[0]); i++ {
+            matrix[r][i] = 0
+        }
+    }
+    for _, c := range cols {
+        for i := 0; i < len(matrix); i++ {
+            matrix[i][c] = 0
+        }
+    }
+}
+```
+
+- Time complexity: $O(mXn)$
+- Space complexity: $O(m+n)$
+
+(3) 
+
+Store states of each row in the first of that row, and store states of each column in the first of that column. Because the state of first row and the state of first column would occupy the same cell, let it be the state of first row, and use another variable `col0` for first column. In the first phase, use matrix elements to set states in a top-down way. In the second phase, use states to set matrix elements in a bottom-up way.
+
+```go
+func setZeroes(matrix [][]int)  {
+    col0 := false // whether we need to set the first column to 0
+    m, n := len(matrix), len(matrix[0])
+    for i := 0; i < m; i++ {
+        if matrix[i][0] == 0 {
+            col0 = true
+        }
+        for j := 1; j < n; j++ {
+            if matrix[i][j] == 0 {
+                matrix[i][0], matrix[0][j] = 0, 0
+            }
+        }
+    }
+
+    for i := m-1; i >= 0; i-- {
+        for j := n-1; j >= 1; j-- {
+            if matrix[i][0] == 0 || matrix[0][j] == 0 {
+                matrix[i][j] = 0
+            }
+        }
+        // handle the first column
+        if col0 {
+            matrix[i][0] = 0
+        }
+    } 
+}
+```
+
+## [75. Sort Colors](https://leetcode.com/problems/sort-colors/)
+
+Given an array with n objects colored red, white or blue, sort them in-place so that objects of the same color are adjacent, with the colors in the order red, white and blue.
+
+Here, we will use the integers 0, 1, and 2 to represent the color red, white, and blue respectively.
+
+Note: You are not suppose to use the library's sort function for this problem.
+
+Example:
+```
+Input: [2,0,2,1,1,0]
+Output: [0,0,1,1,2,2]
+```
+Follow up:
+
+- A rather straight forward solution is a two-pass algorithm using counting sort. First, iterate the array counting number of 0's, 1's, and 2's, then overwrite array with total number of 0's, then 1's and followed by 2's.
+- Could you come up with a one-pass algorithm using only constant space?
+
+**Solution**
+
+(1) Accepted
+
+```go
+func sortColors(nums []int)  {
+    for i, red, blue := 0, 0, len(nums)-1; i <= blue; i++ {
+        switch nums[i] {
+        case 0:
+            nums[i], nums[red] = nums[red], nums[i]
+            red++
+        case 2:
+            nums[i], nums[blue] = nums[blue], nums[i]
+            blue--
+            i-- // tricky
+        }
+    } 
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+(2) Accepted
+
+```go
+func sortColors(nums []int)  {
+    red, white, blue := -1, -1, -1
+    for i := range nums {
+        switch nums[i] {
+        case 0:
+            red, white, blue = red+1, white+1, blue+1
+            nums[blue], nums[white], nums[red] = 2, 1, 0
+        case 1:
+            blue, white = blue+1, white+1
+            nums[blue], nums[white] = 2, 1
+        case 2:
+            blue++
+            nums[blue] = 2
+        }
+    }
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+## [88. Merge Sorted Array](https://leetcode.com/problems/merge-sorted-array/)
+
+Given two sorted integer arrays nums1 and nums2, merge nums2 into nums1 as one sorted array.
+
+Note:
+
+The number of elements initialized in nums1 and nums2 are m and n respectively.
+You may assume that nums1 has enough space (size that is greater or equal to m + n) to hold additional elements from nums2.
+Example:
+```
+Input:
+nums1 = [1,2,3,0,0,0], m = 3
+nums2 = [2,5,6],       n = 3
+
+Output: [1,2,2,3,5,6]
+```
+
+**Solution**
+
+(1) Accepted
+
+```go
+func merge(nums1 []int, m int, nums2 []int, n int)  {
+    for i, j := m, 0; i < m+n; i, j = i+1, j+1 {
+        nums1[i] = nums2[j]
+    }
+    sort.Ints(nums1)
+}
+```
+
+- Time complexity: $O((m+n)log(m+n))$
+- Space complexity: $O(1)$
+
+(2) Accepted
+
+Merge two sorted arrays from back to front.
+
+```go
+func merge(nums1 []int, m int, nums2 []int, n int)  {
+    i, j, k := m-1, n-1, m+n-1
+    for i >= 0 && j >= 0 {
+        if nums1[i] > nums2[j] {
+            nums1[k] = nums1[i]
+            i--
+        } else {
+            nums1[k] = nums2[j]
+            j--
+        }
+        k--
+    }
+    for j >= 0 {
+        nums1[k] = nums2[j]
+        k, j = k-1, j-1
+    }
+}
+```
+
+- Time complexity: $O(m+n)$
+- Space complexity: $O(1)$
+
 # Linked List
 
 ## [138. Copy List with Random Pointer](<https://leetcode.com/problems/copy-list-with-random-pointer/>)
@@ -5074,7 +5331,7 @@ class Solution {
 
 # Graph
 
-## [127. Word Loader](https://leetcode,com/problems/word-loader/)
+## [127. Word Loader](https://leetcode.com/problems/word-loader/)
 
 Given two words (*beginWord* and *endWord*), and a dictionary's word list, find the length of shortest transformation sequence from *beginWord* to *endWord*, such that:
 
@@ -5118,7 +5375,7 @@ Explanation: The endWord "cog" is not in wordList, therefore no possible transfo
 
 **Solution**
 
-If we fit this problem into graph theory, we may think this is a shortest path problem which can be solved by Dijkstra's algorithm, Floyd's algorithm or whatever. Of course it's true but if we really do it in this way, we may kind of overdo it. Since we can only convert a word to another by changing a letter, the weights of edges in the graph are all 1. That's where BFS come in to solve a shortest path problem.
+If we fit this problem into graph theory, we may think this is a shortest path problem which can be solved by Dijkstra's algorithm, Floyd's algorithm or whatever. Of course it's true but if we really do it in this way, we may kind of overdo it. Since we can only convert a word to another by changing a letter, the weights of edges in the graph are all 1. That's where BFS comes in to solve a shortest path problem.
 
 The idea is simply to start from the `beginWord`, then visit its neighbors, then the non-visited neighbors of its neighbors until we arrive at the `endWord`.
 
@@ -5278,7 +5535,7 @@ func dfs(grid *[][]byte, dir [][]int, startI int, startJ int) {
 
 **Recap**
 
-This is a typical connected-component labeling problem which in generally can be solved by DFS or BFS.
+This is a typical connected-component labeling problem which in general can be solved by DFS or BFS.
 
 ## [207. Course Schedule](<https://leetcode.com/problems/course-schedule/>)
 
@@ -5442,7 +5699,7 @@ func findOrder(numCourses int, prerequisites [][]int) []int {
 	if len(finished) == numCourses {
 		return finished
 	} else {
-		return []int{}
+		return nil
 	}
 }
 ```
@@ -5511,7 +5768,7 @@ func titleToNumber(s string) int {
 
 Given four lists A, B, C, D of integer values, compute how many tuples `(i, j, k, l)`there are such that `A[i] + B[j] + C[k] + D[l]` is zero.
 
-To make problem a bit easier, all A, B, C, D have same length of N where 0 ≤ N ≤ 500. All integers are in the range of -228 to 228 - 1 and the result is guaranteed to be at most 231 - 1.
+To make problem a bit easier, all A, B, C, D have same length of N where 0 ≤ N ≤ 500. All integers are in the range of -2^28 to 2^28 - 1 and the result is guaranteed to be at most 2^31 - 1.
 
 **Example:**
 
@@ -5558,7 +5815,7 @@ func fourSumCount(A []int, B []int, C []int, D []int) int {
 
 **Recap**
 
-So what can a hash table do for us? Store useful temporary values/results and save our time.
+So what can a hash table do for us? Store useful temporary values/results to save our time.
 
 ## [380. Insert Delete GetRandom O(1)](<https://leetcode.com/problems/insert-delete-getrandom-o1/>)
 
@@ -5688,17 +5945,16 @@ func (this *RandomizedSet) Insert(val int) bool {
 func (this *RandomizedSet) Remove(val int) bool {
     if idx, ok := this.present[val]; !ok {
         return false
-    } else {
-        last := len(this.items)-1 
-        if idx < last {
-            // Assure that we always remove last item 
-            this.present[this.items[last]] = idx
-            this.items[idx], this.items[last] = this.items[last], this.items[idx]
-        }
-        delete(this.present, val)
-        this.items = this.items[:len(this.items)-1]
-        return true
     }
+    last := len(this.items)-1 
+    if idx < last {
+        // Assure that we always remove last item 
+        this.present[this.items[last]] = idx
+        this.items[idx], this.items[last] = this.items[last], this.items[idx]
+    }
+    delete(this.present, val)
+    this.items = this.items[:len(this.items)-1]
+    return true
 }
 
 

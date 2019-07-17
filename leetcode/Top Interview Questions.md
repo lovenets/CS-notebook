@@ -5205,6 +5205,10 @@ as "[1,2,3,null,null,4,5]"
 
 Just preorder traverse the tree and mark null nodes. For deserializing, we use a queue to store the pre-order traversal and since we have "#" as null node, we know exactly where to end building subtress.
 
+*Why do it in pre-order?*
+
+Pre-order traversal while duplicating nodes and edges can make a complete duplicate of a binary tree.
+
 ```go
 func serialize(root *TreeNode) string {
     var sb strings.Builder

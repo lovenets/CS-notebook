@@ -8680,6 +8680,99 @@ func climbStairs(n int) int {
 - Time complexity: $O(n)$
 - Space complexity: $O(1)$
 
+## [91. Decode Ways](https://leetcode.com/problems/decode-ways/)
+
+A message containing letters from A-Z is being encoded to numbers using the following mapping:
+
+'A' -> 1
+'B' -> 2
+...
+'Z' -> 26
+Given a non-empty string containing only digits, determine the total number of ways to decode it.
+
+Example 1:
+```
+Input: "12"
+Output: 2
+Explanation: It could be decoded as "AB" (1 2) or "L" (12).
+```
+Example 2:
+```
+Input: "226"
+Output: 3
+Explanation: It could be decoded as "BZ" (2 26), "VF" (22 6), or "BBF" (2 2 6).
+```
+
+**Solution**
+
+(1) Accepted
+
+```go
+func numDecodings(s string) int {
+    if len(s) == 0 {
+        return 0
+    }
+    memo := make([]int, len(s)+1)
+    for i := range memo {
+        memo[i] = -1
+    }
+    memo[len(s)] = 1
+    return backtrack(s, &memo, 0)
+}
+
+func backtrack(s string, memo *[]int, i int) int {
+    if (*memo)[i] != -1 {
+        return (*memo)[i]
+    }
+    if s[i] == '0' {
+        (*memo)[i] = 0
+    } else {
+        res := backtrack(s, memo, i+1) // decode 1 digit
+        if i < len(s)-1 && (s[i] == '1' || (s[i] == '2' && s[i+1] < '7')) {
+            // decode 2 digits
+            res += backtrack(s, memo, i+2)
+        }
+        (*memo)[i] = res
+    }
+    return (*memo)[i]
+}
+```
+
+ - Time complexity: $O(n)$
+ - Space complexity: $O(n)$
+
+ (2) Accepted
+
+ ```go
+func numDecodings(s string) int {
+    if len(s) == 0 {
+        return 0
+    }
+    n := len(s)
+    dp := make([]int, n+1) // dp[i]: how many ways to decode s[:i]
+    dp[0] = 1
+    if s[0] == '0' {
+        dp[1] = 0
+    } else {
+        dp[1] = 1
+    }
+    for i := 2; i <= n; i++ {
+        // decode 1 digit
+        if s[i-1] != '0' {
+            dp[i] += dp[i-1]
+        }
+        // decode 2 digits
+        if double, _ := strconv.Atoi(s[i-2:i]); double >= 10 && double <= 26 {
+            dp[i] += dp[i-2]
+        }
+    }
+    return dp[n]
+}
+ ```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
 # Greedy
 
 ## [55. Jump Game](https://leetcode.com/problems/jump-game/)

@@ -5407,6 +5407,61 @@ func sortedArrayToBST(nums []int) *TreeNode {
 - Time complexity: $O(n)$
 - Space complexity: $O(1)$
 
+## [116. Populating Next Right Pointers in Each Node](https://leetcode.com/problems/populating-next-right-pointers-in-each-node/)
+
+You are given a perfect binary tree where all leaves are on the same level, and every parent has two children. The binary tree has the following definition:
+```
+struct Node {
+  int val;
+  Node *left;
+  Node *right;
+  Node *next;
+}
+```
+Populate each next pointer to point to its next right node. If there is no next right node, the next pointer should be set to NULL.
+
+Initially, all next pointers are set to NULL.
+
+**Example**:
+
+![](https://assets.leetcode.com/uploads/2019/02/14/116_sample.png)
+
+```
+Input: {"$id":"1","left":{"$id":"2","left":{"$id":"3","left":null,"next":null,"right":null,"val":4},"next":null,"right":{"$id":"4","left":null,"next":null,"right":null,"val":5},"val":2},"next":null,"right":{"$id":"5","left":{"$id":"6","left":null,"next":null,"right":null,"val":6},"next":null,"right":{"$id":"7","left":null,"next":null,"right":null,"val":7},"val":3},"val":1}
+
+Output: {"$id":"1","left":{"$id":"2","left":{"$id":"3","left":null,"next":{"$id":"4","left":null,"next":{"$id":"5","left":null,"next":{"$id":"6","left":null,"next":null,"right":null,"val":7},"right":null,"val":6},"right":null,"val":5},"right":null,"val":4},"next":{"$id":"7","left":{"$ref":"5"},"next":null,"right":{"$ref":"6"},"val":3},"right":{"$ref":"4"},"val":2},"next":null,"right":{"$ref":"7"},"val":1}
+
+Explanation: Given the above perfect binary tree (Figure A), your function should populate each next pointer to point to its next right node, just like in Figure B.
+ ```
+
+**Note:**
+
+You may only use constant extra space.
+Recursive approach is fine, implicit stack space does not count as extra space for this problem.
+
+**Solution**
+
+```go
+func connect(root *Node) {
+    if root == nil {
+        return
+    }
+    for pre := root; pre.Left != nil; pre = pre.Left {
+        // From left to right at the same level
+        for cur := pre; cur != nil; {
+            cur.Left.Next = cur.Right
+            if cur.Next != nil {
+                cur.Right.Next = cur.Next.Left
+            }
+            cur = cur.Next
+        }
+    }
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
 # Segment Tree
 
 ## [218. The Skyline Problem](<https://leetcode.com/problems/the-skyline-problem/>)
@@ -8932,6 +8987,107 @@ func numDecodings(s string) int {
 - Time complexity: $O(n)$
 - Space complexity: $O(n)$
 
+## [121. Best Time to Buy and Sell Stock](https://leetcode.com/problems/best-time-to-buy-and-sell-stock/)
+
+Say you have an array for which the ith element is the price of a given stock on day i.
+
+If you were only permitted to complete at most one transaction (i.e., buy one and sell one share of the stock), design an algorithm to find the maximum profit.
+
+Note that you cannot sell a stock before you buy one.
+
+Example 1:
+```
+Input: [7,1,5,3,6,4]
+Output: 5
+Explanation: Buy on day 2 (price = 1) and sell on day 5 (price = 6), profit = 6-1 = 5.
+             Not 7-1 = 6, as selling price needs to be larger than buying price.
+```
+Example 2:
+```
+Input: [7,6,4,3,1]
+Output: 0
+Explanation: In this case, no transaction is done, i.e. max profit = 0.
+```
+
+**Solution**
+
+```go
+func maxProfit(prices []int) int {
+    n := len(prices)
+    if n == 0 {
+        return 0
+    }
+    // Always try to buy a stock at it's lowest price
+    // and then sell it at at the highest price
+    minPrice := prices[0]
+    maxProfit := 0
+    for _, price := range prices[1:] {
+        if tmp := price-minPrice; tmp > maxProfit {
+            maxProfit = tmp
+        }
+        if price < minPrice {
+            minPrice = price
+        }
+    }
+    return maxProfit
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+## [122. Best Time to Buy and Sell Stock II](https://leetcode.com/problems/best-time-to-buy-and-sell-stock-ii/)
+
+Say you have an array for which the ith element is the price of a given stock on day i.
+
+Design an algorithm to find the maximum profit. You may complete as many transactions as you like (i.e., buy one and sell one share of the stock multiple times).
+
+Note: You may not engage in multiple transactions at the same time (i.e., you must sell the stock before you buy again).
+
+Example 1:
+```
+Input: [7,1,5,3,6,4]
+Output: 7
+Explanation: Buy on day 2 (price = 1) and sell on day 3 (price = 5), profit = 5-1 = 4.
+             Then buy on day 4 (price = 3) and sell on day 5 (price = 6), profit = 6-3 = 3.
+```
+Example 2:
+```
+Input: [1,2,3,4,5]
+Output: 4
+Explanation: Buy on day 1 (price = 1) and sell on day 5 (price = 5), profit = 5-1 = 4.
+             Note that you cannot buy on day 1, buy on day 2 and sell them later, as you are
+             engaging multiple transactions at the same time. You must sell before buying again.
+```
+Example 3:
+```
+Input: [7,6,4,3,1]
+Output: 0
+Explanation: In this case, no transaction is done, i.e. max profit = 0.
+```
+
+**Solution**
+
+Suppose the first sequence is "a <= b <= c <= d", the profit is "d - a = (b - a) + (c - b) + (d - c)" without a doubt. And suppose another one is "a <= b >= b' <= c <= d", the profit is not difficult to be figured out as "(b - a) + (d - b')". So just target at monotone sequences.
+
+```go
+func maxProfit(prices []int) int {
+    if len(prices) == 0 {
+        return 0
+    }
+    max := 0
+    for i := 1; i < len(prices); i++ {
+        if tmp := prices[i]-prices[i-1]; tmp > 0 {
+            max += tmp
+        }
+    }
+    return max
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
 # Greedy
 
 ## [55. Jump Game](https://leetcode.com/problems/jump-game/)
@@ -9851,3 +10007,62 @@ func mySqrt(x int) int {
 
 - Time complexity: $O(\sqrt{x})$
 - Space complexity: $O(1)$
+
+## [118. Pascal's Triangle](https://leetcode.com/problems/pascals-triangle/)
+
+Given a non-negative integer numRows, generate the first numRows of Pascal's triangle.
+
+![](https://upload.wikimedia.org/wikipedia/commons/0/0d/PascalTriangleAnimated2.gif)
+
+In Pascal's triangle, each number is the sum of the two numbers directly above it.
+
+Example:
+```
+Input: 5
+Output:
+[
+     [1],
+    [1,1],
+   [1,2,1],
+  [1,3,3,1],
+ [1,4,6,4,1]
+]
+```
+
+**Solution**
+
+Format the triangle like this and we will see the pattern:
+
+```
+[1]
+[1,1]
+[1,2,1]
+[1,3,3,1]
+[1,4,6,4,1]
+```
+
+```go
+func generate(numRows int) [][]int {
+    if numRows <= 0 {
+        return nil
+    }
+    res := make([][]int, numRows)
+    res[0] = []int{1}
+    if numRows > 1 {
+        res[1] = []int{1, 1}
+    }
+    for i := 2; i < numRows; i++ {
+        row := make([]int, i+1)
+        row[0], row[len(row)-1] = 1, 1
+        for j := 1; j < len(row)-1; j++ {
+            row[j] = res[i-1][j-1] + res[i-1][j]
+        }
+        res[i] = row
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+

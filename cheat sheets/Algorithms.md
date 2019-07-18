@@ -660,3 +660,23 @@ func KahnTopologicalSort(g [][]int) []int {
     }
 }
 ```
+
+## Dynamic Programming
+
+### Definition
+
+- It refers to simplifying a complicated problem by breaking it down into simpler sub-problems in a recursive manner. 
+
+- If a problem can be solved optimally by breaking it into sub-problems and then recursively finding the optimal solutions to the sub-problems, then it is said to have optimal substructure.
+
+### Key Points
+
+- Most of DP problems can be solved by following steps:
+
+  - Breaking the whole problem into sub-problems
+
+    - Find the connection between them
+
+  - Finding the optimal solutions to the sub-problems
+
+    - Memoization

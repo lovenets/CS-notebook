@@ -5251,6 +5251,162 @@ func buildTree(data []string) *TreeNode {
 
 `strings.Split` will generate empty strings if there are any leading or trailing adundant separators in input string so be careful.
 
+## [101. Symmetric Tree](https://leetcode.com/problems/symmetric-tree/)
+
+Given a binary tree, check whether it is a mirror of itself (ie, symmetric around its center).
+
+For example, this binary tree `[1,2,2,3,4,4,3]` is symmetric:
+```
+    1
+   / \
+  2   2
+ / \ / \
+3  4 4  3
+```
+
+But the following `[1,2,2,null,3,null,3]` is not:
+```
+    1
+   / \
+  2   2
+   \   \
+   3    3
+```
+
+**Note**:
+Bonus points if you could solve it both recursively and iteratively.
+
+**Solution**
+
+(1) Accepted
+
+Two trees are a mirror reflection of each other if:
+
+- Their two roots have the same value.
+- The right subtree of each tree is a mirror reflection of the left subtree of the other tree.
+
+![](https://leetcode.com/media/original_images/101_Symmetric_Mirror.png)
+
+```go
+func isSymmetric(root *TreeNode) bool {
+    var isMirror func(*TreeNode, *TreeNode) bool
+    isMirror = func(r1 *TreeNode, r2 *TreeNode) bool {
+        if r1 == nil && r2 == nil {
+            return true
+        }
+        if r1 == nil || r2 == nil {
+            return false
+        }
+        return (r1.Val == r2.Val) && isMirror(r1.Right, r2.Left) && isMirror(r1.Left, r2.Right)
+    }
+    return isMirror(root, root)
+}
+```
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+(2) Accepted
+
+```go
+func isSymmetric(root *TreeNode) bool {
+    queue := []*TreeNode{root, root}
+    for len(queue) > 0 {
+        r1, r2 := queue[0], queue[1]
+        queue = queue[2:]
+        if r1 == nil && r2 == nil {
+            continue
+        }
+        if r1 == nil || r2 == nil {
+            return false
+        }
+        if r1.Val != r2.Val {
+            return false
+        }
+        queue = append(queue, ([]*TreeNode{r1.Left, r2.Right, r1.Right, r2.Left})...)
+    }
+    return true
+}
+```
+
+- Time complexity: $O(n)$
+- Time complexity: $O(n)$
+
+## [104. Maximum Depth of Binary Tree](https://leetcode.com/problems/maximum-depth-of-binary-tree/)
+
+Given a binary tree, find its maximum depth.
+
+The maximum depth is the number of nodes along the longest path from the root node down to the farthest leaf node.
+
+Note: A leaf is a node with no children.
+
+Example:
+
+Given binary tree `[3,9,20,null,null,15,7]`,
+```
+    3
+   / \
+  9  20
+    /  \
+   15   7
+```
+return its depth = 3.
+
+**Solution**
+
+This problem is equivilent to calculating the height of a binary tree.
+
+```go
+func maxDepth(root *TreeNode) int {
+    var height func(*TreeNode) int
+    height = func(node *TreeNode) int {
+        if node == nil {
+            return 0
+        }
+        return 1 + int(math.Max(float64(height(node.Left)), float64(height(node.Right))))
+    }
+    return height(root)
+}
+```
+
+- Time complexity: $O(logn)$
+- Space complexity: $O(1)$
+
+## [108. Convert Sorted Array to Binary Search Tree](https://leetcode.com/problems/convert-sorted-array-to-binary-search-tree/)
+
+Given an array where elements are sorted in ascending order, convert it to a height balanced BST.
+
+For this problem, a height-balanced binary tree is defined as a binary tree in which the depth of the two subtrees of every node never differ by more than 1.
+
+Example:
+```
+Given the sorted array: [-10,-3,0,5,9],
+
+One possible answer is: [0,-3,9,-10,null,5], which represents the following height balanced BST:
+
+      0
+     / \
+   -3   9
+   /   /
+ -10  5
+```
+
+**Solution**
+
+```go
+func sortedArrayToBST(nums []int) *TreeNode {
+    if len(nums) == 0 {
+        return nil
+    } 
+    mid := len(nums) >> 1
+    root := &TreeNode{Val: nums[mid]}
+    root.Left, root.Right = sortedArrayToBST(nums[:mid]), sortedArrayToBST(nums[mid+1:])
+    return root
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
 # Segment Tree
 
 ## [218. The Skyline Problem](<https://leetcode.com/problems/the-skyline-problem/>)
@@ -6012,7 +6168,7 @@ collection.getRandom();
 This is kind of complicated. There are two fields in `RandomizedCollection`:
 
 - a map whose key is the `val`and the value is a slices which contains indices of `val`in the 2d slice we are gonna talk about next
-- a 2d slice where each element is a pair whose first element is `val`itself and second element is index in `map[val]`
+- a 2d slice where each element is a pair whose first element is `val` itself and second element is index in `map[val]`
 
 For example:
 
@@ -6425,13 +6581,15 @@ func gameOfLife(board [][]int)  {
 To solve it in place, we use 2 bits to store 2 states:
 
 ```
-[2nd bit, 1st bit] = [next state, current state]
+[higher bit, lower bit] = [next state, current state]
 
 - 00 -> 10 (dead -> live)
 - 01 -> 11 (live -> live)
 - 00 -> 00 (dead -> dead)
 - 01 -> 01 (live -> dead)
 ```
+
+As we can see, the lower bit which indicates current state will not change. We just need to modify higher bit to get the next state.
 
 ```go
 func gameOfLife(board [][]int) {
@@ -6445,13 +6603,13 @@ func gameOfLife(board [][]int) {
 			lives := 0
 			for _, d := range dir {
 				if x, y := i+d[0], j+d[1]; x >= 0 && x < rows && y >= 0 && y < cols {
-                    // Get the 1st bit
-                    // If 1st bit is 1, this cell is currently live
+                    // Get the lower bit
+                    // If lower bit is 1, this cell is currently live
 					lives += board[x][y] & 1
 				}
 			}
-            // The 2nd bit by default is 0 
-            // so we only need to consider when the 2nd bit will become 1
+            // The higher bit by default is 0 
+            // so we only need to consider when the higher bit will become 1
 			if board[i][j] == 0 && lives == 3 {
                 // dead -> live
                 // 00 -> 10
@@ -6463,7 +6621,7 @@ func gameOfLife(board [][]int) {
 			}
 		}
 	}
-    // Get the 2nd bit
+    // Extract the higher bit
 	for i := range board {
 		for j := range board[i] {
 			board[i][j] >>= 1
@@ -6565,12 +6723,13 @@ func fizzBuzz(n int) []string {
 	}
 	res := make([]string, 0, n)
 	for i := 1; i <= n; i++ {
+        three, five := i%3 == 0, i%5 == 0
 		switch {
-		case i%3 == 0 && i%5 != 0:
+		case three && !five:
 			res = append(res, "Fizz")
-		case i%3 != 0 && i%5 == 0:
+		case !three && five:
 			res = append(res, "Buzz")
-		case i%3 == 0 && i%5 == 0:
+		case three && five:
 			res = append(res, "FizzBuzz")
 		default:
 			res = append(res, strconv.Itoa(i))

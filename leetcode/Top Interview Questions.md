@@ -8281,7 +8281,7 @@ func nUniqueChars(s string, k int, n int) int {
 
 **Recap**
 
-For most substring problem, we are given a string and need to find a substring of it which satisfy some restrictions. There is a template which can solve most of such problems.
+For most substring problem, we are given a string and need to find a substring of it which satisfies some restrictions. There is a template which can solve most of such problems.
 
 ```go
 func findSubstring(s string) int {
@@ -8350,17 +8350,17 @@ func lengthOfLongestSubstring(s string) int {
         return 0
     }
     freqOfChar := make(map[byte]int)
-    numOfUnique := 0
+    numOfRepeating := 0
     d := 0
     for begin, end := 0, 0; end < len(s); {
         if freqOfChar[s[end]] > 0 {
-            numOfUnique++
+            numOfRepeating++
         }
         freqOfChar[s[end]]++
         end++
-        for numOfUnique > 0 {
+        for numOfRepeating > 0 {
             if freqOfChar[s[begin]] > 1 {
-                numOfUnique--
+                numOfRepeating--
             }
             freqOfChar[s[begin]]--
             begin++
@@ -8399,7 +8399,7 @@ func lengthOfLongestSubstring(s string) int {
             if m[s[start]] == 1 {
                 counter--
             }
-            m[ss[start]]--
+            m[s[start]]--
             start++
         }
         if tmp := end-begin; res < tmp {

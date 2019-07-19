@@ -1827,6 +1827,58 @@ func merge(nums1 []int, m int, nums2 []int, n int)  {
 - Time complexity: $O(m+n)$
 - Space complexity: $O(1)$
 
+## [251. Flatten 2D Vector]
+
+Implement an iterator to flatten a 2d vector.
+
+For example, Given 2d vector =
+```
+[
+  [1,2],
+  [3],
+  [4,5,6]
+]
+```
+By calling next repeatedly until hasNext returns false, the order of elements returned by next should be: `[1,2,3,4,5,6]`.
+
+**Solution**
+
+This problem is quite easy to solve as long as we can handle some corner cases properly.
+
+- What if the 2d vector contains empty arrays, e.g. `[[ ], [ ], [1 2 3]]` ? In this case, the `Next()` should not output anything, but the return type is int. There the `HasNext()` should be more complicated in which it handles this situation. 
+- What if the 2d vector itself is empty? Again, handle it in `HasNext()`. 
+
+```go
+type Vector2D struct {
+    data  [][]int
+    curX  int
+    curY  int
+}
+
+func (v *Vector2D) Next() int {
+    var next int
+    if v.curY < len(v.data[v.curX]) {
+        next = v.data[v.curX][v.curY]
+    }
+    if v.curY++; v.curY == len(v.data[v.curX]) {
+        v.curX, v.curY = v.curX+1, 0
+    }
+    return next
+}
+
+func (v *Vector2D) HasNext() bool {
+    n := len(v.data)
+    for v.curX < n && len(v.data[curX]) == 0 {
+        v.curX++
+    }
+    return n != 0 && v.curX < n
+}
+```
+
+- Time complexity
+  - `Next()`: $O(1)$, `HasNext()`: $O(1)$
+- Space complexity: $O(1)$
+
 # Linked List
 
 ## [138. Copy List with Random Pointer](<https://leetcode.com/problems/copy-list-with-random-pointer/>)
@@ -3762,6 +3814,74 @@ func maxSlidingWindow(nums []int, k int) []int {
 **Recap**
 
 A good way to solve sliding window problems is **utilizing what we've already known**. 
+
+## [253. Meeting Rooms II]
+
+Given an array of meeting time intervals consisting of start and end times `[[s1,e1],[s2,e2],...]`. Find the minimum number of conference rooms required.
+
+**Solution**
+
+We use a min heap to track the earliest ending meeting. Whenever an old meeting ends before a new meeting starts, we remove the old meeting. Otherwise, we need an extra room.
+
+```go
+type TwoDSlice [][]int
+
+func (ts TwoDSlice) Len() int {
+    return len(ts)
+}
+
+func (ts TwoDSlice) Less(i, j int) bool {
+    return ts[i][0] < ts[j][0]
+}
+
+func (ts TWoDSlice) Swap(i, j int) {
+    ts[i], ts[j] = ts[j], ts[i]
+}
+
+type IntHeap []int
+
+func (h IntHeap) Len() int           { return len(h) }
+func (h IntHeap) Less(i, j int) bool { return h[i] < h[j] }
+func (h IntHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *IntHeap) Push(x interface{}) {
+	*h = append(*h, x.(int))
+}
+
+func (h *IntHeap) Pop() interface{} {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[0 : n-1]
+	return x
+}
+
+func minMeetingRooms(intervals [][]int) int {
+    if len(intervals) == 0 {
+        return 0
+    }
+    sort.Sort(TwoDSlice(intervals))
+    intHeap := new(IntHeap)
+    heap.Init(intHeap)
+    count := 0
+    for _, interval := range intervals {
+        if intHeap.Len() == 0 {
+            count++
+        } else {
+            if interval[0] >= (*intHeap)[0] {
+                heap.Pop(intHeap)
+            } else {
+                count++
+            }
+        }
+        heap.Push(interval[1])
+    }
+    return count
+}
+```
+
+- Time complexity: $O(nlogn)$
+- Space complexity: $O(n)$
 
 # String
 
@@ -5922,6 +6042,233 @@ func findOrder(numCourses int, prerequisites [][]int) []int {
 - Time complexity: $O(n)$
 - Space complexity: $O(n)$
 
+## [130. Surrounded Regions](https://leetcode.com/problems/surrounded-regions/)
+
+Given a 2D board containing 'X' and 'O' (the letter O), capture all regions surrounded by 'X'.
+
+A region is captured by flipping all 'O's into 'X's in that surrounded region.
+
+Example:
+```
+X X X X
+X O O X
+X X O X
+X O X X
+```
+After running your function, the board should be:
+```
+X X X X
+X X X X
+X X X X
+X O X X
+```
+Explanation:
+
+Surrounded regions shouldn’t be on the border, which means that any `'O'` on the border of the board are not flipped to `'X'`. Any `'O'` that is not on the border and it is not connected to an `'O'` on the border will be flipped to `'X'`. Two cells are connected if they are adjacent cells connected horizontally or vertically.
+
+**Solution**
+
+- First, check the four border of the matrix. If there is a element is
+'O', alter it and all its neighbor 'O' elements to '1'.
+
+- Then ,alter all the 'O' to 'X'
+
+- At last,alter all the '1' to 'O'
+
+```
+         X X X X           X X X X             X X X X
+         X X O X  ->       X X O X    ->       X X X X
+         X O X X           X 1 X X             X O X X
+         X O X X           X 1 X X             X O X X
+```
+
+```go
+func solve(board [][]byte)  {
+    if len(board) == 0 || len(board[0]) == 0 {
+        return
+    }
+    rows, cols := len(board), len(board[0])
+    // Check Os on the left and right borders
+    for i := 0; i < rows; i++ {
+        dfs(&board, i, 0)
+        if cols > 1 {
+            dfs(&board, i, cols-1)
+        }
+    }
+    // Check Os on the up and bottom borders
+    for i := 1; i < cols-1; i++ {
+        dfs(&board, 0, i)
+        if rows > 1 {
+            dfs(&board, rows-1, i)
+        }
+    }
+    for i := range board {
+        for j := range board[i] {
+            if board[i][j] == 'O' {
+                board[i][j] = 'X'
+            } else if board[i][j] == '1' {
+                board[i][j] = 'O'
+            }
+        }
+    }
+}
+
+func dfs(board *[][]byte, i int, j int) {
+    if (*board)[i][j] != 'O' {
+        return
+    }
+    (*board)[i][j] = '1'
+    // Note that i > 1 then all the grids marked 'O' will be visited when dfs(board[0][0])
+    // ohterwise it might cause stack overflow
+    if i > 1 {
+        dfs(board, i-1, j)
+    }
+    if i < len(*board)-1 {
+        dfs(board, i+1, j)
+    }
+    if j > 1 {
+        dfs(board, i, j-1)
+    }
+    if j < len((*board)[0])-1 {
+        dfs(board, i, j+1)
+    }
+}
+```
+
+- Time complxity: $O(mn)$ where m is the number of rows and n is the numner of columns
+- Space complexity: $O(1)$
+
+## [227. Find the Celebrity]
+
+Suppose you are at a party with n people (labeled from 0 to n - 1) and among them, there may exist one celebrity. The definition of a celebrity is that all the other n - 1 people know him/her but he/she does not know any of them.
+
+Now you want to find out who the celebrity is or verify that there is not one. The only thing you are allowed to do is to ask questions like: "Hi, A. Do you know B?" to get information of whether A knows B. You need to find out the celebrity (or verify there is not one) by asking as few questions as possible (in the asymptotic sense).
+
+You are given a helper function `bool knows(a, b)`which tells you whether A knows B. Implement a function `int findCelebrity(n)`. There will be exactly one celebrity if he/she is in the party. Return the celebrity's label if there is a celebrity in the party. If there is no celebrity, return -1.
+
+Example 1:
+
+![](https://assets.leetcode.com/uploads/2019/02/02/277_example_1_bold.PNG)
+
+```
+Input: graph = [
+  [1,1,0],
+  [0,1,0],
+  [1,1,1]
+]
+Output: 1
+Explanation: There are three persons labeled with 0, 1 and 2. graph[i][j] = 1 means person i knows person j, otherwise graph[i][j] = 0 means person i does not know person j. The celebrity is the person labeled as 1 because both 0 and 2 know him but 1 does not know anybody.
+```
+Example 2:
+
+![](https://assets.leetcode.com/uploads/2019/02/02/277_example_2.PNG)
+
+```
+Input: graph = [
+  [1,0,1],
+  [1,1,0],
+  [0,1,1]
+]
+Output: -1
+Explanation: There is no celebrity.
+```
+
+**Solution**
+
+(1) 
+
+```go
+func findCelebrity(n int) int {
+    if n <= 1 {
+        return -1
+    }
+    // Find people who don't know any of ohters
+    candidates := make([]int, 0, n)
+    for i := 0; i < n; i++ {
+        count := 0
+        for j := 0; j < n; j++ {
+            if i == j {
+                continue
+            }
+            if !knows(i, j) {
+                count++
+            }
+        }
+        if count == n-1 {
+            candidates = append(candidates, i)
+        }
+    }
+    // Find the one who everyone else knows
+    for _, candidate := range candidates {
+        count := 0
+        for i := 0; i < n; i++ {
+            if i == candidate {
+                continue
+            }
+            if !knows(i, candidate) {
+                break
+            } 
+            count++
+        }
+        if count == n-1 {
+            return candidate
+        }
+    }
+    return -1
+}
+```
+- Time complexity: $O(n^2)$
+- Space complexity: $O(1)$
+
+(2) 
+
+```go
+func findCelebrity(n int) int {
+    for candidate := 0; candidate < n; candidate++ {
+        count := 0
+        for i := 0; i < n; i++ {
+            if i != j && (knows(candidate, i) || !knows(i, candidate)) {
+                break
+            } 
+            count++
+        }
+        if count == n-1 {
+            return candidate
+        }
+    }
+    return -1
+}
+```
+- Time complexity: $O(n^2)$
+- Space complexity: $O(1)$
+
+(3)
+
+```go
+func findCelebrity(n int) int {
+    candidate := 0
+    for i := 0; i < n; i++ {
+        if knows(candidate, i) {
+            candidate = i
+        }
+    }
+    for i := 0; i < candidate; i++ {
+        if knows(candidate, i) || !knows(i, candidate) {
+            return -1
+        }
+    }
+    for i := candidate+1; i < n; i++ {
+        if !knows(i, candidate) {
+            return -1
+        }
+    }
+    return candidate
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
 # Hash Table
 
 ## [171. Excel Sheet Column Number](https://leetcode.com/problems/excel-sheet-column-number/)
@@ -6884,12 +7231,12 @@ func Constructor(capacity int) LRUCache {
 }
 
 func (this *LRUCache) Get(key int) int {
-	if node, ok := this.Map[key]; ok {
-		remove(node)
-		add(this.Tail, node)
-		return node.val
+	if node, ok := this.Map[key]; !ok {
+        return -1
 	}
-	return -1
+	remove(node)
+	add(this.Tail, node)
+	return node.val
 }
 
 func (this *LRUCache) Put(key int, value int) {
@@ -6924,6 +7271,10 @@ func add(tail, node *dllNode) {
 
 - Time complexity: $O(1)$
 - Space complexity: $O(n)$
+
+**Recap**
+
+Once we get a pointer to a node in a doubly-linked list, we can remove it in constant time.
 
 ## [62. Unique Paths](https://leetcode.com/problems/unique-paths/)
 
@@ -6963,15 +7314,14 @@ I want to change this problem into "How many permutations can be generated from 
 
 ```go
 func uniquePaths(m int, n int) int {
-    rs, ds := strings.Repeat("r", m-1), strings.Repeat("d", n-1)
     set := make(map[string]bool)
-    backtrack(rs+ds, "", set, m-1, n-1)
+    backtrack(strings.Repeat("r", m-1)+strings.Repeat("d", n-1), "", set, m-1, n-1)
     return len(set)
 }
 
 func backtrack(s string, tmp string, set map[string]bool, right int, down int) {
     if len(tmp) == len(s) {
-        set[tmp] = true
+        set[tmp] = true // Skip duplicates
         return
     }
     for _, char := range s {
@@ -6991,21 +7341,22 @@ func backtrack(s string, tmp string, set map[string]bool, right int, down int) {
 Since the robot can only move right and down, when it arrives at a point, it either arrives from left or above. If we use `dp[i][j]` for the number of unique paths to arrive at the point `(i, j)`, then the state equation is `dp[i][j] = dp[i][j - 1] + dp[i - 1][j]`. Moreover, we have the base cases `dp[0][j] = dp[i][0] = 1` for all valid `i` and `j`.
 
 ```go
-func uniquePaths(m int, n int) int {
-    dp := make([][]int, m)
-    for i := range dp {
-        tmp := make([]int, n)
-        for j := range tmp {
-            tmp[j] = 1
-        }
-        dp[i] = tmp
-    }
-    for i := 1; i < m; i++ {
-        for j := 1; j < n; j++ {
-            dp[i][j] = dp[i-1][j] + dp[i][j-1]
-        }
-    }
-    return dp[m-1][n-1]
+func uniquePaths(m, n int) int {
+	dp := make([][]int, m)
+	for i := range dp {
+		tmp := make([]int, n)
+		tmp[0] = 1
+		dp[i] = tmp
+	}
+	for i := range dp[0] {
+		dp[0][i] = 1
+	}
+	for i := 1; i < m; i++ {
+		for j := 1; j < n; j++ {
+			dp[i][j] = dp[i-1][j] + dp[i][j-1]
+		}
+	}
+	return dp[m-1][n-1]
 }
 ```
 
@@ -7125,10 +7476,12 @@ func wiggleSort(nums []int)  {
 	copy(tmp, nums)
 	sort.Ints(tmp)
 	n := len(nums)
-	m := (n+1) >> 1
+    m := (n+1) >> 1
+    // Place greater ones at odd indices
 	for i, j := m-1, 0; i >= 0 && j < n; i, j = i-1, j+2 {
 		nums[j] = tmp[i]
-	}
+    }
+    // Place smaller ones at even indices
 	for i, j := n-1, 1; i >= m && j < n; i, j = i-1, j+2 {
 		nums[j] = tmp[i]
 	}
@@ -7175,6 +7528,7 @@ Your solution should be in logarithmic complexity.
 Straightforward solution costs $O(n)$ time.
 
 ```go
+// Following code will find the left-most peak
 func findPeakElement(nums []int) int {
     if n := len(nums); n <= 1 {
         return 0
@@ -7217,7 +7571,7 @@ func findPeakElement(nums []int) int {
     for l < r {
         mid := l + (r-l)>>1
         if nums[mid] > nums[mid+1] {
-            r = mid // Note that it's inclusive
+            r = mid // Note that it's inclusive bacause nums[mid] may be a peak
         } else {
             l = mid + 1
         }
@@ -7251,14 +7605,14 @@ Output: 3
 
 1. You **must not** modify the array (assume the array is read only).
 2. You must use only constant, *O*(1) extra space.
-3. Your runtime complexity should be less than *O*(*n*2).
+3. Your runtime complexity should be less than $O(n^2)$.
 4. There is only one duplicate number in the array, but it could be repeated more than once.
 
 **Solution**
 
 (1) Accepted
 
-This problem is similar to detect a cycle and find the entry point in a linked list. So now the only problem left is how we "rearrange" an array as a linked list. Let's say the first node is `nums[0]`and `nums[i]`'s next node is `nums[nums[i]]`. For example, we can see `[1, 3, 4, 2, 2]`as a list like:
+This problem is similar to detect a cycle and find the entry point in a linked list. So now the only problem left is how we "change" an array into a linked list. Let's say the first node is `nums[0]`and `nums[i]`'s next node is `nums[nums[i]]`. For example, we can see `[1, 3, 4, 2, 2]`as a list like:
 
 ```
 1->3->2->4
@@ -7286,9 +7640,9 @@ func findDuplicate(nums []int) int {
 
 (2) Accepted
 
-There are n+1 integers and all integers are between 1 and n (inclusive)  so there must be at least one integer occurring more than once (if no duplicates then there must be only n integers). 
+There are n+1 integers and all integers are between 1 and n (inclusive)  so there must be at least one integer occurring more than once (if not, there must be only n integers). 
 
-At first the search space is numbers between 1 to n. Each time I select a number `mid` (which is the one in the middle) and count all the numbers equal to or less than `mid`. Then if the `count` is more than `mid`, the search space will be `[1 mid]` otherwise `[mid+1 n]`. I do this until search space is only one number.
+At first the search space is numbers between 1 to n. Each time I select a number `mid` (which is the one in the middle) and count all the numbers equal to or less than `mid`. Then if the `count` is more than `mid`, the search space will be `[1, mid]` otherwise `[mid+1, n]`. I do this until search space is only one number.
 
 Let's say `n=10` and I select `mid=5`. Then I count all the numbers in the array which are less than equal `mid`. If the there are more than `5` numbers that are not greater than `5`, one of them has occurred more than once so we shrink the search space to `[1, 5]`.
 
@@ -7388,7 +7742,8 @@ type Node struct {
 func countSmaller(nums []int) []int {
     res := make([]int, len(nums))
     var root *Node
-    // Why from back to front
+    // Do this from right to left
+    // because we need to get the answer on the fly
     for i := len(nums)-1; i >= 0; i-- {
         root = insert(nums[i], root, &res, i, 0)
     }
@@ -7406,7 +7761,7 @@ func insert(num int, node *Node, res *[]int, i int, preSum int) *Node {
         node.Sum++
         node.Left = insert(num, node.Left, res, i, preSum)
     } else {
-        node.Right = insert(num, node.Right, res, i, preSum + node.Dup + node.Sum)
+        node.Right = insert(num, node.Right, res, i, preSum+node.Dup+node.Sum)
     }
     return node
 }
@@ -7425,7 +7780,7 @@ You are given a target value to search. If found in the array return its index, 
 
 You may assume no duplicate exists in the array.
 
-Your algorithm's runtime complexity must be in the order of *O*(log *n*).
+Your algorithm's runtime complexity must be in the order of $O(logn)$.
 
 **Example 1:**
 
@@ -7461,7 +7816,7 @@ func search(nums []int, target int) int {
 	if j := sort.SearchInts(nums[:i+1], target); j < i+1 && nums[:i+1][j] == target {
 		return j
 	}
-	if j := sort.SearchInts(nums[i+1:], target); j < len(nums)-i-1 && nums[i+1:][j] == target {
+	if j := sort.SearchInts(nums[i+1:], target); j < len(nums[i+1:]) && nums[i+1:][j] == target {
 		return i + 1 + j
 	}
 	return -1

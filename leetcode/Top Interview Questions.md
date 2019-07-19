@@ -5582,6 +5582,70 @@ func connect(root *Node) {
 - Time complexity: $O(n)$
 - Space complexity: $O(1)$
 
+## [285. Inorder Successor in BST]
+
+Given a binary search tree and a node in it, find the in-order successor of that node in the BST.
+
+Example:
+
+![](https://i0.wp.com/www.techiedelight.com/wp-content/uploads/Inorder-successor-and-Inorder-predecessor.png?zoom=1.375&resize=288%2C258&ssl=1)
+
+```
+The inorder successor of 8 is 10.
+The inorder successor of 12 is 15.
+The inorder successor of 25 doesn't exist.
+```
+
+**Solution**
+
+A node's inorder successor is node with least value in its right subtree i.e. its right subtree's left-most child. If right subtree of the node doesn't exists, then inorder successor is one of the ancestors of it. To find which ancestors is the successor, we can move up the tree towards root until we encounter a node which is left child of it's parent. If any such node is found, the inorder successor is its parent else inorder successor do not exists for the node.
+
+```go
+type TreeNode struct {
+    Val   int
+    Left  *TreeNode
+    Right *TreeNode
+}
+
+func inorderSuccessor(root, node *TreeNode) *TreeNode {
+    if root == nil || node == nil {
+        return nil
+    }
+    // If node is found, the successor is the minimum value node
+    // in its right subtree (if any)
+    if root == node {
+        if root.Right != nil {
+            return min(root.Right)
+        }
+    }
+    // Start from root and search for successor down the tree 
+    var succ *TreeNode
+    for cur := root; cur != nil;  {
+        if cur.Val == node.Val {
+            break
+        } else if cur.Val < node.Val {
+            cur = cur.Right
+        } else {
+            // When we visit a node's left subtree,
+            // we record the node
+            succ = cur
+            cur = cur.Left
+        }
+    }
+    return succ
+}
+
+func min(node *TreeNode) *TreeNode {
+    cur := node
+    for ; cur.Left != nil; cur = cur.Left {
+    }
+    return cur
+}
+```
+
+- Time complexity: $O(logn)$
+- Space complexity: $O(1)$
+
 # Segment Tree
 
 ## [218. The Skyline Problem](<https://leetcode.com/problems/the-skyline-problem/>)
@@ -7362,6 +7426,156 @@ func uniquePaths(m, n int) int {
 
 - Time complexity: $O(mn)$
 - Space complexity: $O(mn)$
+
+## [348. Design Tic-Tac-Toe]
+
+Design a Tic-tac-toe game that is played between two players on a $n × n$ grid.
+
+You may assume the following rules:
+
+- A move is guaranteed to be valid and is placed on an empty block.
+- Once a winning condition is reached, no more moves is allowed.
+- A player who succeeds in placing n of their marks in a horizontal, vertical, or diagonal row wins the game.
+
+Example:
+```
+Given n = 3, assume that player 1 is "X" and player 2 is "O" in the board.
+
+TicTacToe toe = new TicTacToe(3);
+
+toe.move(0, 0, 1); -> Returns 0 (no one wins)
+|X| | |
+| | | | // Player 1 makes a move at (0, 0).
+| | | |
+
+toe.move(0, 2, 2); -> Returns 0 (no one wins)
+|X| |O|
+| | | | // Player 2 makes a move at (0, 2).
+| | | |
+
+toe.move(2, 2, 1); -> Returns 0 (no one wins)
+|X| |O|
+| | | | // Player 1 makes a move at (2, 2).
+| | |X|
+
+toe.move(1, 1, 2); -> Returns 0 (no one wins)
+|X| |O|
+| |O| | // Player 2 makes a move at (1, 1).
+| | |X|
+
+toe.move(2, 0, 1); -> Returns 0 (no one wins)
+|X| |O|
+| |O| | // Player 1 makes a move at (2, 0).
+|X| |X|
+
+toe.move(1, 0, 2); -> Returns 0 (no one wins)
+|X| |O|
+|O|O| | // Player 2 makes a move at (1, 0).
+|X| |X|
+
+toe.move(2, 1, 1); -> Returns 1 (player 1 wins)
+|X| |O|
+|O|O| | // Player 1 makes a move at (2, 1).
+|X|X|X|
+```
+Follow up:
+
+Could you do better than $O(n^2)$ per `move()` operation?
+
+**Solution**
+
+(1) 
+
+A Straightforward solution: we check if a player wins right after he moves.
+
+```go
+type TicTacToe struct {
+    board [][]int
+}
+
+func Initialize(n int) *TicTacToe {
+    board := make([][]int, n)
+    for i := range board {
+        board[i] = make([]int, n)
+    }
+    return &TicTacToe{board}
+}
+
+func (t *TicTacToe) move(x int, y int, player int) int {
+    t.board[x][y] = player
+    // Check horizontally and vertically
+    horizontal, vertical := 0
+    for i := 0; i < n; i++ {
+        if t.board[x][i] == player {
+            horizontal++
+        }
+        if t.board[i][y] == player {
+            vertically++
+        }
+    }
+    if horizontal == n || vertical == n {
+        return player
+    }
+    // Check diagonally
+    diagonal1, diagonal2 := 0, 0
+    for i, j, k := 0, 0, n-1; i != n-1 && j != n-1 && k != 0; i, j, k = i+1, j+1, k-1 {
+        if t.board[i][j] == player {
+            diagonal1++
+        }
+        if t.board[i][k] == player {
+            digonal2++
+        }
+    }
+    if diagonal1 == n || diagonal2 == n {
+        return player
+    }
+    return -1
+}
+```
+- Time complexity: $O(n)$
+- Space complexity: $O(n^2)$
+
+(2)
+
+```go
+type TicTacToe struct {
+    rows  []int
+    cols  []int
+    diag1 int
+    diag2 int
+    n     int
+}
+
+func Initialize(n int) *TicTacToe {
+    return &TicTacToe{make([]int, n), make([]int, n), 0, 0, n}
+}
+
+func (t *TicTacToe) move(x, y, player int) int {
+    var delta int
+    if player == 1 {
+        delta = 1
+    } else {
+        delta = -1
+    }
+    t.rows[x], t.cols[y] = t.rows[x]+delta, t.cols[y]+delta
+    if x == y {
+        diag1 += delta
+    }
+    if x == t.n-y-1 {
+        diag2 += delta
+    }
+    if math.Abs(float64(t.rows[x])) == t.n || 
+       math.Abs(float64(t.cols[t])) == t.n || 
+       math.Abs(float64(diag1)) == t.n || 
+       math.Abs(float64(diag2)) == t.n {
+           return player
+    }
+    return -1
+}
+```
+
+- Time complexity: $O(1)$
+- Space complexity: $O(n)$
 
 # Sort
 

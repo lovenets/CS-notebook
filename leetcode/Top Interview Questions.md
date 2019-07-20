@@ -5646,6 +5646,82 @@ func min(node *TreeNode) *TreeNode {
 - Time complexity: $O(logn)$
 - Space complexity: $O(1)$
 
+## [308. Range Sum Query 2D]
+
+Given a 2D matrix matrix, find the sum of the elements inside the rectangle defined by its upper left corner `(row1, col1)` and lower right corner `(row2, col2)`.
+
+![Range Sum Query 2D](https://leetcode.com/static/images/courses/range_sum_query_2d.png)
+
+
+The above rectangle (with the red border) is defined by `(row1, col1) = (2, 1)` and `(row2, col2) = (4, 3)`, which contains `sum = 8`.
+
+**Example**:
+```
+Given matrix = [
+  [3, 0, 1, 4, 2],
+  [5, 6, 3, 2, 1],
+  [1, 2, 0, 1, 5],
+  [4, 1, 0, 1, 7],
+  [1, 0, 3, 0, 5]
+]
+
+sumRegion(2, 1, 4, 3) -> 8
+update(3, 2, 2)
+sumRegion(2, 1, 4, 3) -> 10
+```
+
+**Note**:
+
+1. The matrix is only modifiable by the update function.
+2. You may assume the number of calls to update and sumRegion function is distributed evenly.
+3. You may assume that row1 ≤ row2 and col1 ≤ col2.
+
+**Solution**
+
+`colSum[i][j] = matrix[0][j] + matrix[1][j] + ... + matrix[i][j]`
+
+```go
+type NumMatrix struct {
+    mat    [][]int
+    colSum [][]int
+}
+
+func Initialize(matrix [][]int) NumMatrix {
+    if len(matrix) == 0 || len(matrix[0]) == 0 {
+        return nil
+    }
+    colSum := make([][]int, len(matrix)+1)
+    for i := range colSum {
+        colSum[i] = make([]int, len(matrix[0]))
+    }
+    for i := 1; i < len(colSum); i++ {
+        for j := 0; j < len(colSum[0]); j++ {
+            colSum[i][j] = colSum[i-1][j] + matrix[i-1][j]
+        }
+    }
+    return NumMatrix{matrix, colSum}
+}
+
+func (nm NumMatrix) Update(row int, col int, val int) {
+    for i := row+1; i < len(nm.colSum); i++ {
+        nm.colSum[i][col] += val - nm.mat[row][col]
+    }
+    nm.mat[row][col] = val
+}
+
+func (nm NumMatrix) SumRegion(row1 int, col1 int, row2 int, col2 int) int {
+    res := 0
+    for j := col; j <= col2; j++ {
+        res += nm.colSum[row2+1][j] - nm.colSum[row1][j]
+    }
+    return res
+}
+
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n^2)$
+
 # Segment Tree
 
 ## [218. The Skyline Problem](<https://leetcode.com/problems/the-skyline-problem/>)
@@ -6332,6 +6408,112 @@ func findCelebrity(n int) int {
 
 - Time complexity: $O(n)$
 - Space complexity: $O(1)$
+
+## [269. Alien Dictionary]
+
+There is a new alien language which uses the latin alphabet. However, the order among letters are unknown to you. You receive a list of non-empty words from the dictionary, where **words are sorted lexicographically by the rules of this new language**. Derive the order of letters in this language.
+
+**Example 1**:
+```
+Given the following words in dictionary,
+[
+  "wrt",
+  "wrf",
+  "er",
+  "ett",
+  "rftt"
+]
+The correct order is: "wertf".
+```
+**Example 2:**
+```
+Given the following words in dictionary,
+[
+  "z",
+  "x"
+]
+The correct order is: "zx".
+```
+**Example 3:**
+```
+Given the following words in dictionary,
+[
+  "z",
+  "x",
+  "z"
+]
+The order is invalid, so return "".
+```
+**Note**:
+
+1. You may assume all letters are in lowercase.
+2. You may assume that if a is a prefix of b, then a must appear before b in the given dictionary.
+3. If the order is invalid, return an empty string.
+4. There may be multiple valid order of letters, return any one of them is fine.
+
+**Solution**
+
+```go
+func alienOrder(words []string) string {
+    if len(words) == 0 {
+        return ""
+    }
+    // Record unique characters
+    set := make(map[int]bool)
+    for _, w := range words {
+        for i := range w {
+            set[w[i]-'a'] = true
+        }
+    }
+    // Build directed graph
+    g := make([][]int, 26)
+    for i := range g {
+        g[i] = make([]int, 26)
+    }
+    indegree := make([]int, 26)
+    for i := 1; i < len(words); i++ {
+        formmer, latter := words[i-1], words[i]
+        for i := 0; i < int(math.Min(float64(len(formmer)), float64(len(latter)))); i++ {
+            if formmer[i] != latter[i] {
+                if g[formmer[i]-'a'][latter[i]-'a'] == 0 {
+                    g[formmer[i]-'a'][latter[i]-'a'] = 1
+                    indegree[latter[i]-'a']++
+                }
+                break
+            }
+        }
+    }
+    // Topological sort
+    queue := make([]int, 0)
+    for i := range indegree {
+        if indegree[i] == 0 {
+            queue = append(queue, i)
+        }
+    }
+    var sb strings.Builder
+    for len(queue) > 0 {
+        v := queue[0]
+        queue = queue[1:]
+        sb.WriteRune('a'+v)
+        for u := range g[v] {
+            if g[v][u] == 1 {
+                if indegree[u]--; indegree[u] == 0 {
+                    queue = append(queue, u)
+                }
+            }
+        }
+    }
+    
+    if sb.Len() == len(set) {
+        return sb.String()
+    } else {
+        return ""
+    }
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 # Hash Table
 
@@ -8823,9 +9005,9 @@ Explanation: The longest increasing subsequence is [2,3,7,101], therefore the le
 **Note:**
 
 - There may be more than one LIS combination, it is only necessary for you to return the length.
-- Your algorithm should run in O(*n2*) complexity.
+- Your algorithm should run in $O(n^2)$ complexity.
 
-**Follow up:** Could you improve it to O(*n* log *n*) time complexity?
+**Follow up:** Could you improve it to $O(nlogn)$ time complexity?
 
 **Solution**
 
@@ -8906,7 +9088,8 @@ func lengthOfLIS(nums []int) int {
         return 0
     }
     dp := make([]int, len(nums)) // dp[i]: the length of LIS ending at i
-    dp[0], res = 1, 1
+    dp[0] = 1
+    res := 1
     for i := 1; i < len(nums); i++ {
         max := 0
         // Append nums[i] to every possible previous sequence
@@ -9007,7 +9190,7 @@ Suppose we have already found out the best way to sum up to amount `a`, then for
 
 ```go
 func coinChange(coins []int, amount int) int {
-    if len(coins) == -1 || amount < 0 {
+    if len(coins) == 0 || amount < 0 {
         return -1
     }
     return helper(coins, amount)
@@ -9046,7 +9229,7 @@ Memoized recursion.
 
 ```go
 func coinChange(coins []int, amount int) int {
-    if len(coins) == -1 || amount < 0 {
+    if len(coins) == 0 || amount < 0 {
         return -1
     }
     return helper(coins, amount, make(map[int]int))
@@ -9147,7 +9330,7 @@ Explanation: The longest increasing path is [3, 4, 5, 6]. Moving diagonally is n
 
 (1) Wrong Answer
 
-In this problem, we don't need a `visited`matrix. Actually, `visited`may lead to wrong answer because different paths may contains the same cells.
+In this problem, we don't need a `visited`matrix. Actually, `visited`may lead to wrong answers because different paths may contains the same cells.
 
 ```go
 func longestIncreasingPath(matrix [][]int) int {

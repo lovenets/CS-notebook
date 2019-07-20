@@ -680,3 +680,9 @@ func KahnTopologicalSort(g [][]int) []int {
   - Finding the optimal solutions to the sub-problems
 
     - Memoization
+
+- Top-down vs. Bottom-up
+
+  - Top-down: Assuming that we have solved the whole problem, we figure out how we can get answers to sub-problems. Usually done recursively.
+  - Bottom-up: We firstly slove sub-problems and then use answers to sub-problems to solve the whole problem. Usually done iteratively.
+  - For efficiency, both need memoization.

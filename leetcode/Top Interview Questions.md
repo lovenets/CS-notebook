@@ -9649,11 +9649,12 @@ func climbStairs(n int) int {
 ## [91. Decode Ways](https://leetcode.com/problems/decode-ways/)
 
 A message containing letters from A-Z is being encoded to numbers using the following mapping:
-
+```
 'A' -> 1
 'B' -> 2
 ...
 'Z' -> 26
+```
 Given a non-empty string containing only digits, determine the total number of ways to decode it.
 
 Example 1:
@@ -9678,7 +9679,7 @@ func numDecodings(s string) int {
     if len(s) == 0 {
         return 0
     }
-    memo := make([]int, len(s)+1)
+    memo := make([]int, len(s)+1) // memo[i]: how many ways to decode s[i:]
     for i := range memo {
         memo[i] = -1
     }
@@ -9879,7 +9880,7 @@ func canJump(nums []int) bool {
 }
 
 func dfs(steps []int, start int) bool {
-    if start == len(steps)-1 {
+    if start >= len(steps)-1 {
         return true
     }
     for i := 1; i <= steps[start]; i++ {
@@ -9988,6 +9989,10 @@ func singleNumber(nums []int) int {
 
 - Time complexity: $O(n)$
 - Space complexity: $O(1)$
+
+**Recap**
+
+- Bit manipulation trick 1: $a XOR a = 0, 0 XOR a = a$
 
 ## [149. Max Points on a Line](<https://leetcode.com/problems/max-points-on-a-line/>)
 
@@ -10360,7 +10365,7 @@ func hammingWeight(num uint32) int {
 
 **Recap**
 
-For any number n, doing a bit-wise AND of n and n - 1 flips the least-significant 1-bit in n to 0. 
+- Bit manipulation trick 2: For any number n, $n AND (n-1)$ will flip the least-significant 1-bit in n to 0. 
 
 ## [204. Count Primes](<https://leetcode.com/problems/count-primes/>)
 
@@ -10486,10 +10491,6 @@ func missingNumber(nums []int) int {
 
 - Time complexity: $O(n)$
 - Space complexity: $O(1)$
-
-**Recap**
-
-$a XOR a XOR b = a$
 
 ## [326. Power of Three](<https://leetcode.com/problems/power-of-three/>)
 
@@ -10671,6 +10672,34 @@ func plusOne(digits []int) []int {
         } else {
             res, carry = append([]int{tmp}, res...), 0
         }
+    }
+    if carry == 1 {
+        res = append([]int{1}, res...)
+    }
+    return res
+}
+```
+
+Improvement:
+
+```go
+func plusOne(digits []int) []int {
+    if len(digits) == 0 {
+        return nil
+    }
+    res := make([]int, 0, len(digits)+1)
+    i, carry := len(digits)-1, 1
+    for ; i >= 0; i-- {
+        if tmp := digits[i]+carry; tmp == 10 {
+            res, carry = append([]int{0}, res...), 1
+        } else {
+            res, carry = append([]int{tmp}, res...), 0
+            // Skip unnecessary loops
+            break
+        }
+    }
+    if i >= 0 {
+        res = append(digits[:i], res...)
     }
     if carry == 1 {
         res = append([]int{1}, res...)

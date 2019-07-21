@@ -6515,6 +6515,164 @@ func alienOrder(words []string) string {
 - Time complexity: $O(n)$
 - Space complexity: $O(n)$
 
+## [79. Word Search](https://leetcode.com/problems/word-search/)
+
+Given a 2D board and a word, find if the word exists in the grid.
+
+The word can be constructed from letters of sequentially adjacent cell, where "adjacent" cells are those horizontally or vertically neighboring. The same letter cell may not be used more than once.
+
+Example:
+```
+board =
+[
+  ['A','B','C','E'],
+  ['S','F','C','S'],
+  ['A','D','E','E']
+]
+
+Given word = "ABCCED", return true.
+Given word = "SEE", return true.
+Given word = "ABCB", return false.
+```
+
+**Solution**
+
+(1) Wrong Answer
+
+```go
+func exist(board [][]byte, word string) bool {
+	if len(board) == 0 || len(board[0]) == 0 {
+		return false
+	}
+	if len(word) == 0 {
+		return true
+	}
+
+	dir := [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}}
+	var dfs func(int, int, string) bool
+	dfs = func(i int, j int, target string) bool {
+		if len(target) == 0 {
+			return true
+		}
+		old := board[i][j]
+		board[i][j] = '*'
+		for _, d := range dir {
+			if i1, j1 := i+d[0], j+d[1]; i1 >= 0 && i1 < len(board) && j1 >= 0 && j1 < len(board[0]) && board[i1][j1] == target[0] {
+				if dfs(i1, j1, target[1:]) {
+					return true
+				}
+			}
+		}
+		board[i][j] = old
+		return false
+	}
+
+	for i := range board {
+		for j := range board[0] {
+			if dfs(i, j, word) {
+				return true
+			}
+		}
+	}
+	return false
+}
+```
+
+```
+Input:
+[["a"]]
+"a"
+Output:
+false
+Expected:
+true
+```
+
+Correct:
+
+```go
+func exist(board [][]byte, word string) bool {
+	if len(board) == 0 || len(board[0]) == 0 {
+		return false
+	}
+	if len(word) == 0 {
+		return true
+	}
+
+	dir := [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}}
+	var dfs func(int, int, string) bool
+	dfs = func(i int, j int, target string) bool {
+		if len(target) == 0 {
+			return true
+		}
+		old := board[i][j]
+		board[i][j] = '*'
+		for _, d := range dir {
+			if i1, j1 := i+d[0], j+d[1]; i1 >= 0 && i1 < len(board) && j1 >= 0 && j1 < len(board[0]) && board[i1][j1] == target[0] {
+				if dfs(i1, j1, target[1:]) {
+					return true
+				}
+			}
+		}
+		board[i][j] = old
+		return false
+	}
+
+	for i := range board {
+		for j := range board[0] {
+            // Handle cases where len(word) == 1
+            if word[0] == board[i][j] && dfs(i, j, word[1:]) {
+				return true
+			}
+		}
+	}
+	return false
+}
+```
+
+- Time complexity: $O(n^2)$
+- Space complexity: $O(1)$
+
+(2) Accepted
+
+```go
+func exist(board [][]byte, word string) bool {
+	if len(board) == 0 || len(board[0]) == 0 {
+		return false
+	}
+	if len(word) == 0 {
+		return true
+	}
+
+	var dfs func(int, int, string) bool
+	dfs = func(i int, j int, target string) bool {
+		if len(target) == 0 {
+			return true
+		}
+        if i < 0 || i >= len(board) || j < 0 || j >= len(board[0]) || target[0] != board[i][j] {
+            return false
+        }
+		old := board[i][j]
+		board[i][j] = '*'
+        res := dfs(i, j+1, target[1:]) || dfs(i, j-1, target[1:]) || dfs(i+1, j, target[1:]) || dfs(i-1, j, target[1:])
+		board[i][j] = old
+		return res
+	}
+
+	for i := range board {
+		for j := range board[0] {
+			if dfs(i, j, word) {
+				return true
+			}
+		}
+	}
+	return false
+}
+```
+
+- Time complexity: $O(n^2)$
+- Space complexity: $O(1)$
+
 # Hash Table
 
 ## [171. Excel Sheet Column Number](https://leetcode.com/problems/excel-sheet-column-number/)
@@ -8479,11 +8637,12 @@ func findSubstring(s string) int {
         for ? { // When counter satisfies some conditions
             // Update d if we want to find minimum 
             
-            // Increase begin to make subtring valid/invalid again
             
             if freqOfChar[s[begin]-'a'] ? {
                 // Modify counter here
             }
+
+            // Increase begin to make subtring valid/invalid again
             begin++
         }
         
@@ -9840,6 +9999,187 @@ func maxProfit(prices []int) int {
 
 - Time complexity: $O(n)$
 - Space complexity: $O(1)$
+
+## [5. Longest Palindromic Substring](https://leetcode.com/problems/longest-palindromic-substring/)
+
+Given a string s, find the longest palindromic substring in s. You may assume that the maximum length of s is 1000.
+
+**Example 1:**
+```
+Input: "babad"
+Output: "bab"
+Note: "aba" is also a valid answer.
+```
+**Example 2:**
+```
+Input: "cbbd"
+Output: "bb"
+```
+
+**Solution**
+
+(1) Accepted
+
+```go
+func longestPalindrome(s string) string {
+    if len(s) < 2 {
+        return s
+    }
+    // dp[i][j]: s[i:j+1] is a palindrome or not
+    dp := make([][]bool, len(s))
+    for i := range dp {
+        dp[i] = make([]bool, len(s))
+    }
+    var res string
+    for i := len(s)-1; i >= 0; i-- {
+        for j := i; j < len(s); j++ {
+            if s[i] == s[j] && (j+1-i < 4 || dp[i+1][j-1]) {
+                dp[i][j] = true
+            }
+            if dp[i][j] && j+1-i > len(res) {
+                res = s[i:j+1]
+            }
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n^2)$
+- Space complexity: $O(n^2)$
+
+(2) Accepted
+
+When found a palindromic substring, try to expand it.
+
+```go
+func longestPalindrome(s string) string {
+	if len(s) < 2 {
+		return s
+	}
+	var longest string
+	expand := func(start, end int) {
+		for ; start >= 0 && end < len(s) && s[start] == s[end]; start, end = start-1, end+1 {
+		}
+		if length := end - start - 1; length > len(longest) {
+			longest = s[start+1 : start+1+length]
+		}
+	}
+	for i := 0; i < len(s); i++ {
+		// substring with odd length
+		expand(i, i)
+		// substring with even length
+		expand(i, i+1)
+	}
+	return longest
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+## [10. Regular Expression Matching](https://leetcode.com/problems/regular-expression-matching/)
+
+Given an input string (s) and a pattern (p), implement regular expression matching with support for `'.'` and `'*'`.
+```
+'.' Matches any single character.
+'*' Matches zero or more of the preceding element.
+```
+The matching should cover the **entire** input string (not partial).
+
+Note:
+
+- s could be empty and contains only lowercase letters a-z.
+- p could be empty and contains only lowercase letters a-z, and characters like . or *.
+
+Example 1:
+```
+Input:
+s = "aa"
+p = "a"
+Output: false
+Explanation: "a" does not match the entire string "aa".
+```
+Example 2:
+```
+Input:
+s = "aa"
+p = "a*"
+Output: true
+Explanation: '*' means zero or more of the preceding element, 'a'. Therefore, by repeating 'a' once, it becomes "aa".
+```
+Example 3:
+```
+Input:
+s = "ab"
+p = ".*"
+Output: true
+Explanation: ".*" means "zero or more (*) of any character (.)".
+```
+Example 4:
+```
+Input:
+s = "aab"
+p = "c*a*b"
+Output: true
+Explanation: c can be repeated 0 times, a can be repeated 1 time. Therefore, it matches "aab".
+```
+Example 5:
+```
+Input:
+s = "mississippi"
+p = "mis*is*p*."
+Output: false
+```
+
+**Solution**
+
+```
+1. If p[j] == s[i] :  dp[i][j] = dp[i-1][j-1];
+2. If p[j] == '.' : dp[i][j] = dp[i-1][j-1];
+3. If p[j] == '*': 
+   here are two sub conditions:
+               1   if p[j-1] != s[i] : dp[i][j] = dp[i][j-2]  //in this case, a* only counts as empty
+               2   if p[i-1] == s[i] or p[i-1] == '.':
+                              dp[i][j] = dp[i-1][j]    //in this case, a* counts as multiple a 
+                           or dp[i][j] = dp[i][j-1]   // in this case, a* counts as single a
+                           or dp[i][j] = dp[i][j-2]   // in this case, a* counts as empty
+```
+
+```go
+func isMatch(s string, p string) bool {
+    dp := make([][]bool, len(s)+1)
+    for i := range dp {
+        dp[i] = make([]bool, len(p)+1)
+    }
+    // Base case
+    dp[0][0] = true
+    for i := 0; i < len(p); i++ {
+        dp[0][i+1] = (p[i] == '*' && dp[0][i-1])
+    }
+    for i := 0; i < len(s); i++ {
+        for j := 0; j < len(p); j++ {
+            if p[j] == '.' {
+                dp[i+1][j+1] = dp[i][j]
+            } 
+            if p[j] == s[i] {
+                do[i+1][j+1] = dp[i][j]
+            }
+            if p[j] == '*' {
+                if p[j-1] != s[i] && p[j-1] != '.' {
+                    dp[i+1][j+1] = dp[i+1][j-1]
+                } else {
+                    dp[i+1][j+1] = (dp[i+1][j] || dp[i][j+1] || dp[i+1][j-1])
+                }
+            }
+        }
+    }
+    return dp[len(s)][len(p)]
+}
+```
+
+- Time complexity: $O(len(s)×len(p))$
+- Space complexity: $O(len(s)×len(p))$
 
 # Greedy
 

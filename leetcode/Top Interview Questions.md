@@ -4978,6 +4978,149 @@ func isMatch(str string, pattern string) bool {
 - Time complexity: $O(len(str)+len(pattern))$
 - Space complexity: $O(1)$
 
+## [17. Letter Combinations of a Phone Number](https://leetcode.com/problems/letter-combinations-of-a-phone-number/)
+
+Given a string containing digits from 2-9 inclusive, return all possible letter combinations that the number could represent.
+
+A mapping of digit to letters (just like on the telephone buttons) is given below. Note that 1 does not map to any letters.
+
+![](http://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Telephone-keypad2.svg/200px-Telephone-keypad2.svg.png)
+
+**Example:**
+```
+Input: "23"
+Output: ["ad", "ae", "af", "bd", "be", "bf", "cd", "ce", "cf"].
+```
+**Note:**
+
+Although the above answer is in lexicographical order, your answer could be in any order you want.
+
+**Solution**
+
+(1) Accepted
+
+Iterative solution.
+
+```go
+func letterCombinations(digits string) []string {
+    if digits == "" {
+        return nil
+    }
+    numToLetters := map[rune][]string{
+        '2': []string{"a", "b", "c"},
+        '3': []string{"d", "e", "f"},
+        '4': []string{"g", "h", "i"},
+        '5': []string{"j", "k", "l"},
+        '6': []string{"m", "n", "o"},
+        '7': []string{"p", "q", "r", "s"},
+        '8': []string{"t", "u", "v"},
+        '9': []string{"w", "x", "y", "z"},
+    }
+    queue := []string{""}
+    for i, r := range digits {
+        letters := numToLetters[r]
+        for len(queue[0]) == i {
+            head := queue[0]
+            queue = queue[1:]
+            for _, letter := range letters {
+                queue = append(queue, head+letter)
+            }
+        }
+    }
+    return queue
+}
+```
+
+- Time complexity: $O(n)$ where n is the number of combinations?
+- Space complexity: $O(n)$
+
+(2) Accepted
+
+Straightforward backtracking solution.
+
+```go
+func letterCombinations(digits string) []string {
+    if digits == "" {
+        return nil
+    }
+    m := map[byte][]string{
+        '2': []string{"a", "b", "c"},
+        '3': []string{"d", "e", "f"},
+        '4': []string{"g", "h", "i"},
+        '5': []string{"j", "k", "l"},
+        '6': []string{"m", "n", "o"},
+        '7': []string{"p", "q", "r", "s"},
+        '8': []string{"t", "u", "v"},
+        '9': []string{"w", "x", "y", "z"},
+    }
+
+    res := make([]string, 0)
+
+    var backtrack func(int, string)
+    backtrack = func(pos int, tmp string) {
+        if pos == len(digits) {
+            res = append(res, tmp)
+            return
+        }
+        for _, s := range m[digits[pos]] {
+            backtrack(pos+1, tmp+s)
+        }
+    }
+
+    backtrack(0, "")
+    return res
+}
+```
+
+- Time complexity: $O(n)$ where n is the number of combinations?
+- Space complexity: $O(1)$
+
+## [22. Generate Parentheses](https://leetcode.com/problems/generate-parentheses/)
+
+Given n pairs of parentheses, write a function to generate all combinations of well-formed parentheses.
+
+For example, given n = 3, a solution set is:
+```
+[
+  "((()))",
+  "(()())",
+  "(())()",
+  "()(())",
+  "()()()"
+]
+```
+
+**Solution**
+
+The idea is very straightforward: in each valid combinationi there should be n open parentheses and n closing parentheses.
+
+```go
+func generateParenthesis(n int) []string {
+	if n <= 0 {
+		return nil
+	}
+	res := make([]string, 0)
+	addParenthesis("", 0, 0, n, &res)
+	return res
+}
+
+func addParenthesis(s string, numOfOpen int, numOfClosing int, numOfPar int, res *[]string) {
+	if len(s) == 2*numOfPar {
+		*res = append(*res, s)
+		return
+	}
+	if numOfOpen < numOfPar {
+		addParenthesis(s+"(", numOfOpen+1, numOfClosing, numOfPar, res)
+	}
+	if numOfClosing < numOfOpen {
+		addParenthesis(s+")", numOfOpen, numOfClosing+1, numOfPar, res)
+	}
+}
+```
+
+- Time complexity: ?
+- Space complexity: $O(1)$
+
 # Tree
 
 ## [230. Kth Smallest Element in a BST](<https://leetcode.com/problems/kth-smallest-element-in-a-bst/>)

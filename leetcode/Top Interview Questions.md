@@ -4090,6 +4090,56 @@ Output: false
 
 **Solution**
 
+(1) Time Limit Exceeded
+
+Straightforward DFS.
+
+```go
+func wordBreak(s string, dict []string) bool {
+    if len(s) == 0 {
+        return true
+    }
+    for _, word := range dict {
+        if strings.HasPrefix(s, word) {
+            // Proceed segmenting remaining substring
+            if wordBreak(s[len(word):], dict) {
+                return true
+            }
+        }
+    }
+    return false
+}
+```
+
+(2) Accepted
+
+Recursive solution with memoization.
+
+```go
+func wordBreak(s string, dict []string) bool {
+    return dfs(s, dict, map[string]bool{"": true})
+}
+
+func dfs(s string, dict []string, memo map[string]bool) bool {
+    if res, ok := memo[s]; ok {
+        return res
+    }
+    for _, word := range dict {
+        if strings.HasPrefix(s, word) && dfs(s[len(word):], dict, memo) {
+            memo[s] = true
+            return true
+        }
+    }
+    memo[s] = false
+    return false
+}
+```
+
+- Time complexity: ?
+- Space complexity: ?
+
+(3) Accepted
+
 A typical DP problem.
 
 ```go
@@ -9154,15 +9204,17 @@ We can solve the same problem bottom-up iteratively.
 
 ```go
 func rob(nums []int) int {
-    if len(nums) == 0 {
+    if l := len(nums); l == 0 {
         return 0
+    } else if l == 1 {
+        return nums[0]
     }
-    memo := make([]int, len(nums)+1)
-    memo[1] = nums[0]
-    for i := 1; i < len(nums); i++ {
-        memo[i+1] = int(math.Max(float64(nums[i]+memo[i-1]), float64(memo[i])))
+    dp := make([]int, len(nums))
+    dp[0], dp[1] = nums[0], int(math.Max(float64(nums[0]), float64(nums[1])))
+    for i := 2; i < len(nums); i++ {
+        dp[i] = int(math.Max(float64(dp[i-2]+nums[i]), float64(dp[i-1])))
     }
-    return memo[len(nums)]
+    return dp[len(nums)-1]
 }
 ```
 

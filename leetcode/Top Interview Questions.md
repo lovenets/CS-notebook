@@ -5626,7 +5626,7 @@ func minWindow(s string, t string) string {
             // s[end] occurs in t
 			count--
         }
-        // If we have redudant characters occuring t, table[char] will be negatie 
+        // If s contains redundant characters of t, table[char] will be negatie 
 		table[s[end]]-- 
 		end++
 		for count == 0 { // We've found a valid substring
@@ -5652,6 +5652,225 @@ func minWindow(s string, t string) string {
 
 - Time complexity: $O(len(s)+len(t))$
 - Space complexity: $O(len(t))$
+
+**Recap**
+
+For most substring problem, we are given a string and need to find a substring of it which satisfies some restrictions. There is a template which can solve most of such problems.
+
+```go
+func findSubstring(s string) int {
+    freqOfChar := make([]int, 26)
+  	// Initialize map here
+    counter := 0 // check whether the subtring is valid
+    d := 0 // length of substirng
+    for begin, end := 0, 0; end < len(s); {
+        if freqOfChar[s[end]-'a'] ? {
+            // Modify counter here
+        }
+        end++
+        for ? { // When counter satisfies some conditions
+            // Update d if we want to find minimum 
+            
+            
+            if freqOfChar[s[begin]-'a'] ? {
+                // Modify counter here
+            }
+
+            // Increase begin to make subtring valid/invalid again
+            begin++
+        }
+        
+        // Update d here if we want to find maximum
+    }
+    return d
+}
+```
+
+One thing needs to be mentioned is that when asked to find maximum substring, we should update maximum after the inner while loop to guarantee that the substring is valid. On the other hand, when asked to find minimum substring, we should update minimum inside the inner while loop.
+
+## [395. Longest Substring with At Least K Repeating Characters](<https://leetcode.com/problems/longest-substring-with-at-least-k-repeating-characters/>)
+
+Find the length of the longest substring of a given string (consists of lowercase letters only) such that every character in appears no less than *k* times.
+
+**Example 1:**
+
+```
+Input:
+s = "aaabb", k = 3
+
+Output:
+3
+
+The longest substring is "aaa", as 'a' is repeated 3 times.
+```
+
+**Example 2:**
+
+```
+Input:
+s = "ababbc", k = 2
+
+Output:
+5
+
+The longest substring is "ababb", as 'a' is repeated 2 times and 'b' is repeated 3 times.
+```
+
+**Solution**
+
+```go
+func longestSubstring(s string, k int) int {
+    if k <= 0 || len(s) < k {
+        return 0
+    }
+    d := 0
+    for i := 1; i <= 26; i++ {
+        if tmp := nUniqueChars(s, k, i); d < tmp {
+            d = tmp
+        }
+    }
+    return d
+}
+
+// Find the longest substring containing n unique characters each of which 
+// repeats at least k times
+func nUniqueChars(s string, k int, n int) int {
+    count := make([]int, 26)
+    numOfUnique, numOfRepeatingK := 0, 0
+    d := 0
+    for begin, end := 0, 0; end < len(s); {
+        if count[s[end]-'a'] == 0 {
+            numOfUnique++
+        }
+        count[s[end]-'a']++
+        if count[s[end]-'a'] == k {
+            numOfRepeatingK++
+        }
+        end++
+        for numOfUnique > n {
+            if count[s[begin]-'a'] == k {
+                numOfRepeatingK--
+            }
+            count[s[begin]-'a']--
+            if count[s[begin]-'a'] == 0 {
+                numOfUnique--
+            }
+            begin++
+        }
+        if numOfUnique == n && numOfUnique == numOfRepeatingK {
+            if tmp := end-begin; tmp > d {
+                d = tmp
+            }
+        }
+    }
+    return d
+}
+```
+
+- Time complexity: $O(n)$?
+- Space complexity: $O(1)$
+
+## [3.Longest Substring Without Repeating Characters](<https://leetcode.com/problems/longest-substring-without-repeating-characters/>)
+
+Given a string, find the length of the **longest substring** without repeating characters.
+
+**Example 1:**
+
+```
+Input: "abcabcbb"
+Output: 3 
+Explanation: The answer is "abc", with the length of 3. 
+```
+
+**Example 2:**
+
+```
+Input: "bbbbb"
+Output: 1
+Explanation: The answer is "b", with the length of 1.
+```
+
+**Example 3:**
+
+```
+Input: "pwwkew"
+Output: 3
+Explanation: The answer is "wke", with the length of 3. 
+             Note that the answer must be a substring, "pwke" is a subsequence and not a substring.
+```
+
+**Solution**
+
+```go
+func lengthOfLongestSubstring(s string) int {
+    if len(s) == 0 {
+        return 0
+    }
+    freqOfChar := make(map[byte]int)
+    numOfRepeatingChar := 0
+    d := 0
+    for begin, end := 0, 0; end < len(s); {
+        if freqOfChar[s[end]] > 0 {
+            numOfRepeatingChar++
+        }
+        freqOfChar[s[end]]++
+        end++
+        for numOfRepeatingChar > 0 {
+            if freqOfChar[s[begin]] > 1 {
+                numOfRepeatingChar--
+            }
+            freqOfChar[s[begin]]--
+            begin++
+        }
+        if tmp := end-begin; tmp > d {
+            d = tmp
+        }
+    }
+    return d
+} 
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+## [159. Longest Substring with At Most K Distinct Characters]()
+
+Given a string S, find the length of the longest substring T that contains at most k distinct characters.
+
+For example, Given S = "eceba", k = 2, T is "ece" which its length is 3.
+
+**Solution**
+
+```go
+func lengthOfLongestSubstring(s string, k int) int {
+    m := make(map[byte]int)
+    res := 0
+    numOfDistinct := 0
+    for begin, end := 0, 0; end < len(s); {
+        if m[s[end]] == 0 {
+            // Found a character for the first time
+            numOfDistinct++
+        }
+        m[s[end]]++
+        end++
+        for numOfDistinct > k {
+            if m[s[start]] == 1 {
+                // s[start] occurs only once in current window
+                numOfDistinct--
+            }
+            m[s[start]]--
+            start++
+        }
+        if tmp := end-begin; res < tmp {
+            res = tmp
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
 
 # Tree
 
@@ -9209,225 +9428,6 @@ func searchRange(nums []int, target int) []int {
 
 - Time complexity: $O(logn)$
 - Space complexity: $O(1)$
-
-# Sliding Window
-
-## [395. Longest Substring with At Least K Repeating Characters](<https://leetcode.com/problems/longest-substring-with-at-least-k-repeating-characters/>)
-
-Find the length of the longest substring of a given string (consists of lowercase letters only) such that every character in appears no less than *k* times.
-
-**Example 1:**
-
-```
-Input:
-s = "aaabb", k = 3
-
-Output:
-3
-
-The longest substring is "aaa", as 'a' is repeated 3 times.
-```
-
-**Example 2:**
-
-```
-Input:
-s = "ababbc", k = 2
-
-Output:
-5
-
-The longest substring is "ababb", as 'a' is repeated 2 times and 'b' is repeated 3 times.
-```
-
-**Solution**
-
-```go
-func longestSubstring(s string, k int) int {
-    if k <= 0 || len(s) < k {
-        return 0
-    }
-    d := 0
-    for i := 1; i <= 26; i++ {
-        if tmp := nUniqueChars(s, k, i); d < tmp {
-            d = tmp
-        }
-    }
-    return d
-}
-
-// Find the longest substring containing n unique characters each of which 
-// repeats at least k times
-func nUniqueChars(s string, k int, n int) int {
-    count := make([]int, 26)
-    numOfUnique, numOfRepeatingK := 0, 0
-    d := 0
-    for begin, end := 0, 0; end < len(s); {
-        if count[s[end]-'a'] == 0 {
-            numOfUnique++
-        }
-        count[s[end]-'a']++
-        if count[s[end]-'a'] == k {
-            numOfRepeatingK++
-        }
-        end++
-        for numOfUnique > n {
-            if count[s[begin]-'a'] == k {
-                numOfRepeatingK--
-            }
-            count[s[begin]-'a']--
-            if count[s[begin]-'a'] == 0 {
-                numOfUnique--
-            }
-            begin++
-        }
-        if numOfUnique == n && numOfUnique == numOfRepeatingK {
-            if tmp := end-begin; tmp > d {
-                d = tmp
-            }
-        }
-    }
-    return d
-}
-```
-
-- Time complexity: $O(n)$?
-- Space complexity: $O(1)$
-
-**Recap**
-
-For most substring problem, we are given a string and need to find a substring of it which satisfies some restrictions. There is a template which can solve most of such problems.
-
-```go
-func findSubstring(s string) int {
-    freqOfChar := make([]int, 26)
-  	// Initialize map here
-    counter := 0 // check whether the subtring is valid
-    d := 0 // length of substirng
-    for begin, end := 0, 0; end < len(s); {
-        if freqOfChar[s[end]-'a'] ? {
-            // Modify counter here
-        }
-        end++
-        for ? { // When counter satisfies some conditions
-            // Update d if we want to find minimum 
-            
-            
-            if freqOfChar[s[begin]-'a'] ? {
-                // Modify counter here
-            }
-
-            // Increase begin to make subtring valid/invalid again
-            begin++
-        }
-        
-        // Update d here if we want to find maximum
-    }
-    return d
-}
-```
-
-One thing needs to be mentioned is that when asked to find maximum substring, we should update maximum after the inner while loop to guarantee that the substring is valid. On the other hand, when asked to find minimum substring, we should update minimum inside the inner while loop.
-
-## [3.Longest Substring Without Repeating Characters](<https://leetcode.com/problems/longest-substring-without-repeating-characters/>)
-
-Given a string, find the length of the **longest substring** without repeating characters.
-
-**Example 1:**
-
-```
-Input: "abcabcbb"
-Output: 3 
-Explanation: The answer is "abc", with the length of 3. 
-```
-
-**Example 2:**
-
-```
-Input: "bbbbb"
-Output: 1
-Explanation: The answer is "b", with the length of 1.
-```
-
-**Example 3:**
-
-```
-Input: "pwwkew"
-Output: 3
-Explanation: The answer is "wke", with the length of 3. 
-             Note that the answer must be a substring, "pwke" is a subsequence and not a substring.
-```
-
-**Solution**
-
-```go
-func lengthOfLongestSubstring(s string) int {
-    if len(s) == 0 {
-        return 0
-    }
-    freqOfChar := make(map[byte]int)
-    numOfRepeating := 0
-    d := 0
-    for begin, end := 0, 0; end < len(s); {
-        if freqOfChar[s[end]] > 0 {
-            numOfRepeating++
-        }
-        freqOfChar[s[end]]++
-        end++
-        for numOfRepeating > 0 {
-            if freqOfChar[s[begin]] > 1 {
-                numOfRepeating--
-            }
-            freqOfChar[s[begin]]--
-            begin++
-        }
-        if tmp := end-begin; tmp > d {
-            d = tmp
-        }
-    }
-    return d
-}
-```
-
-- Time complexity: $O(n)$
-- Space complexity: $O(n)$
-
-## 159. Longest Substring with At Most Two Distinct Characters
-
-Given a string S, find the length of the longest substring T that contains at most two distinct characters.
-
-For example, Given S = “eceba”, T is "ece" which its length is 3.
-
-**Solution**
-
-```go
-func lengthOfLongestSubstring(s string) int {
-    m := make(map[byte]int)
-    res := 0
-    counter := 0
-    for begin, end := 0, 0; end < len(s); {
-        if m[s[end]] == 0 {
-            counter++
-        }
-        m[s[end]]++
-        end++
-        for counter > 2 {
-            if m[s[start]] == 1 {
-                counter--
-            }
-            m[s[start]]--
-            start++
-        }
-        if tmp := end-begin; res < tmp {
-            res = tmp
-        }
-    }
-    return res
-}
-```
-
-- Time complexity: $O(n)$
-- Space complexity: $O(n)$
 
 # DP
 

@@ -5171,6 +5171,488 @@ func addParenthesis(s string, numOfOpen int, numOfClosing int, numOfPar int, res
 - Time complexity: ?
 - Space complexity: $O(1)$
 
+## [8. String to Integer (atoi)](https://leetcode.com/problems/string-to-integer-atoi/)
+
+Implement `atoi` which converts a string to an integer.
+
+The function first discards as many whitespace characters as necessary until the first non-whitespace character is found. Then, starting from this character, takes an optional initial plus or minus sign followed by as many numerical digits as possible, and interprets them as a numerical value.
+
+The string can contain additional characters after those that form the integral number, which are ignored and have no effect on the behavior of this function.
+
+If the first sequence of non-whitespace characters in str is not a valid integral number, or if no such sequence exists because either str is empty or it contains only whitespace characters, no conversion is performed.
+
+If no valid conversion could be performed, a zero value is returned.
+
+**Note:**
+
+- Only the space character ' ' is considered as whitespace character.
+- Assume we are dealing with an environment which could only store integers within the 32-bit signed integer range: [$−2^{31}$,  $2^{31} − 1$]. If the numerical value is out of the range of representable values, INT_MAX $(2^{31} − 1)$ or INT_MIN $(−2^{31})$ is returned.
+
+**Example 1:**
+```
+Input: "42"
+Output: 42
+```
+**Example 2:**
+```
+Input: "   -42"
+Output: -42
+Explanation: The first non-whitespace character is '-', which is the minus sign.
+             Then take as many numerical digits as possible, which gets 42.
+```
+**Example 3:**
+```
+Input: "4193 with words"
+Output: 4193
+Explanation: Conversion stops at digit '3' as the next character is not a numerical digit.
+```
+**Example 4:**
+```
+Input: "words and 987"
+Output: 0
+Explanation: The first non-whitespace character is 'w', which is not a numerical 
+             digit or a +/- sign. Therefore no valid conversion could be performed.
+```
+**Example 5:**
+```
+Input: "-91283472332"
+Output: -2147483648
+Explanation: The number "-91283472332" is out of the range of a 32-bit signed integer.
+             Thefore INT_MIN is returned.
+```
+
+**Solution**
+
+The problem itself is not so comlicated. We just need to handle some corner cases.
+
+```go
+func myAtoi(str string) int {
+	// trim whitespace characters
+	str = strings.TrimSpace(str)
+	if str == "" {
+		// Input string only contains whitespace characters or is empty
+		return 0
+	}
+	if !unicode.IsDigit(rune(str[0])) && str[0] != '+' && str[0] != '-' {
+		// The first character is not a digit character, plus sign or minus sign
+		return 0
+	}
+	start := 0
+	// If the first character is plus or minus sign
+	sign := 1
+	if str[start] == '-' {
+		sign, start = -1, start+1
+	} else if str[start] == '+' {
+		sign, start = 1, start+1
+	}
+	// Retrieve as many digit characters as possible
+	digits := make([]rune, 0)
+	for _, r := range strings.TrimLeft(str[start:], "0") {
+        if !unicode.IsDigit(r) {
+            break
+        }
+        digits = append(digits, r)
+	}
+	// Construct the number
+	res, magnitude := 0, 1
+	for i := len(digits) - 1; i >= 0; i-- {
+		d := int(digits[i]-'0') * sign
+		if tmp := res + magnitude*d; float64(magnitude) <= math.Pow10(9) && tmp >= math.MinInt32 && tmp <= math.MaxInt32 {
+			res, magnitude = tmp, magnitude*10
+		} else {
+			// Overflow
+			if sign == 1 {
+				return math.MaxInt32
+			} else {
+				return math.MinInt32
+			}
+		}
+	}
+	return res
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(m)$ where m is the length of leftmost consecutive digits.
+
+## [13. Roman to Integer](https://leetcode.com/problems/roman-to-integer/)
+
+Roman numerals are represented by seven different symbols: I, V, X, L, C, D and M.
+```
+Symbol       Value
+I             1
+V             5
+X             10
+L             50
+C             100
+D             500
+M             1000
+```
+For example, two is written as II in Roman numeral, just two one's added together. Twelve is written as, XII, which is simply X + II. The number twenty seven is written as XXVII, which is XX + V + II.
+
+Roman numerals are usually written largest to smallest from left to right. However, the numeral for four is not IIII. Instead, the number four is written as IV. Because the one is before the five we subtract it making four. The same principle applies to the number nine, which is written as IX. There are six instances where subtraction is used:
+
+- I can be placed before V (5) and X (10) to make 4 and 9. 
+- X can be placed before L (50) and C (100) to make 40 and 90. 
+- C can be placed before D (500) and M (1000) to make 400 and 900.
+Given a roman numeral, convert it to an integer. Input is guaranteed to be within the range from 1 to 3999.
+
+**Example 1:**
+```
+Input: "III"
+Output: 3
+```
+**Example 2:**
+```
+Input: "IV"
+Output: 4
+```
+**Example 3:**
+```
+Input: "IX"
+Output: 9
+```
+**Example 4:**
+```
+Input: "LVIII"
+Output: 58
+Explanation: L = 50, V= 5, III = 3.
+```
+**Example 5:**
+```
+Input: "MCMXCIV"
+Output: 1994
+Explanation: M = 1000, CM = 900, XC = 90 and IV = 4.
+```
+
+**Solution**
+
+```go
+func romanToInt(s string) int {
+	if s == "" {
+		return 0
+	}
+	basicNum := map[string]int{
+		"I":  1,
+		"IV": 4,
+		"V":  5,
+		"IX": 9,
+		"X":  10,
+		"XL": 40,
+		"L":  50,
+		"XC": 90,
+		"C":  100,
+		"CD": 400,
+		"D":  500,
+		"CM": 900,
+		"M":  1000,
+	}
+	basicLetters := []string{"CM", "CD", "XC", "XL", "IX", "IV", "M", "D", "C", "L", "X", "V", "I"}
+	res := 0
+	for s != "" {
+		for _, bl := range basicLetters {
+            if strings.HasPrefix(s, bl) {
+                res, s = res+basicNum[bl], s[len(bl):]
+                break
+            }
+		}
+	}
+	return res
+}
+```
+
+- Time complexity: $O(n^2)$
+- Space complexity: $O(1)$
+
+## [14. Longest Common Prefix](https://leetcode.com/problems/longest-common-prefix/)
+
+Write a function to find the longest common prefix string amongst an array of strings.
+
+If there is no common prefix, return an empty string "".
+
+**Example 1:**
+```
+Input: ["flower","flow","flight"]
+Output: "fl"
+```
+**Example 2:**
+```
+Input: ["dog","racecar","car"]
+Output: ""
+Explanation: There is no common prefix among the input strings.
+```
+**Note:**
+
+All given inputs are in lowercase letters a-z.
+
+**Solution**
+
+```go
+func longestCommonPrefix(strs []string) string {
+	if len(strs) == 0 {
+		return ""
+	}
+	pre := strs[0]
+	for i := 1; i < len(strs); i++ {
+		for !strings.HasPrefix(strs[i], pre) {
+			if pre = pre[0 : len(pre)-1]; pre == "" {
+                return res
+            }
+ 		}
+	}
+	return pre
+}
+```
+
+- Time complexity: $O(n^2)$
+- Space complexity: $O(1)$
+
+## [20. Valid Parentheses](https://leetcode.com/problems/valid-parentheses/)
+
+Given a string containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.
+
+An input string is valid if:
+
+1. Open brackets must be closed by the same type of brackets.
+2. Open brackets must be closed in the correct order.
+
+Note that an empty string is also considered valid.
+
+Example 1:
+```
+Input: "()"
+Output: true
+```
+Example 2:
+```
+Input: "()[]{}"
+Output: true
+```
+Example 3:
+```
+Input: "(]"
+Output: false
+```
+Example 4:
+```
+Input: "([)]"
+Output: false
+```
+Example 5:
+```
+Input: "{[]}"
+Output: true
+```
+
+**Solution**
+
+A very straightforward solution using stack.
+
+```go
+func isValid(s string) bool {
+    if len(s) == 0 {
+        return true
+    } 
+    m := map[rune]rune{
+        '(': ')',
+        '[': ']',
+        '{': '}',
+    }
+    stack := make([]rune, 0)
+    for _, r := range s {
+        // Found an open bracket
+        if r == '(' || r == '[' || r == '{' {
+            stack = append(stack, r)
+            continue
+        }
+        // Found a closing bracket
+        if len(stack) == 0 || m[stack[len(stack)-1]] != r {
+            return false
+        }
+        stack = stack[:len(stack)-1]
+    }
+    return len(stack) == 0
+}
+```
+
+- Time complexity: $O(n)$ where n is the length of input string.
+- Space complexity: $O(m)$ where m is the number of open brackets.
+
+## [49. Group Anagrams](https://leetcode.com/problems/group-anagrams/)
+
+Given an array of strings, group anagrams together.
+
+Example:
+
+```
+Input: ["eat", "tea", "tan", "ate", "nat", "bat"],
+Output:
+[
+  ["ate","eat","tea"],
+  ["nat","tan"],
+  ["bat"]
+]
+```
+
+Note:
+
+- All inputs will be in lowercase.
+- The order of your output does not matter.
+
+**Solution**
+
+(1) Accepted
+
+Sorted strings of anagrams will be the same. So we group them by results of sorting.
+
+```go
+type bytes []byte
+
+func (bs bytes) Len() int {
+    return len(bs)
+}
+
+func (bs bytes) Less(i, j int) bool {
+    return bs[i] < bs[j]
+}
+
+func (bs bytes) Swap(i, j int) {
+    bs[i], bs[j] = bs[j], bs[i]
+}
+
+func groupAnagrams(strs []string) [][]string {
+    if len(strs) ==  0 {
+        return nil
+    }
+    
+    // Sort a string
+    // The sorted strings of anagrams are the same
+    sortStr := func(s string) string {
+        bs := bytes([]byte(s))
+        sort.Sort(bs)
+        return string(bs)
+    }
+    
+    group := make(map[string][]string)
+    for _, s := range strs {
+        sorted := sortStr(s)
+        if _, ok := group[sorted]; !ok {
+            group[sorted] = make([]string, 0)
+        }
+        group[sorted] = append(group[sorted], s)
+    }
+    res := make([][]string, 0)
+    for k := range group {
+        res = append(res, group[k])
+    }
+    return res
+}
+```
+
+- Time complexity: $O(nmlogm)$ where n is the length of input and m is the average length of each word.
+- Space compleoxty: $O(g)$ where g is the number of groups.
+
+(2) 
+
+Assign a prime number for a to z, and then multiply all prime numbers together to form a hash value.
+
+Note that this solution may cause integer overflow.
+
+```go
+func groupAnagrams(strs []string) [][]string {
+    if len(strs) == 0 {
+        return nil
+    }
+    primes := []int{2, 3, 5, 7, 11 ,13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 107}
+    m := make(map[int][]string)
+    for _, s := range strs {
+        // Hashing
+        hash := 1
+        for _, r := range s {
+            hash *= primes[r-'a']
+        }
+        if _, ok := m[hash]; !ok {
+            m[hash] = make([]string, 0)
+        }
+        m[hash] = append(m[hash], s)
+    }
+    res := make([][]string, 0)
+    for k := range m {
+        res = append(res, m[k])
+    }
+    return res
+}
+```
+
+- Time complexity: $O(nm)$ where n is the length of input and m is the average length of each word.
+- Space compleoxty: $O(g)$ where g is the number of groups.
+
+## [76. Minimum Window Substring](https://leetcode.com/problems/minimum-window-substring/)
+
+Given a string S and a string T, find the minimum window in S which will contain all the characters in T in complexity O(n).
+
+Example:
+```
+Input: S = "ADOBECODEBANC", T = "ABC"
+Output: "BANC"
+```
+**Note:**
+
+- If there is no such window in S that covers all characters in T, return the empty string "".
+- If there is such window, you are guaranteed that there will always be only one unique minimum window in S.
+
+**Solution**
+
+In any sliding window based problem we have two pointers. One rightright pointer whose job is to expand the current window and then we have the leftleft pointer whose job is to contract a given window. At any point in time only one of these pointers move and the other one remains fixed.
+
+The solution is pretty intuitive. We keep expanding the window by moving the right pointer. When the window has all the desired characters, we contract (if possible) and save the smallest window till now.
+
+For eg. `S = "ABAACBAB" T = "ABC"`. Then our answer window is "ACB" and shown below is one of the possible desirable windows.
+
+![](https://leetcode.com/articles/Figures/76/76_Minimum_Window_Substring_2.png)
+
+![](https://leetcode.com/articles/Figures/76/76_Minimum_Window_Substring_3.png)
+
+```go
+func minWindow(s string, t string) string {
+	table := make(map[uint8]int)
+	for i := range t {
+		table[t[i]]++
+	}
+	count := len(t)
+	head, l := 0, math.MaxInt64
+    for beg, end := 0, 0; end < len(s); {
+		if table[s[end]] > 0 {
+            // s[end] occurs in t
+			count--
+        }
+        // If we have redudant characters occuring t, table[char] will be negatie 
+		table[s[end]]-- 
+		end++
+		for count == 0 { // We've found a valid substring
+            if tmp := end-beg; tmp < l {
+                l, head = tmp, beg
+            }
+			if table[s[beg]] == 0 {
+                // s[beg] occurs in t
+                // and we don't have redundant s[beg] in current window
+				count++
+			}
+			table[s[beg]]++
+			beg++
+		}
+	}
+	if l == math.MaxInt64 {
+		return ""
+	} else {
+		return s[head : head+l]
+	}
+}
+```
+
+- Time complexity: $O(len(s)+len(t))$
+- Space complexity: $O(len(t))$
+
 # Tree
 
 ## [230. Kth Smallest Element in a BST](<https://leetcode.com/problems/kth-smallest-element-in-a-bst/>)
@@ -10215,24 +10697,26 @@ Output: "bb"
 
 (1) Accepted
 
+Assume we have known `s[i:j]` is a palindrome then we want to figure out whether `s[i-1:j+1]` is a palindrome too.
+
 ```go
 func longestPalindrome(s string) string {
     if len(s) < 2 {
         return s
     }
-    // dp[i][j]: s[i:j+1] is a palindrome or not
-    dp := make([][]bool, len(s))
+    dp := make([][]bool, len(s)) // dp[i][j]: whether s[i:j+1] is palindromic
     for i := range dp {
         dp[i] = make([]bool, len(s))
     }
     var res string
     for i := len(s)-1; i >= 0; i-- {
-        for j := i; j < len(s); j++ {
-            if s[i] == s[j] && (j+1-i < 4 || dp[i+1][j-1]) {
+        // Note that j >= i becatse a single character is also a valid palindrome
+        for j := len(s)-1; j >= i; j-- {
+            if s[i] == s[j] && (j-i+1 <= 3 || dp[i+1][j-1]) {
                 dp[i][j] = true
-            }
-            if dp[i][j] && j+1-i > len(res) {
-                res = s[i:j+1]
+                if tmp := j-i+1; tmp > len(res) {
+                    res = s[i:j+1]
+                }
             }
         }
     }

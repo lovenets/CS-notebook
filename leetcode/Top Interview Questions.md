@@ -5872,6 +5872,93 @@ func lengthOfLongestSubstring(s string, k int) int {
 - Time complexity: $O(n)$
 - Space complexity: $O(n)$
 
+## [32. Longest Valid Parentheses](https://leetcode.com/problems/longest-valid-parentheses/)
+
+Given a string containing just the characters '(' and ')', find the length of the longest valid (well-formed) parentheses substring.
+
+Example 1:
+```
+Input: "(()"
+Output: 2
+Explanation: The longest valid parentheses substring is "()"
+```
+Example 2:
+```
+Input: ")()())"
+Output: 4
+Explanation: The longest valid parentheses substring is "()()"
+```
+
+**Solution**
+
+(1) 
+
+If we find a pair, we throw this pair away and see how big the gap is between current and previous invalid.
+```
+EX: "( )( )"
+stack: -1, 0
+```
+When we get to index 1 (`")"`), the peek is `"("` so we pop it out and see what's before `"("`.
+In this example it's -1. So the gap is `1-(-1)=2`.
+
+Only update the result when we find a "pair" and push -1 to stack at first to cover all corner cases.
+
+```go
+func longestValidParentheses(s string) int {
+    if len(s) < 2 {
+        return 0
+    }
+    stack := []int{-1}
+    res := 0
+    for i := range s {
+        if s[i] != ')' || len(stack) <= 1 || s[stack[len(stack)-1]] != '(' {
+            stack = append(stack, i)
+            continue
+        }
+        // Found a pair
+        stack = stack[:len(stack)-1]
+        if tmp := i-stack[len(stack)-1]; tmp > res {
+            res = tmp
+        }
+    }
+    return res
+}
+```
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+(2)
+
+```go
+func longestValidParentheses(s string) int {
+    dp := make([]int, len(s)) // dp[i]: the longest valid parentheses ending at i
+    res, numOfOpen := 0, 0
+    for i := range s {
+        if s[i] == '(' {
+            numOfOpen++
+            continue
+        }
+        if numOfOpen > 0 {
+            // Found a valid pair
+            // A pair's length is 2 so we first add 2 to dp[i-1]
+            // because we might have something like "(())" 
+            if dp[i] = dp[i-1] + 2; i-dp[i] >= 0 {
+                // If i-dp[i] >= 0, we might have something like "()(())"
+                dp[i] += dp[i-dp[i]]
+            }
+            if dp[i] > res {
+                res = dp[i]
+            }
+            numOfOpen--
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
 # Tree
 
 ## [230. Kth Smallest Element in a BST](<https://leetcode.com/problems/kth-smallest-element-in-a-bst/>)

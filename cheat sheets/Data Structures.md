@@ -44,7 +44,7 @@
 
 #### Big O Efficiency
 
-- Indexing: O(n)$
+- Indexing: $O(n)$
 - Search: $O(n)$
 - Optimized Search: $O(n)$
 - Insertion: $O(1)$
@@ -171,25 +171,25 @@ func insert(node *TrieNode, key string, value interface{}) {
 ```go
 // Union by rank
 type UnionFind struct {
-    Roots []int
+    Root []int
     Rank  []int
 }
 
 // n is the number of elements
 func Init(n int) *UnionFind {
-    roots := make([]int, n)
-    for i := range roots {
-        roots[i] = i
+    root := make([]int, n)
+    for i := range root {
+        root[i] = i
     }
     rank := make([]int, n)
-    return &UnionFind{roots, rank}
+    return &UnionFind{root, rank}
 }
 
 func (uf *UnionFind) Search(x int) int {
-    if x != uf.Roots[x] {
-        uf.Roots[x] = uf.Search(uf.Roots[x])
+    if x != uf.Root[x] {
+        uf.Root[x] = uf.Search(uf.Root[x])
 	}
-	return uf.Roots[x]
+	return uf.Root[x]
 }
 
 func (uf *UnionFind) Merge(x, y int) {
@@ -198,7 +198,7 @@ func (uf *UnionFind) Merge(x, y int) {
 		if uf.Rank[rx] < uf.Rank[ry] {
 			rx, ry = ry, rx
 		}
-		uf.Roots[ry] = rx
+		uf.Root[ry] = rx
 		if uf.Rank[rx] == uf.Rank[ry] {
 			uf.Rank[rx]++
 		}

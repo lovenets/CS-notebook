@@ -10947,6 +10947,501 @@ func isMatch(s string, p string) bool {
 - Time complexity: $O(len(s)×len(p))$
 - Space complexity: $O(len(s)×len(p))$
 
+## [64. Minimum Path Sum](https://leetcode.com/problems/minimum-path-sum/)
+
+Given a m x n grid filled with non-negative numbers, find a path from top left to bottom right which minimizes the sum of all numbers along its path.
+
+Note: You can only move either down or right at any point in time.
+
+Example:
+```
+Input:
+[
+  [1,3,1],
+  [1,5,1],
+  [4,2,1]
+]
+Output: 7
+Explanation: Because the path 1→3→1→1→1 minimizes the sum.
+```
+
+**Solution**
+
+Let `dp[i][j]` mean the minimum cost of path from (0, 0) to (i, j), and ransition equationw will be `dp[i][j] = grid[i][j] + min(dp[i-1][j], dp[i][j-1])`.
+
+```go
+func minPathSum(grid [][]int) int {
+    if len(grid) == 0 || len(grid[0]) == 0 {
+        return 0
+    }
+    rows, cols := len(grid), len(grid[0])
+    dp := make([][]int, rows) // dp[i][j]: the minimum cost of path from (0, 0) to (i, j)
+    for i := range dp {
+        dp[i] = make([]int, cols)
+    }
+    dp[0][0] = grid[0][0]
+    // Initialize the first row
+    for col := 1; col < cols; col++ {
+        dp[0][col] = dp[0][col-1] + grid[0][col]
+    }
+    // Initialize the frist column
+    for row := 1; row < rows; row++ {
+        dp[row][0] = dp[row-1][0] + grid[row][0]
+    }
+    for row := 1; row < rows; row++ {
+        for col := 1; col < cols; col++ {
+            if dp[row-1][col] < dp[row][col-1] {
+                // Reach current cell from the above one
+                dp[row][col] = dp[row-1][col] + grid[row][col]
+            } else {
+                // Reach current cell from the left one
+                dp[row][col] = dp[row][col-1] + grid[row][col]
+            }
+        }
+    }
+    return dp[rows-1][cols-1]
+}
+```
+
+- Time complexity: $O(n^2)$
+- Space complexity: $O(n^2)$
+
+## [96. Unique Binary Search Tree](https://leetcode.com/problems/unique-binary-search-trees/)
+
+Given n, how many structurally unique BST's (binary search trees) that store values 1 ... n?
+
+Example:
+```
+Input: 3
+Output: 5
+Explanation:
+Given n = 3, there are a total of 5 unique BST's:
+
+   1         3     3      2      1
+    \       /     /      / \      \
+     3     2     1      1   3      2
+    /     /       \                 \
+   2     1         2                 3
+```
+
+**Solution**
+
+- `G(n)`: the number of unique BST constructed from a sequence of length n.
+
+- `F(i, n), 1 <= i <= n`: the number of unique BST, where the number i is the root of BST, and the sequence ranges from 1 to n.
+
+Frst of all, it's easy to figure out that:
+
+```
+G(n) = F(1, n) + F(2, n) + ... + F(n, n). 
+G(0)=1, G(1)=1. 
+```
+
+For example, `F(3, 7)`: the number of unique BST tree with number 3 as its root. To construct an unique BST out of the entire sequence `[1, 2, 3, 4, 5, 6, 7]` with 3 as the root, which is to say, we need to construct an unique BST out of its left subsequence `[1, 2]` and another BST out of the right subsequence `[4, 5, 6, 7]`, and then combine them together (i.e. cartesian product). The tricky part is that we could consider the number of unique BST out of sequence `[1,2]` as `G(2)`, and the number of of unique BST out of sequence `[4, 5, 6, 7]` as `G(4)`. Therefore, `F(3,7) = G(2) * G(4)`.
+
+So we can come to the conclusion that:
+
+```
+F(i, n) = G(i-1) * G(n-i)	1 <= i <= n 
+So, G(n) = G(0) * G(n-1) + G(1) * G(n-2) + … + G(n-1) * G(0) 
+```
+
+```go
+func numTrees(n int) int {
+    if n <= 0 {
+        return 0
+    }
+    dp := make([]int, n+1)
+    dp[0], dp[1] = 1, 1
+    for i := 2; i <= n; i++ { // i: the number of nodes
+        for j := 1; j <= i; j++ { // j: root
+            dp[i] += dp[j-1] * dp[i-j]
+        }
+    }
+    return dp[n]    
+}
+```
+
+- Time complexity: $O(n^2)$
+- Space complexity: $O(n)$
+
+## [309. Best Time to Buy and Sell Stock with Cooldown](https://leetcode.com/problems best-time-to-buy-and-sell-stock-with-cooldown/)
+
+Say you have an array for which the ith element is the price of a given stock on day i.
+
+Design an algorithm to find the maximum profit. You may complete as many transactions as you like (ie, buy one and sell one share of the stock multiple times) with the following restrictions:
+
+- You may not engage in multiple transactions at the same time (ie, you must sell the stock before you buy again).
+- After you sell your stock, you cannot buy stock on next day. (ie, cooldown 1 day)
+Example:
+```
+Input: [1,2,3,0,2]
+Output: 3 
+Explanation: transactions = [buy, sell, cooldown, buy, sell]
+```
+
+**Solution**
+
+(1) Accepted
+
+There are 3 states in this problem.
+
+![](https://assets.leetcode.com/users/npvinhphat/image_1560663201.png)
+
+State equations will be:
+```
+s0[i] = max(s0[i - 1], s2[i - 1]); // Stay at s0, or rest from s2
+s1[i] = max(s1[i - 1], s0[i - 1] - prices[i]); // Stay at s1, or leave s0 and buy a stock at day i
+s2[i] = s1[i - 1] + prices[i]; // Leave s1 and sell a stock at day i
+```
+Then, you just find the maximum of `s0[n]` and `s2[n]` because only these two states could produce maximum profit.
+
+Define base case:
+```
+s0[0] = 0;  // We don't do anything at the very beginning
+s1[0] = -prices[0]; // We buy a stock at day 0
+s2[0] = INT_MIN;
+```
+
+```go
+func maxProfit(prices []int) int {
+    if len(prices) <= 1 {
+        return 0
+    }
+    n := len(prices)
+    s0, s1, s2 := make([]int, n), make([]int, n), make([]int, n)
+    s0[0], s1[0], s2[0] = 0, -prices[0], math.MinInt64
+    for i := 1; i < n; i++ {
+        s0[i] = int(math.Max(float64(s0[i-1]), float64(s2[i-1])))
+        s1[i] = int(math.Max(float64(s1[i-1]), float64(s0[i-1]-prices[i])))
+        s2[i] = s1[i-1] + prices[i]
+    }
+    return int(math.Max(float64(s0[n-1]), float64(s2[n-1])))
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+(2) Accepted
+
+Since there are limited kinds of states and transitions, we can use only some variables.
+
+```go
+func maxProfit(prices []int) int {
+    if len(prices) == 0 {
+        return 0
+    }
+    sell, preSell, buy, preBuy := 0, 0, math.MinInt64, 0
+    for i := range prices {
+        preBuy = buy
+        buy = int(math.Max(float64(preSell-prices[i]), float64(preBuy)))
+        preSell = sell
+        sell = int(math.Max(float64(preBuy+prices[i]), float64(preSell)))
+    }
+    return sell
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+**Recap**
+
+There are some complicated DP problems which can be solved by thinking of it them limited state machines.
+
+## [416. Partition Equal Subset Sum](https://leetcode.com/problems/partition-equal-subset-sum/)
+
+Given a non-empty array containing only positive integers, find if the array can be partitioned into two subsets such that the sum of elements in both subsets is equal.
+
+Note:
+
+- Each of the array element will not exceed 100.
+- The array size will not exceed 200.
+ 
+
+Example 1:
+```
+Input: [1, 5, 11, 5]
+
+Output: true
+
+Explanation: The array can be partitioned as [1, 5, 5] and [11].
+```
+
+Example 2:
+```
+Input: [1, 2, 3, 5]
+
+Output: false
+
+Explanation: The array cannot be partitioned into equal sum subsets.
+```
+
+**Solution**
+
+(1) Accepted
+
+Actually, this is a 0/1 knapsack problem, for each number, we can pick it or not. Let's assume `dp[i][j]` means whether the specific sum j can be gotten from the first i numbers. If we can pick such a series of numbers from 0-i whose sum is j, `dp[i][j]` is true, otherwise it is false.
+
+```go
+func canPartition(nums []int) bool {
+    sum := 0
+    for _, n := range nums {
+        sum += n
+    }
+    if sum&1 == 1 {
+        // Sum is odd
+        return false
+    }
+
+    half := sum >> 1
+    n := len(nums)
+    dp := make([][]bool, n+1) // dp[i][j]: whether j can be got from nums[0]...num[i-1]
+    for i := range dp {
+        dp[i] = make([]bool, half+1)
+    }
+    dp[0][0] = true
+    for i := 1; i < n+1; i++ {
+        dp[i][0] = true // We pick nothing from nums[0]...nums[i-1] and we get 0
+    }
+    for j := 1; j < half+1; j++ {
+        dp[0][j] = false
+    }
+    for i := 1; i < n+1; i++ {
+        for j := 1; j < half+1; j++ {
+            dp[i][j] = dp[i-1][j] // Discard nums[i]
+            if j >= nums[i-1] { // Pick nums[i]
+                dp[i][j] = dp[i][j] || dp[i-1][j-nums[i-1]]
+            }
+        }
+    }
+    return dp[n][half]
+}
+```
+
+- Time complexity: $O(n^2)$
+- Space complexity: $O(n^2)$
+
+(2) Accepted
+
+Use only linear extra space. Actually this is a typical compression technique used in DP.
+
+```go
+func canPartition(nums []int) bool {
+    for _, n := range nums {
+        sum += n
+    }
+    if sum&1 == 1 {
+        // Sum is odd
+        return false
+    }
+
+    half := sum >> 1
+    n := len(nums)
+    dp := make([]bool, half+1)
+    dp[0] = true
+    for _, num : range nums {
+        for i := half; i > 0; i-- {
+            if i >= num {
+                dp[i] = dp[i] || dp[i-num]
+            }
+        }
+    }
+    return dp[half]
+}
+```
+
+- Time complexity: $O(n^2)$
+- Space complexity: $O(n)$
+
+## [494. Target Sum](https://leetcode.com/problems/target-sum/)
+
+You are given a list of non-negative integers, a1, a2, ..., an, and a target, S. Now you have 2 symbols + and -. For each integer, you should choose one from + and - as its new symbol.
+
+Find out how many ways to assign symbols to make sum of integers equal to target S.
+
+Example 1:
+```
+Input: nums is [1, 1, 1, 1, 1], S is 3. 
+Output: 5
+Explanation: 
+
+-1+1+1+1+1 = 3
++1-1+1+1+1 = 3
++1+1-1+1+1 = 3
++1+1+1-1+1 = 3
++1+1+1+1-1 = 3
+
+There are 5 ways to assign symbols to make the sum of nums be target 3.
+```
+
+Note:
+
+- The length of the given array is positive and will not exceed 20.
+- The sum of elements in the given array will not exceed 1000.
+- Your output answer is guaranteed to be fitted in a 32-bit integer.
+
+**Solution**
+
+(1) Accepted
+
+Recursion with memoization.
+
+```go
+func findTargetSumWays(nums []int, S int) int {
+    memo := make([][]int, len(nums))
+    for i := range memo {
+        tmp := make([]int, 2001)
+        for j := range tmp {
+            tmp[j] = -1
+        }
+        memo[i] = tmp
+    }
+    return dfs(nums, &memo, 0, 0, S)
+}
+
+func dfs(nums []int, memo *[][]int, i int, sum int, S int) int {
+    if i == len(nums) {
+        if sum == S {
+            return 1
+        } else {
+            return 0
+        }
+    }
+    // sum+1000 is guaranteed to be non-negative
+    if (*memo)[i][sum+1000] != -1 {
+        return (*memo)[i][sum+1000]
+    }
+    (*memo)[i][sum+1000] = dfs(nums, memo, i+1, sum+nums[i], S) + dfs(nums, memo, i+1, sum-nums[i], S)
+    return (*memo)[i][sum+1000]
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+(2) Accepted
+
+The original problem statement is equivalent to: find a subset of nums that need to be positive, and the rest of them negative, such that the sum is equal to target.
+
+For example:
+Given nums = `[1, 2, 3, 4, 5]` and target = 3 then one possible solution is +1-2+3-4+5 = 3
+Here positive subset is P = `[1, 3, 5]` and negative subset is N = `[2, 4]`.
+
+Let's do the math:
+```
+                  sum(P) - sum(N) = target                    
+sum(P) + sum(N) + sum(P) - sum(N) = target + sum(P) + sum(N)
+                       2 * sum(P) = target + sum(nums)
+```
+
+So the original problem has been converted to a subset sum problem as follows: find a subset P of nums such that `sum(P) = (target + sum(nums)) / 2`. Now this problem has been changed to [Partition Equal Subset Sum](https://leetcode.com/problems/partition-equal-subset-sum/).
+
+```go
+func findTargetSumWays(nums []int, S int) int {
+    sum := 0
+    for _, num := range nums {
+        sum += num
+    }
+    if sum < S || (S+sum)&1 == 1 {
+        return 0
+    }
+    target := (S+sum) >> 1
+    dp := make([]int, target+1)
+    dp[0] = 1
+    for _, num := range nums {
+        for i := target; i >= num; i-- {
+            dp[i] += dp[i-num]
+        }
+    }
+    return dp[target]
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+## [647. Palindromic Substrings](https://leetcode.com/problems/palindromic-substrings/)
+
+Given a string, your task is to count how many palindromic substrings in this string.
+
+The substrings with different start indexes or end indexes are counted as different substrings even they consist of same characters.
+
+Example 1:
+```
+Input: "abc"
+Output: 3
+Explanation: Three palindromic strings: "a", "b", "c".
+```
+
+Example 2:
+```
+Input: "aaa"
+Output: 6
+Explanation: Six palindromic strings: "a", "a", "a", "aa", "aa", "aaa".
+```
+
+Note:
+
+1. The input string length won't exceed 1000.
+
+**Solution**
+
+(1) Accepted
+
+Start from each index and try to extend palindrome for both odd and even length.
+
+```go
+func countSubstrings(s string) int {
+    if len(s) == 0 {
+        return 0
+    }
+
+    res := 0
+    extend := func(left int, right int) {
+        for left >= 0 && right < len(s) && s[left] == s[right] {
+            left, right, res = left-1, right+1, res+1
+        }
+    }
+    for i := 0; i < len(s); i++ {
+        extend(i, i) // odd length
+        extend(i, i+1) // even length
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+(2) Accepted
+
+```go
+func countSubstrings(s string) int {
+    n := len(s)
+    dp := make([][]bool, n)
+    for i := range dp {
+        dp[i] = make([]bool, n)
+    }
+    res := 0
+    for i := n-1; i >= 0; i-- {
+        for j := i; j < n; j++ {
+            if s[i] == s[j] && (j-i+1 < 4 || dp[i+1][j-1]) {
+                dp[i][j] = true
+            }
+            if dp[i][j] {
+                res++
+            }
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n^2)$
+- Space complexity: $O(n^2)$
+
 # Greedy
 
 ## [55. Jump Game](https://leetcode.com/problems/jump-game/)
@@ -11952,4 +12447,90 @@ func generate(numRows int) [][]int {
 
 - Time complexity: $O(n)$
 - Space complexity: $O(1)$
+
+## [33. Counting Bits](https://leetcode.com/problems/counting-bits/)
+
+Given a non negative integer number num. For every numbers i in the range 0 ≤ i ≤ num calculate the number of 1's in their binary representation and return them as an array.
+
+Example 1:
+```
+Input: 2
+Output: [0,1,1]
+```
+Example 2:
+```
+Input: 5
+Output: [0,1,1,2,1,2]
+```
+Follow up:
+
+- It is very easy to come up with a solution with run time $O(n*sizeof(integer))$. But can you do it in linear time $O(n)$ /possibly in a single pass?
+- Space complexity should be $O(n)$.
+- Can you do it like a boss? Do it without using any builtin function like `__builtin_popcount` in c++ or in any other language.
+
+**Solution**
+
+(1) Accepted
+
+Use `bits.OnesCount` in Go standard library.
+
+```go
+func countBits(num int) []int {
+    if num < 0 {
+        return nil
+    }
+    res := make([]int, num+1)
+    for i := 0; i <= num; i++ {
+        res[i] = bits.OnesCount(uint(i))
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n*sizeof(integer))$
+- Space complexity: $O(1)$
+
+(2) Accepted
+
+Tricky.
+
+```go
+func countBits(num int) []int {
+    if num < 0 {
+        return nil
+    }
+    res := make([]int, num+1)
+    for i := 1; i <= num; i++ {
+        res[i] = res[i&(i-1)] + 1
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+(3) Accepted
+
+- Fact: the binary representations of `i` and `i>>1` share the common "prefix".
+
+```go
+func countBits(num int) []int {
+    if num < 0 {
+        return nil
+    }
+    res := make([]int, num+1)
+    for i := 1; i <= num; i++ {
+        res[i] = res[i>>1] + (i&1)
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+**Recap**
+
+- Bit manipulation trick 3: The binary representations of `i` and `i>>1` share the common "prefix".
 

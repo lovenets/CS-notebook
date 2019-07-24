@@ -11442,6 +11442,600 @@ func countSubstrings(s string) int {
 - Time complexity: $O(n^2)$
 - Space complexity: $O(n^2)$
 
+## [221. Maximal Square](https://leetcode.com/problems/maximal-square/)
+
+Given a 2D binary matrix filled with 0's and 1's, find the largest square containing only 1's and return its area.
+
+Example:
+```
+Input: 
+
+1 0 1 0 0
+1 1 1 1 1
+1 1 1 1 1
+1 0 0 1 0
+
+Output: 4
+```
+
+**Solution**
+
+(1) Accepted
+
+```go
+func maximalSquare(matrix [][]byte) int {
+    if len(matrix) == 0 || len(matrix[0]) == 0 {
+        return 0
+    }   
+    rows, cols := len(matrix), len(matrix[0])
+    // dp[i][j]: max length of edge of square whose bottom-right vertex is (i, j)
+    dp := make([][]int, rows)
+    for i := range dp {
+        dp[i] = make([]int, cols)
+    }
+    // Initialize the frist row
+    longestEdge := 0
+    for col := 0; col < cols; col++ {
+        dp[0][col] = int(matrix[0][col]-'0')
+        if dp[0][col] > longestEdge {
+            longestEdge = dp[0][col]
+        }
+    }
+    // Initialize the frist column
+    for row := 0; row < rows; row++ {
+        dp[row][0] = int(matrix[row][0]-'0')
+        if dp[row][0] > longestEdge {
+            longestEdge = dp[row][0]
+        }
+    }
+    for row := 1; row < rows; row++ {
+        for col := 1; col < cols; col++ {
+            if matrix[row][col] == '0' {
+                dp[row][col] = 0
+                continue
+            }
+            // If there are three squares whose bottom-right vertices are (i-1, j), (i, j-1) and (i-1, j-1) respectively and lengths of edges are the same,
+            // take (i, j) as a new bottom-right vertex and we will get a larger square
+            dp[row][col] = 1 + min(dp[row-1][col], dp[row][col-1], dp[row-1][col-1])
+            if dp[row][col] > longestEdge {
+                longestEdge = dp[row][col]
+            }
+        }
+    }
+    return longestEdge * longestEdge
+}
+
+func min(nums ...int) int {
+    res := nums[0]
+    for _, n := range nums[1:] {
+        if n < res {
+            res = n
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n^2)$
+- Space complexity: $O(n^2)$
+
+(2) Accepted
+
+Same idea as above solution but with compressed extra space.
+
+```go
+func maximalSquare(matrix [][]byte) int {
+    if len(matrix) == 0 || len(matrix[0]) == 0 {
+        return 0
+    }   
+    rows, cols := len(matrix), len(matrix[0])
+    // dp[i][j]: max length of edge of square whose bottom-right vertex is (i, j)
+    dp := make([]int, cols)
+    longestEdge, pre := 0, 0
+    for row := 0; row < rows; row++ {
+        for col := 0; col < cols; col++ {
+            tmp := dp[col]
+            if row == 0 || col == 0 || matrix[row][col] == '0' {
+                dp[col] = int(matrix[row][col]-'0')
+            } else {
+                dp[col] = 1 + min(pre, dp[col], dp[col-1])
+            }
+            if dp[col] > longestEdge {
+                longestEdge = dp[col]
+            }
+            pre = tmp
+        }
+    }
+    return longestEdge * longestEdge
+}
+
+func min(nums ...int) int {
+    res := nums[0]
+    for _, n := range nums[1:] {
+        if n < res {
+            res = n
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n^2)$
+- Time complexity: $O(n)$
+
+## [85. Maximal Rectangle](https://leetcode.com/problems/maximal-rectangle/)
+
+Given a 2D binary matrix filled with 0's and 1's, find the largest rectangle containing only 1's and return its area.
+
+Example:
+```
+Input:
+[
+  ["1","0","1","0","0"],
+  ["1","0","1","1","1"],
+  ["1","1","1","1","1"],
+  ["1","0","0","1","0"]
+]
+Output: 6
+```
+
+**Solution**
+
+```go
+func maximalRectangle(matrix [][]byte) int {
+    if len(matrix) == 0 || len(matrix[0]) == 0 {
+        return 0
+    }
+    rows, cols := len(matrix), len(matrix[0])
+    // height[i]: the current number of countinous '1' in column i
+    // left[i]: the leftmost index j which satisfies that for any index k from j to  i, height[k] >= height[i]
+    // right[i]: the rightmost index j which satifies that for any index k from i to  j, height[k] >= height[i]
+    left, right, height := make([]int, cols), make([]int, cols), make([]int, cols)
+    for i := range right {
+        right[i] = cols
+    }
+    res := 0
+    for i := 0; i < rows; i++ {
+        lb, rb := 0, cols
+        // Update height array, left array from left to right
+        for j := 0; j < cols; j++ {
+            if matrix[i][j] == '1' {
+                height[j], left[j] = height[j]+1, max(left[j], lb)
+            } else {
+                height[j], left[j] = 0, 0
+                lb = j+1
+            }
+        }
+        // Update right array from right to left
+        for j := cols-1; j >= 0; j-- {
+            if matrix[i][j] == '1' {
+                right[j] = min(right[j], rb)
+            } else {
+                right[j], rb = cols, j
+            }
+        }
+        // Compute the area
+        for j := 0; j < cols; j++ {
+            res = max(res, (right[j]-left[j])*height[j])
+        }
+    }
+    return res
+}
+
+func max(a, b int) int {
+    if a > b {
+        return a
+    } else {
+        return b
+    }
+}
+
+func min(a, b int) int {
+    if a < b {
+        return a
+    } else {
+        return b
+    }
+}
+```
+
+It is a little bit tricky for initializing and updating left and right array. We know initially, height array contains all 0, so according to the definition of left and right array, left array should contains all 0, and right array should contain all n - 1 where n is the length of row.
+
+For updating left array:
+
+```go
+lb := 0 //  index of leftmost '1' in current row
+for j := 0; j < cols; j++ {
+    if matrix[i][j] == '1' {
+        // This means the current boundry should satisfy two conditions:
+        // within the boundry of the previous height array, and within the boundry of the current row...
+        left[j] = max(left[j], lb)
+    } else {
+        // when matrix[i][j] = 0, height[j] will get update to 0, so left[j] becomes 0, 
+        // since all height in between 0 - j satisfies the condition of height[k] >= height[j]
+        left[j] = 0
+        // Since current position is '0', 
+        // so the left most boundry for next "1" cell is at least j + 1;  
+        lb =  j+1
+    }
+}
+```
+
+The idea for updating right array is similar.
+
+- Time complexity: $O(rows×cols)$
+- Space complexity: $O(cols)$
+
+## [72. Edit Distance](https://leetcode.com/problems/edit-distance/)
+
+Given two words word1 and word2, find the minimum number of operations required to convert word1 to word2.
+
+You have the following 3 operations permitted on a word:
+
+1. Insert a character
+2. Delete a character
+3. Replace a character
+
+Example 1:
+```
+Input: word1 = "horse", word2 = "ros"
+Output: 3
+Explanation: 
+horse -> rorse (replace 'h' with 'r')
+rorse -> rose (remove 'r')
+rose -> ros (remove 'e')
+```
+Example 2:
+```
+Input: word1 = "intention", word2 = "execution"
+Output: 5
+Explanation: 
+intention -> inention (remove 't')
+inention -> enention (replace 'i' with 'e')
+enention -> exention (replace 'n' with 'x')
+exention -> exection (replace 'n' with 'c')
+exection -> execution (insert 'u')
+```
+
+**Solution**
+
+(1) Accepted
+
+To apply DP, we define the state `dp[i][j]` to be the minimum number of operations to convert `word1[0:i]` to `word2[0:j]`.
+
+For the base case, that is, to convert a string to an empty string, the mininum number of operations (deletions) is just the length of the string. So we have `dp[i][0] = i` and `dp[0][j] = j`.
+
+For the general case to convert `word1[0:i]` to `word2[0:j]`, we break this problem down into sub-problems. Suppose we have already known how to convert `word1[0:i-1]` to `word2[0:j-1]` i.e. `dp[i - 1][j - 1]`, if `word1[i-1] == word2[j-1]`, then no more operation is needed and `dp[i][j] = dp[i-1][j-1]`.
+
+If `word1[i-1] != word2[j-1]`, we need to consider three cases.
+
+- Replace `word1[i-1]` by `word2[j-1]` i.e. `dp[i][j] = dp[i-1][j-1] + 1`.
+- If `word1[0:i-1] = word2[0:j]` then delete `word1[i-1]` i.e. `dp[i][j] = dp[i-1][j] + 1`.
+- If `word1[0:i] + word2[j-1] = word2[0:j]` then insert` word2[j-1]` to `word1[0:i]` i.e. `dp[i][j] = dp[i][j-1] + 1`.
+
+```go
+func minDistance(word1 string, word2 string) int {
+    l1, l2 := len(word1), len(word2)
+    dp := make([][]int, l1+1)
+    for i := range dp {
+        dp[i] = make([]int, l2+1)
+    }
+    for i := 1; i <= l1; i++ {
+        dp[i][0] = i
+    }
+    for j := 1; j <= l2; j++ {
+        dp[0][j] = j
+    }
+    for i := 1; i <= l1; i++ {
+        for j := 1; j <= l2; j++ {
+            if word1[i-1] == word2[j-1] {
+                dp[i][j] = dp[i-1][j-1]
+            } else {
+                dp[i][j] = 1 + min(dp[i-1][j-1], min(dp[i][j-1], dp[i-1][j]))
+            }
+        }
+    }
+    return dp[l1][l2]
+}
+
+func min(a, b int) int {
+    if a < b {
+        return a
+    } else {
+        return b
+    }
+}
+```
+
+- Time complexity: $O(l1×l2)$ where l1 is the length of word1 and l2 is the length of word2.
+- Space complexity: $O(l1×l2)$
+
+(2) 
+
+Recursion with memoization.
+
+```go
+func minDistance(word1 string, word2 string) int {
+    memo := make([][]int, len(word1))
+    for i := range memo {
+        memo[i] = make([]int, len(word2))
+    }
+    return recur(word1, word2, 0, 0, &memo)
+}
+
+func recur(word1 string, word2 string, i int, j int, memo *[][]int) int {
+    if i == len(word1) {
+        return len(word2) - j
+    }
+    if j == len(word2) {
+        return len(word1) - i
+    }
+    if (*memo)[i][j] > 0 {
+        return (*memo)[i][j]
+    }
+    if word1[i] == word2[j] {
+        return recur(word1, word2, i+1, j+1, memo)
+    }
+    insert1 := recur(word1, word2, i, j+1, memo)
+    delete1 := recur(word1, word2, i+1, j, memo)
+    replace1 := recur(word1, word2, i+1, j+1, memo)
+    (*memo)[i][j] = 1 + min(insert1, delete1, replace1)
+    return (*memo)[i][j]
+}
+
+func min(nums ...int) int {
+    res := nums[0]
+    for _, n := range nums {
+        if n < res {
+            res = n
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $O(l1×l2)$ where l1 is the length of word1 and l2 is the length of word2.
+- Space complexity: $O(l1×l2)$
+
+## [312. Burst Balloons](https://leetcode.com/problems/burst-balloons/)
+
+Given n balloons, indexed from 0 to n-1. Each balloon is painted with a number on it represented by array nums. You are asked to burst all the balloons. If the you burst balloon i you will get `nums[left] * nums[i] * nums[right]` coins. Here left and right are adjacent indices of i. After the burst, the left and right then becomes adjacent.
+
+Find the maximum coins you can collect by bursting the balloons wisely.
+
+Note:
+
+- You may imagine `nums[-1] = nums[n] = 1`. They are not real therefore you can not burst them.
+- 0 ≤ n ≤ 500, 0 ≤ nums[i] ≤ 100
+
+Example:
+```
+Input: [3,1,5,8]
+Output: 167 
+Explanation: nums = [3,1,5,8] --> [3,5,8] -->   [3,8]   -->  [8]  --> []
+             coins =  3*1*5      +  3*5*8    +  1*3*8      + 1*8*1   = 167
+```
+
+**Solution**
+
+(1) Time Limite Exceeded
+
+Naive recursive solution:
+
+```go
+func maxCoins(nums []int) int {
+    if len(nums) == 0 {
+        return 0
+    }
+    max := 0
+    for i := range nums {
+        // Start at every possible postion
+        if tmp := dfs(nums, i); tmp > max {
+            max = tmp
+        }
+    }
+    return max
+}
+
+func dfs(nums []int, start int) int {
+    if len(nums) == 0 {
+        return 0
+    }
+    res := nums[start]
+    if left := start-1; left >= 0 {
+        res *= nums[left]
+    }
+    if right := start+1; right < len(nums) {
+        res *= nums[right]
+    }
+    _nums := make([]int, len(nums))
+    copy(_nums, nums)
+    _nums = append(_nums[:start], _nums[start+1:]...)
+    max := 0
+    for i := range _nums {
+        if tmp := dfs(_nums, i); tmp > max {
+            max = tmp
+        }
+    }
+    return res + max
+}
+```
+
+Of course this will definitely exceed time limit. 
+
+Let's say input array is [1, 1], then the call stack will be like:
+
+```
+dfs([1, 1], 0)
+    dfs([1], 0)
+dfs([1, 1], 1)
+    dfs([1], 0) -> repeat
+```
+
+Try to avoid repeating itself:
+
+```go
+func maxCoins(nums []int) int {
+    if len(nums) == 0 {
+        return 0
+    }
+    max := 0
+    memo := map[string]int{"": 0}
+    for i := range nums {
+        if tmp := dfs(nums, i, memo); tmp > max {
+            max = tmp
+        }
+    }
+    return max
+}
+
+func dfs(nums []int, start int, memo map[string]int) int {
+    k := encode(nums, start)
+    if res, ok := memo[k]; ok {
+        return res
+    }
+    res := nums[start]
+    if left := start-1; left >= 0 {
+        res *= nums[left]
+    }
+    if right := start+1; right < len(nums) {
+        res *= nums[right]
+    }
+    _nums := make([]int, len(nums))
+    copy(_nums, nums)
+    _nums = append(_nums[:start], _nums[start+1:]...)
+    max := 0
+    for i := range _nums {
+        if tmp := dfs(_nums, i, memo); tmp > max {
+            max = tmp
+        }
+    }
+    memo[k] = res + max
+    return memo[k]
+}
+
+// Take input array and start position as key
+func encode(nums []int, start int) string {
+    if len(nums) == 0 {
+        return ""
+    }
+    var sb strings.Builder
+    sb.WriteByte(byte(nums[0]))
+    for _, n := range nums[1:] {
+        sb.WriteString(",")
+        sb.WriteByte(byte(n))
+    }
+    return fmt.Sprintf("%s/%d", sb.String(), start)
+}
+```
+
+Unfortunately, above solution still exceed time limit. Actually, the way to memoize in above code doesn' work well. Assume that input array contains no duplicate, then nothing will be memoized.
+
+(2) Accepted
+
+We don't think about what is the first ballon to burst instead we think about the last one to burst. 
+
+Let `dp[i][j]` mean the maximum coins we get after we burst **all** the balloons between i and j in the original array. So in the end for this problem we want to find out `dp[0][len(nums)-1]`.
+
+To get that we need the transition function will be:
+```go
+for i, right := left+1, left+last; i < right; i++ {
+    tmp := _nums[left]*_nums[i]*_nums[right] + dp[left][i] + dp[i][right]
+        if tmp > dp[left][right] {
+            dp[left][right] = tmp
+        }
+}
+```
+
+This transition function basically says in order to get the maximum value we can get for bursting all the balloons between `[i, j]`, we just loop through each balloon between these two indexes and make them to be the last balloon to be burst.
+
+For example assume input array is `[3, 1, 5, 8]`, when calculating `dp[0, 3]` and picking index 2 as the last balloon to burst, which means 5 is the last balloon to burst between `[0, 3]` , to get the maximum value when picking 5 as the last balloon to burst :
+```
+max = maximum value of bursting all the balloon on the left side of 5 + maximum value of bursting all the balloon on the right side of 5 + bursting balloon 5 when left side and right side are gone.
+```
+That is `dp[0, 1] + nums[0-1] * nums[2] * nums[3 + 1] + dp[3, 3]`.
+
+```go
+func maxCoins(nums []int) int {
+    // For efficiency, only take ballons with positive labels.
+    _nums := make([]int, 0)
+    for _, num := range nums {
+        if num > 0 {
+            _nums = append(_nums, num)
+        }
+    }
+    _nums = append(_nums, 1)
+    _nums = append([]int{1}, _nums...)
+    n := len(_nums)
+    dp := make([][]int, n)
+    for i := range dp {
+        dp[i] = make([]int, n)
+    }
+    for last := 2; last < n; last++ {
+        for left := 0; left < n-last; left++ {
+            for i, right := left+1, left+last; i < right; i++ {
+                tmp := _nums[left]*_nums[i]*_nums[right] + dp[left][i] + dp[i][right]
+                if tmp > dp[left][right] {
+                    dp[left][right] = tmp
+                }
+            }
+        }
+    }
+    return dp[0][n-1]
+}
+```
+
+- Time complexity: $O(n^3)$
+- Space complexity: $O(n^2)$
+
+(3) Accepted
+
+Recursion with memoization.
+
+```go
+func maxCoins(nums []int) int {
+    _nums := make([]int, 0, len(nums)+2)
+    for _, num := range nums {
+        if num > 0 {
+            _nums[i] = num
+        }
+    }
+    _nums = append(_nums, 1)
+    _nums = append([]int{1}, _nums...)
+    n := len(_nums)
+    memo := make([][]int, n)
+    for j := range memo {
+        memo[j] = make([]int, n)
+    }
+    return burst(&memo, _nums, 0, n-1)
+}
+
+func burst(memo *[][]int, nums []int, left int, right int) int {
+    if left+1 == right {
+        return 0
+    }
+    if (*memo)[left][right] > 0 {
+        return (*memo)[left][right]
+    }
+    res := 0
+    for i := left+1; i < right; i++ {
+        tmp := nums[left]*nums[i]*nums[right] + burst(memo, nums, left, i) + burst(memo, nums, i, right)
+        if tmp > res {
+            res = tmp
+        }
+    }
+    (*memo)[left][right] = res
+    return res
+}
+```
+
+- Time complexity: $O(n^3)$
+- Space complexity: $O(n^2)$
+
+**Recap**
+
+For most of DP problems, try to solve it in top-down fashion (recursion with memoization) at first. Then evolve our solution to iterative bottom-up fashion.
+
 # Greedy
 
 ## [55. Jump Game](https://leetcode.com/problems/jump-game/)

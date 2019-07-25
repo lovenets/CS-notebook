@@ -424,9 +424,9 @@ func dfs(g [][]int, start int) {
 
     var helper func(int)
     helper = func(i int) {
+        visited[j] = true
         for j := range g[i] {
             if g[i][j] == 1 && !visited[j] {
-                visited[j] = true
                 helper(j)
             }
         }

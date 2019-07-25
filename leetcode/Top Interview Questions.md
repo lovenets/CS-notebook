@@ -7107,7 +7107,233 @@ func build(preorder *[]int, inorder []int) *TreeNode {
 - Time complexity: $O(n)$?
 - Space complexity: $O(1)$
 
-## []
+## [226. Invert Binary Tree](https://leetcode.com/problems/invert-binary-tree/)
+
+Invert a binary tree.
+
+Example:
+```
+Input:
+
+     4
+   /   \
+  2     7
+ / \   / \
+1   3 6   9
+Output:
+
+     4
+   /   \
+  7     2
+ / \   / \
+9   6 3   1
+```
+
+Trivia:
+
+This problem was inspired by this original tweet by Max Howell:
+
+> Google: 90% of our engineers use the software you wrote (Homebrew), but you can’t invert a binary tree on a whiteboard so f*** off.
+
+**Solution**
+
+(1) Accepted
+
+Recursion.
+
+```go
+func invertTree(root *TreeNode) *TreeNode {
+    if root == nil {
+        return nil
+    }
+    invertedLeft, invertedRight := invertTree(root.Left), invertTree(root.Right)
+    root.Left, root.Right = invertedRight, invertedLeft
+    return root
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+(2) Accepted
+
+Iteration.
+
+```go
+func invertTree(root *TreeNode) *TreeNode {
+    if root == nil {
+        return nil
+    }
+    queue := []*TreeNode{root}
+    for len(queue) > 0 {
+        cur := queue[0]
+        queue = queue[1:]
+        cur.Left, cur.Right = cur.Right, cur.Left
+        if cur.Left != nil {
+            queue = append(queue, cur.Left)
+        }
+        if cur.Right != nil {
+            queue = append(queue, cur.Right)
+        }
+    }
+    return root
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+## [538. Convert BST to Greater Tree](https://leetcode.com/problems/convert-bst-to-greater-tree/)
+
+Given a Binary Search Tree (BST), convert it to a Greater Tree such that every key of the original BST is changed to the original key plus sum of all keys greater than the original key in BST.
+
+Example:
+```
+Input: The root of a Binary Search Tree like this:
+              5
+            /   \
+           2     13
+
+Output: The root of a Greater Tree like this:
+             18
+            /   \
+          20     13
+```
+
+**Solution**
+
+(1) Accepted
+
+Very straightforward.
+
+```go
+func convertBST(root *TreeNode) *TreeNode {
+    if root == nil {
+        return root
+    }
+    vals := make([]int, 0)
+    // Convert BST to a sorted array
+    getOriginals(root, &vals)
+    // sum[i]: vals[n-1] + vals[n-2] + ... + vals[i],
+    // n is the length of vals
+    sum := make([]int, len(vals))
+    sum[len(vals)-1] = vals[len(vals)-1]
+    // idx maps value to its index in vals
+    idx := make(map[int]int)
+    idx[vals[len(vals)-1]] = len(vals) - 1
+    for i := len(vals)-2; i >= 0; i-- {
+        sum[i] = sum[i+1] + vals[i]
+        idx[vals[i]] = i
+    }
+    add(root, idx, sum)
+    return root
+}
+
+func getOriginals(root *TreeNode, vals *[]int) {
+    if root == nil {
+        return
+    }
+    getOriginals(root.Left, vals)
+    *vals = append(*vals, root.Val)
+    getOriginals(root.Right, vals)
+}
+
+func add(root *TreeNode, idx map[int]int, sum []int) {
+    if root == nil {
+        return
+    }
+    root.Val = sum[idx[root.Val]]
+    add(root.Left, idx, sum)
+    add(root.Right, idx, sum)
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+(2) 
+
+Since this is a BST, we can do a reverse inorder traversal to traverse the nodes of the tree in descending order. In the process, we keep track of the running sum of all nodes which we have traversed thus far.
+
+```go
+func convertBST(root *TreeNode) *TreeNode {
+    sum := 0
+    convert(root, &sum)
+    return root
+}
+
+func convert(root *TreeNode, sum *int) {
+    if root == nil {
+        return
+    }
+    convert(root.Right, sum)
+    root.Val += *sum
+    *sum = root.Val
+    convert(root.Left, sum)
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+## [617. Merge Two Binary Trees](https://leetcode.com/problems/merge-two-binary-trees/)
+
+Given two binary trees and imagine that when you put one of them to cover the other, some nodes of the two trees are overlapped while the others are not.
+
+You need to merge them into a new binary tree. The merge rule is that if two nodes overlap, then sum node values up as the new value of the merged node. Otherwise, the NOT null node will be used as the node of new tree.
+
+Example 1:
+```
+Input: 
+	Tree 1                     Tree 2                  
+          1                         2                             
+         / \                       / \                            
+        3   2                     1   3                        
+       /                           \   \                      
+      5                             4   7                  
+Output: 
+Merged tree:
+	     3
+	    / \
+	   4   5
+	  / \   \ 
+	 5   4   7
+```
+
+Note: The merging process must start from the root nodes of both trees.
+
+**Solution**
+
+Intuitive: perorder traversal is a good way to duplicate a tree.
+
+- If both trees are empty then we return empty.
+- Otherwise, we will return a tree. The root value will be t1.val + t2.val, except these values are 0 if the tree is empty.
+- The left child will be the merge of t1.left and t2.left, except these trees are empty if the parent is empty.
+- The right child is similar.
+
+```go
+func mergeTrees(t1 *TreeNode, t2 *TreeNode) *TreeNode {
+    if t1 == nil && t2 == nil {
+        return nil
+    }
+    var val int
+    var left, right *TreeNode
+    if t1 == nil {
+        val = t2.Val
+        left, right = mergeTrees(nil, t2.Left), mergeTrees(nil, t2.Right)
+    } else if t2 == nil {
+        val = t1.Val
+        left, right = mergeTrees(t1.Left, nil), mergeTrees(t1.Right, nil)
+    } else {
+        val = t1.Val + t2.Val
+        left, right = mergeTrees(t1.Left, t2.Left), mergeTrees(t1.Right, t2.Right)
+    }
+    return &TreeNode{val, left, right}
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 # Segment Tree
 
@@ -7248,10 +7474,11 @@ func ladderLength(beginWord string, endWord string, wordList []string) int {
         dict[s] = true
     }
     q := []string{beginWord}
-    count := 1
+    count := 0
     for len(q) > 0 {
+        count++
         // Currently q stores previous word's all "reachable" words
-        // i.e. a vertex's all adjacent vertices in the graph
+        // i.e. a vertex's all adjacent vertices in the graph 
         for num := len(q); num > 0; num-- {
             cur := q[0]
             q = q[1:]
@@ -7273,7 +7500,6 @@ func ladderLength(beginWord string, endWord string, wordList []string) int {
                 bytes[j] = char
             }
         }
-        count++
     }
     return 0
 }
@@ -7284,7 +7510,7 @@ func ladderLength(beginWord string, endWord string, wordList []string) int {
 
 **Recap**
 
-Maybe it's too difficult for an interviewee to solve a problem using Dijkstra's algorithm or whatever in an interview. So try to solve this kind of problems using BFS at first.
+Maybe it's too difficult for an interviewee to solve a problem using Dijkstra's algorithm or whatever in an interview. So try to solve this kind of problems by BFS at first.
 
 ## [200. Number of Islands](<https://leetcode.com/problems/number-of-islands/>)
 
@@ -10670,7 +10896,7 @@ func longestIncreasingPath(matrix [][]int) int {
     m, n := len(matrix), len(matrix[0])
     res := math.MinInt64
     for i := range matrix {
-        for j := range matrix[0] {
+        for j := range matrix[i] {
             visited := make([][]bool, m)
             for k := range visited {
                 visited[k] = make([]bool, n)
@@ -10706,7 +10932,7 @@ func dfs(matrix [][]int, dir [][]int, visited *[][]bool, x int, y int) int {
 
 (2) Time Limit Exceeded
 
-All we need to guarantee is `matrix[x1][y1] > matrix[x][y]`.
+All we need to guarantee is `matrix[x1][y1] > matrix[x][y]`, which is enough to make sure we will not step back.
 
 ```go
 func longestIncreasingPath(matrix [][]int) int {
@@ -10716,7 +10942,7 @@ func longestIncreasingPath(matrix [][]int) int {
     dir := [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}}
     res := math.MinInt64
     for i := range matrix {
-        for j := range matrix[0] {
+        for j := range matrix[i] {
             if tmp := dfs(matrix, dir, i, j); tmp > res {
                 res = tmp
             }

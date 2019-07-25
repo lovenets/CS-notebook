@@ -5615,30 +5615,33 @@ For eg. `S = "ABAACBAB" T = "ABC"`. Then our answer window is "ACB" and shown be
 
 ```go
 func minWindow(s string, t string) string {
-	table := make(map[uint8]int)
+    // count indicates two things:
+    // 1. If count[char] > 0, we still have characters of t to find in s
+    // 2. If count[char] < 0, we have redundant characters of t in s
+	count := make(map[uint8]int)
 	for i := range t {
-		table[t[i]]++
+		count[t[i]]++
 	}
-	count := len(t)
+	notFound := len(t)
 	head, l := 0, math.MaxInt64
     for beg, end := 0, 0; end < len(s); {
-		if table[s[end]] > 0 {
+		if count[s[end]] > 0 {
             // s[end] occurs in t
-			count--
+			notFound--
         }
         // If s contains redundant characters of t, table[char] will be negatie 
-		table[s[end]]-- 
+		count[s[end]]-- 
 		end++
-		for count == 0 { // We've found a valid substring
+		for notFound == 0 { // We've found a valid substring
             if tmp := end-beg; tmp < l {
                 l, head = tmp, beg
             }
-			if table[s[beg]] == 0 {
+			if count[s[beg]] == 0 {
                 // s[beg] occurs in t
                 // and we don't have redundant s[beg] in current window
-				count++
+				notFound++
 			}
-			table[s[beg]]++
+			count[s[beg]]++
 			beg++
 		}
 	}
@@ -5891,7 +5894,7 @@ Explanation: The longest valid parentheses substring is "()()"
 
 **Solution**
 
-(1) 
+(1) Accepted
 
 If we find a pair, we throw this pair away and see how big the gap is between current and previous invalid.
 ```
@@ -5927,7 +5930,7 @@ func longestValidParentheses(s string) int {
 - Time complexity: $O(n)$
 - Space complexity: $O(n)$
 
-(2)
+(2) Accepted
 
 ```go
 func longestValidParentheses(s string) int {
@@ -6082,7 +6085,7 @@ func countNodes(node *TreeNode) int {
 - Time complexity: $O(logn)$?
 - Space complexity: $O(logn)$?
 
-(3) 
+(3) Accepted
 
 > What if the BST is modified (insert/delete operations) often and you need to find the kth smallest frequently?
 
@@ -6119,7 +6122,7 @@ If we in-order traverse a BST, we will get a sorted sequence.
 
 Given a binary tree, find the lowest common ancestor (LCA) of two given nodes in the tree.
 
-According to the [definition of LCA on Wikipedia](https://en.wikipedia.org/wiki/Lowest_common_ancestor): “The lowest common ancestor is defined between two nodes p and q as the lowest node in T that has both p and q as descendants (where we allow **a node to be a descendant of itself**).”
+According to the [definition of LCA on Wikipedia](https://en.wikipedia.org/wiki/Lowest_common_ancestor): "The lowest common ancestor is defined between two nodes p and q as the lowest node in T that has both p and q as descendants (where we allow **a node to be a descendant of itself**)."
 
 Given the following binary tree:  root = [3,5,1,6,2,0,8,null,null,7,4]
 
@@ -6328,12 +6331,12 @@ func buildString(root *TreeNode, sb strings.Builder) {
 }
 
 func deserialize(data string) *TreeNode {
-    return buildTree(strings.Split(data, ","))
+    return buildTree(&(strings.Split(data, ",")))
 }
 
-func buildTree(data []string) *TreeNode {
-    s := data[0]
-    data = data[1:]
+func buildTree(data *[]string) *TreeNode {
+    s := (*data)[0]
+    *data = (*data)[1:]
     if s == "#" {
         return nil
     } 
@@ -6342,6 +6345,26 @@ func buildTree(data []string) *TreeNode {
     node.Left = buildTree(data)
     node.Right = buildTree(data)
     return node
+}
+```
+
+Or we don't join strings manually in `serialize()`:
+
+```go
+func serialize(root *TreeNode) string {
+    vals := make([]string, 0)
+    buildString(root, &vals)
+    return strings.Join(vals, ",")
+}
+
+func buildString(root *TreeNode, vals *[]string) {
+    if root == nil {
+        *vals = append(*vals, "#")
+        return
+    } 
+    *vals = append(*vals, strconv.Itoa(root.Val))
+    buildString(node.Left, vals)
+    buildString(node.Right, vals)
 }
 ```
 
@@ -6400,7 +6423,7 @@ func isSymmetric(root *TreeNode) bool {
         }
         return (r1.Val == r2.Val) && isMirror(r1.Right, r2.Left) && isMirror(r1.Left, r2.Right)
     }
-    return isMirror(root, root)
+    return root == nil || isMirror(root.Left, root. Right)
 }
 ```
 - Time complexity: $O(n)$
@@ -6410,7 +6433,10 @@ func isSymmetric(root *TreeNode) bool {
 
 ```go
 func isSymmetric(root *TreeNode) bool {
-    queue := []*TreeNode{root, root}
+    if root == nil {
+        return true
+    }
+    queue := []*TreeNode{root.Left, root.Right}
     for len(queue) > 0 {
         r1, r2 := queue[0], queue[1]
         queue = queue[2:]
@@ -6537,26 +6563,26 @@ Explanation: Given the above perfect binary tree (Figure A), your function shoul
 
 **Note:**
 
-You may only use constant extra space.
-Recursive approach is fine, implicit stack space does not count as extra space for this problem.
+- You may only use constant extra space.
+- Recursive approach is fine, implicit stack space does not count as extra space for this problem.
 
 **Solution**
 
 ```go
-func connect(root *Node) {
+func connect(root *Node) *TreeNode {
     if root == nil {
         return
     }
     for pre := root; pre.Left != nil; pre = pre.Left {
-        // From left to right at the same level
-        for cur := pre; cur != nil; {
+        // Process current level
+        for cur := pre; cur != nil; cur = cur.Next {
             cur.Left.Next = cur.Right
             if cur.Next != nil {
                 cur.Right.Next = cur.Next.Left
             }
-            cur = cur.Next
         }
     }
+    return root
 }
 ```
 
@@ -6702,6 +6728,386 @@ func (nm NumMatrix) SumRegion(row1 int, col1 int, row2 int, col2 int) int {
 
 - Time complexity: $O(n)$
 - Space complexity: $O(n^2)$
+
+## [94. Binary Tree Inorder Traversal](https://leetcode.com/problems/binary-tree-inorder-traversal/)
+
+Given a binary tree, return the inorder traversal of its nodes' values.
+
+Example:
+```
+Input: [1,null,2,3]
+   1
+    \
+     2
+    /
+   3
+
+Output: [1,3,2]
+```
+**Follow up**: Recursive solution is trivial, could you do it iteratively?
+
+**Solution**
+
+(1) Accepted
+
+Recursive solution.
+
+```go
+func inorderTraversal(root *TreeNode) []int {
+    res := make([]int, 0)
+    inorder(root, &res)
+    return res
+}
+
+func inorder(node *TreeNode, vals *[]int) {
+    if node == nil {
+        return
+    }
+    inorder(node.Left, vals)
+    *vals = append(*vals, node.Val)
+    inorder(node.Right, vals)
+}
+```
+
+- Time complexity: $O(n)$ where n is the number of nodes.
+- Space complexity: $O(1)$
+
+(2) Accepted
+
+Interative solution.
+
+```go
+func inorderTraversal(root *TreeNode) []int {
+    res := make([]int, 0)
+    stack := make([]*TreeNode, 0)
+    for node := root; node != nil || len(stack) > 0; {
+        // Go bottom-left
+        for ; node != nil; node = node.Left {
+            stack = append(stack, node)
+        }
+        cur := stack[len(stack)-1]
+        stack = stack[:len(stack)-1]
+        res = append(res, cur.Val)
+        node = cur.Right // Go to right subtree if any
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+## [98. Validate Binary Search Tree](https://leetcode.com/problems/validate-binary-search-tree/)
+
+Given a binary tree, determine if it is a valid binary search tree (BST).
+
+Assume a BST is defined as follows:
+
+- The left subtree of a node contains only nodes with keys less than the node's key.
+- The right subtree of a node contains only nodes with keys greater than the node's key.
+- Both the left and right subtrees must also be binary search trees.
+ 
+
+Example 1:
+```
+    2
+   / \
+  1   3
+
+Input: [2,1,3]
+Output: true
+```
+Example 2:
+```
+    5
+   / \
+  1   4
+     / \
+    3   6
+
+Input: [5,1,4,null,null,3,6]
+Output: false
+Explanation: The root node's value is 5 but its right child's value is 4.
+```
+
+**Solution**
+
+(1) Accepted
+
+Be careful that the tree may have duplicate nodes.
+
+```go
+func isValidBST(root *TreeNode) bool {
+    if root == nil {
+        return true
+    }
+    vals := make([]int, 0)
+    inorder(root, &vals)
+    res := true
+    for i := 1; i < len(vals); i++ {
+        if vals[i-1] >= vals[i] {
+            res = false
+            break
+        }
+    }
+    return res
+}
+
+func inorder(node *TreeNode, vals *[]int) {
+    if node == nil {
+        return
+    }
+    inorder(node.Left, vals)
+    *vals = append(*vals, node.Val)
+    inorder(node.Right, vals)
+}
+```
+
+Improvement: exit once we know it's a invalid BST.
+
+```go
+func isValidBST(root *TreeNode) bool {
+    if root == nil {
+        return true
+    }
+    vals := make([]int, 0)
+    return inorder(root, &vals)
+}
+
+func inorder(node *TreeNode, vals *[]int) bool {
+    if node == nil {
+        return true
+    }
+    if !inorder(node.Left, vals) {
+        return false
+    }
+    if len(*vals) > 0 && node.Val <= (*vals)[len(*vals)-1] {
+        return false
+    }
+    *vals = append(*vals, node.Val)
+    if !inorder(node.Right, vals) {
+        return false
+    }
+    return true
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+(2) Accepted
+
+Iterative solution.
+
+```go
+func isValidBST(root *TreeNode) bool {
+    if root == nil {
+        return true
+    }
+    stack := make([]*TreeNode, 0)
+    var pre, cur *TreeNode
+    for node := root; node != nil || len(stack) > 0; {
+        for ; node != nil; node = node.Left {
+            stack = append(stack, node)
+        }
+        cur = stack[len(stack)-1]
+        stack = stack[:len(stack)-1]
+        if pre != nil && pre.Val >= cur.Val {
+            return false
+        }
+        node, pre = cur.Right, cur
+    }
+    return true
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+## [102. Binary Tree Level Order Traversal](https://leetcode.com/problems/binary-tree-level-order-traversal/)
+
+Given a binary tree, return the level order traversal of its nodes' values. (ie, from left to right, level by level).
+
+For example:
+```
+Given binary tree [3,9,20,null,null,15,7],
+    3
+   / \
+  9  20
+    /  \
+   15   7
+```
+return its level order traversal as:
+```
+[
+  [3],
+  [9,20],
+  [15,7]
+]
+```
+
+**Solution**
+
+```go
+func levelOrder(root *TreeNode) [][]int {
+    if root == nil {
+        return nil
+    }
+    
+    res := make([][]int, 0)
+    queue := []*TreeNode{root}
+    for len(queue) > 0 {
+        curLevel := make([]int, 0)
+        // traverse current level
+        // count indicates the number of nodes in current level
+        for count := len(queue); count > 0; count-- {
+            node := queue[0]
+            queue = queue[1:]
+            curLevel = append(curLevel, node.Val)
+            if node.Left != nil {
+                queue = append(queue, node.Left)
+            }
+            if node.Right != nil {
+                queue = append(queue, node.Right)
+            }
+        }
+        res = append(res, curLevel)
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n)$ where n is the number of nodes
+- Space complexity: $O(n)$
+
+**Recap**
+
+In above code, the queue contains all nodes of current level at the beginning of every outer loop.
+
+## [103. Binary Tree Zigzag Level Order Traversal](https://leetcode.com/problems/binary-tree-zigzag-level-order-traversal/)
+
+Given a binary tree, return the zigzag level order traversal of its nodes' values. (ie, from left to right, then right to left for the next level and alternate between).
+
+For example:
+Given binary tree `[3,9,20,null,null,15,7]`,
+```
+    3
+   / \
+  9  20
+    /  \
+   15   7
+```
+return its zigzag level order traversal as:
+```
+[
+  [3],
+  [20,9],
+  [15,7]
+]
+```
+
+**Solution**
+
+We traverse the 1st level from left to right, 2nd level from right to left, 3rd level from left to right and so on. Be careful that relative order of each level should be remained.
+
+```go
+func zigzagLevelOrder(root *TreeNode) [][]int {
+    if root == nil {
+        return [][]int{}
+    }
+    
+    res := make([][]int, 0)
+    queue := []*TreeNode{root}
+    LTR := true
+    for len(queue) > 0 {
+        count := len(queue)
+        row := make([]int, count)
+        for i := 0; i < count; i++ {
+            node := queue[0]
+            queue = queue[1:]
+            // Find the position of current node
+            var index int
+            if LTR {
+                index = i
+            } else {
+                // Just reverse it
+                index = count - 1 - i
+            }
+            row[index] = node.Val
+            
+            if node.Left != nil {
+                queue = append(queue, node.Left)
+            } 
+            if node.Right != nil {
+                queue = append(queue, node.Right)
+            }
+        }       
+        LTR  = !LTR
+        res = append(res, row)
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+## [105. Construct Binary Tree from Preorder and Inorder Traversal](https://leetcode.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/)
+
+Given preorder and inorder traversal of a tree, construct the binary tree.
+
+Note:
+You may assume that duplicates do not exist in the tree.
+
+For example, given
+```
+preorder = [3,9,20,15,7]
+inorder = [9,3,15,20,7]
+```
+Return the following binary tree:
+```
+    3
+   / \
+  9  20
+    /  \
+   15   7
+```
+
+**Solution**
+
+Note that below code modified input data.
+
+```go
+func buildTree(preorder []int, inorder []int) *TreeNode {
+	return build(&preorder, inorder)
+}
+
+func build(preorder *[]int, inorder []int) *TreeNode {
+	if len(inorder) == 0 {
+		return nil
+	}
+
+	rootVal := (*preorder)[0]
+	*preorder = (*preorder)[1:]
+    idxOfRoot := 0
+	for i, v := range inorder {
+		if v == rootVal {
+			idxOfRoot = i
+			break
+		}
+	}
+	return &TreeNode{
+		rootVal,
+		build(preorder, inorder[0:idxOfRoot]),
+		build(preorder, inorder[idxOfRoot+1:]),
+	}
+}
+```
+
+- Time complexity: $O(n)$?
+- Space complexity: $O(1)$
+
+## []
 
 # Segment Tree
 
@@ -11750,7 +12156,7 @@ func min(a, b int) int {
 - Time complexity: $O(l1×l2)$ where l1 is the length of word1 and l2 is the length of word2.
 - Space complexity: $O(l1×l2)$
 
-(2) 
+(2) Accepted
 
 Recursion with memoization.
 

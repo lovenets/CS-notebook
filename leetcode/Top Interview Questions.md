@@ -1734,7 +1734,7 @@ func sortColors(nums []int)  {
         case 2:
             nums[i], nums[blue] = nums[blue], nums[i]
             blue--
-            i-- // tricky
+            i-- // tricky, it's to handle the case where nums[i] is still a 2 after swapping nums[i] and nums[blue]
         }
     } 
 }
@@ -2593,6 +2593,176 @@ func oddEvenList(head *ListNode) *ListNode {
 	}
 	odd.Next = evenFirst
 	return head
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+## [448. Find All Numbers Disappeared in an Array](https://leetcode.com/problems/find-all-numbers-disappeared-in-an-array/)
+
+Given an array of integers where 1 ≤ a[i] ≤ n (n = size of array), some elements appear twice and others appear once.
+
+Find all the elements of [1, n] inclusive that do not appear in this array.
+
+Could you do it without extra space and in O(n) runtime? You may assume the returned list does not count as extra space.
+
+Example:
+```
+Input:
+[4,3,2,7,8,2,3,1]
+
+Output:
+[5,6]
+```
+
+**Solution**
+
+(1) Accepted
+
+```
+func findDisappearedNumbers(nums []int) []int {
+    if len(nums) == 0 {
+        return nil
+    }
+    present := make(map[int]bool)
+    for i := range nums {
+        present[nums[i]] = true
+    }
+    res := make([]int, 0)
+    for i := 1; i <= len(nums); i++ {
+        if !present[i] {
+            res = append(res, i)
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+(2) Accepted
+
+This is a neat trick.
+
+Each time when a new value X is read, it changes the corresponding Xth number (value at index X-1) into negative, indicating value X is read for the first time.
+
+For example. using the given test case `[4,3,2,7,8,2,3,1]`, when it comes to i = 2 in the first loop, this solution marks the 2nd number (index = 1), indicating we've found number 2 for the first time.
+
+The second loop checks the signs of the values at indices. If the sign at index P is negative, it means value P + 1 is in the array. e.g. `nums[0] = -4`, so value 0+1 = 1 is in the array. If the value at index Q is positive, then value Q + 1 is not in the array. e.g. `nums[4] = 8 > 0`, value 4 + 1 = 5, we add 5 into the result list.
+
+```go
+func findDisappearedNumbers(nums []int) []int {
+    if len(nums) == 0 {
+        return nil
+    }
+    for _, num := range nums {
+        // num-1 avoid index out of range
+        if idx := int(math.Abs(float64(num)))-1; nums[idx] > 0 {
+            nums[idx] = -nums[idx]
+        }
+    }
+    res := make([]int, 0)
+    for i := range nums {
+        if nums[i] > 0 {
+            res = append(res, i+1)
+        }
+    }
+    return res
+}
+```
+
+## [581. Shortest Unsorted Continuous Subarray](https://leetcode.com/problems/shortest-unsorted-continuous-subarray/)
+
+Given an integer array, you need to find one continuous subarray that if you only sort this subarray in ascending order, then the whole array will be sorted in ascending order, too.
+
+You need to find the shortest such subarray and output its length.
+
+Example 1:
+```
+Input: [2, 6, 4, 8, 10, 9, 15]
+Output: 5
+Explanation: You need to sort [6, 4, 8, 10, 9] in ascending order to make the whole array sorted in ascending order.
+```
+Note:
+
+1. Then length of the input array is in range [1, 10,000].
+2. The input array may contain duplicates, so ascending order here means <=.
+
+**Solution**
+
+(1) Accepted
+
+Sort the array and compare sorted one and original one. The length of subarray which we want is `end-begin+1` where `begin` and `end` are the first and last indices at which two elements of `nums` and `nums_sorted` are different.
+
+```go
+func findUnsortedSubarray(nums []int) int {
+    if len(nums) == 0 {
+        return 0
+    }
+    sorted := make([]int, len(nums))
+    copy(sorted, nums)
+    sort.Ints(sorted)
+    begin, end := -1, -2
+    for i := 0; i < len(nums); i++ {
+        if begin == -1 && nums[i] != sorted[i] {
+            begin = i
+            break
+        }
+    }
+    for j := len(nums)-1; j >= 0; j-- {
+        if end == -2 && nums[j] != sorted[j] {
+            end = j
+            break
+        }
+    }
+    return end - begin + 1
+}
+```
+
+- Time complexity: $O(nlogn)$
+- Space complexity: $O(n)$
+
+(2) 
+
+It turns out that the two boundary indices i and j can be found in linear time, if we take advantage of the following three properties:
+
+- `nums[0, i - 1]` and `nums[j + 1, n - 1]` are both sorted.
+
+- `nums[i] != nums_sorted[i]` and `nums[j] != nums_sorted[j]`.
+
+- `nums[i - 1] <= min` and `max <= nums[j + 1]`, where min and max are the minimum and maximum values of subarray `nums[i, j]`.
+
+The first and third properties guarantee that the subarray `nums[0, i - 1]` will be exactly the same as subarray `nums_sorted[0, i - 1]`, and the subarray `nums[j + 1, n - 1]` exactly the same as `nums_sorted[j + 1, n - 1]`, while the second property ensures that `i` will be the first index at which the two elements of `nums` and `nums_sorted` are different and `j` be the last such index.
+
+Since we aim at the shortest subarrays, from the first property alone, we need to find the two longest sorted subarrays starting at index 0 and ending at index n - 1, respectively. Assume the two subarrays are `nums[0, l]` and `nums[r, n - 1]`. If there is overlapping between these two subarrays, i.e. `l >= r`, then the whole array is sorted so 0 will be returned. Otherwise, the input array is not sorted. However, we cannot say sorting `nums[l, r]` will leave the whole array sorted, because at this moment the third property may not be satisfied.
+
+To guarantee the third property, assume min and max are the minimum and maximum values of subarray `nums[l, r]`, then we need to decrease `l` as long as `nums[l] > min`, and increase `r` as long as `nums[r] < max`. After this is done, it can be shown that the second property will be met automatically, and `nums[l + 1, r - 1]` will be the shortest subarray we are looking for (that is, `i = l + 1` and `j = r - 1`).
+
+```go
+func findUnsortedSubarray(nums []int) int {
+    l, r := 0, len(nums)-1
+    for ; l < r && nums[l] <= nums[l+1]; l++ {
+    }
+    if l >= r {
+        return 0
+    }
+    for ; nums[r] >= nums[r-1]; r-- {
+    }
+    max, min := math.MinInt64, math.MaxInt64
+    for k := l; k <= r; k++ {
+        if nums[k] > max {
+            max = nums[k]
+        } else if nums[k] < min {
+            min = nums[k]
+        }
+    }
+    for ; l >= 0 && min < nums[l]; l-- {
+    }
+    for ; r < len(nums) && max > nums[r]; r++ {
+    }
+    return r - l - 1
 }
 ```
 
@@ -3866,11 +4036,14 @@ func minMeetingRooms(intervals [][]int) int {
     count := 0
     for _, interval := range intervals {
         if intHeap.Len() == 0 {
+            // Corner case
             count++
         } else {
             if interval[0] >= (*intHeap)[0] {
+                // Reuse the same room
                 heap.Pop(intHeap)
             } else {
+                // Need a new room
                 count++
             }
         }
@@ -7335,6 +7508,90 @@ func mergeTrees(t1 *TreeNode, t2 *TreeNode) *TreeNode {
 - Time complexity: $O(n)$
 - Space complexity: $O(1)$
 
+## [437. Path Sum III](https://leetcode.com/problems/path-sum-iii/)
+
+You are given a binary tree in which each node contains an integer value.
+
+Find the number of paths that sum to a given value.
+
+The path does not need to start or end at the root or a leaf, but it must go downwards (traveling only from parent nodes to child nodes).
+
+The tree has no more than 1,000 nodes and the values are in the range -1,000,000 to 1,000,000.
+
+Example:
+```
+root = [10,5,-3,3,2,null,11,3,-2,null,1], sum = 8
+
+      10
+     /  \
+    5   -3
+   / \    \
+  3   2   11
+ / \   \
+3  -2   1
+
+Return 3. The paths that sum to 8 are:
+
+1.  5 -> 3
+2.  5 -> 2 -> 1
+3. -3 -> 11
+```
+
+**Solution**
+
+(1) Accepted
+
+```go
+func pathSum(root *TreeNode, sum int) int {
+    if root == nil {
+        return 0
+    }
+    return pathSumFrom(root, sum) + pathSum(root.Left, sum) + pathSum(root.Right, sum)
+}
+
+func pathSumFrom(root *TreeNode, sum int) int {
+    if root == nil {
+        return 0
+    }
+    count := 0
+    if root.Val == sum {
+        count++
+    }
+    return count + pathSumFrom(root.Left, sum-root.Val) + pathSumFrom(root.Right, sum-root.Val)
+}
+```
+
+- Time complexity: $O(n^2)$ at worst.
+- Space complexity: $O(n)$
+
+(2) Accepted
+
+Memoization.
+
+```go
+func pathSum(root *TreeNode, sum int) int {
+    res := 0
+    memo := map[int]int{0: 1}
+    dfs(root, sum, 0, memo, &res)
+    return res
+}
+
+func dfs(root *TreeNode, target int, cur int, memo map[int]int, res  *int) {
+    if root == nil {
+        return
+    }
+    cur += root.Val
+    *res += memo[cur-target]
+    memo[cur]++
+    dfs(root.Left, target, cur, memo, res)
+    dfs(root.Right, target, cur, memo, res)
+    memo[cur]--
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
 # Segment Tree
 
 ## [218. The Skyline Problem](<https://leetcode.com/problems/the-skyline-problem/>)
@@ -9604,7 +9861,7 @@ func largestNumber(nums []int) string {
 
 The `Less(i, j)`function of `sort.Interface`means whether the element with index i should sort before the element with index j.
 
-## [342. Wiggle Sort II](<https://leetcode.com/problems/wiggle-sort-ii/>)
+## [324. Wiggle Sort II](<https://leetcode.com/problems/wiggle-sort-ii/>)
 
 Given an unsorted array `nums`, reorder it such that `nums[0] < nums[1] > nums[2] < nums[3]...`.
 
@@ -9655,7 +9912,62 @@ func wiggleSort(nums []int)  {
 }
 ```
 
+## [4. Median of Two Sorted Arrays](https://leetcode.com/problems/median-of-two-sorted-arrays/)
 
+There are two sorted arrays nums1 and nums2 of size m and n respectively.
+
+Find the median of the two sorted arrays. The overall run time complexity should be O(log (m+n)).
+
+You may assume nums1 and nums2 cannot be both empty.
+
+Example 1:
+```
+nums1 = [1, 3]
+nums2 = [2]
+
+The median is 2.0
+```
+Example 2:
+```
+nums1 = [1, 2]
+nums2 = [3, 4]
+
+The median is (2 + 3)/2 = 2.5
+```
+
+**Solution**
+
+Merge them and find the median.
+
+```go
+func findMedianSortedArrays(nums1 []int, nums2 []int) float64 {
+	mergedSlice := make([]int, 0, len(nums1)+len(nums2))
+	i, j := 0, 0
+	for ; i < len(nums1) && j < len(nums2); {
+		if nums1[i] < nums2[j] {
+			mergedSlice = append(mergedSlice, nums1[i])
+			i++
+		} else {
+			mergedSlice = append(mergedSlice, nums2[j])
+			j++
+		}
+	}
+	for ; i < len(nums1); i++ {
+		mergedSlice = append(mergedSlice, nums1[i])
+	}
+	for ; j < len(nums2); j++ {
+		mergedSlice = append(mergedSlice, nums2[j])
+	}
+	if m := len(mergedSlice) / 2; len(mergedSlice)%2 == 0 {
+		return float64(mergedSlice[m]+mergedSlice[m-1]) / 2
+	} else {
+		return float64(mergedSlice[m])
+	}
+}
+```
+
+- Time complexity: $O(m+n)$
+- Space complexity: $O(m+n)$
 
 # Binary Search
 

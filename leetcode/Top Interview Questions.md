@@ -5579,7 +5579,7 @@ Explanation: The number "-91283472332" is out of the range of a 32-bit signed in
 
 **Solution**
 
-The problem itself is not so comlicated. We just need to handle some corner cases.
+The problem itself is not so complicated. We just need to handle some corner cases.
 
 ```go
 func myAtoi(str string) int {
@@ -5752,7 +5752,7 @@ func longestCommonPrefix(strs []string) string {
 	for i := 1; i < len(strs); i++ {
 		for !strings.HasPrefix(strs[i], pre) {
 			if pre = pre[0 : len(pre)-1]; pre == "" {
-                return res
+                return pre
             }
  		}
 	}
@@ -9038,6 +9038,172 @@ func titleToNumber(s string) int {
 		res = res*26 + int(s[i]-'A'+1)
 	}
 	return res
+}
+```
+
+## [18. 4Sum](https://leetcode.com/problems/4sum/)
+
+Given an array nums of n integers and an integer target, are there elements a, b, c, and d in nums such that a + b + c + d = target? Find all unique quadruplets in the array which gives the sum of target.
+
+Note:
+
+The solution set must not contain duplicate quadruplets.
+
+Example:
+```
+Given array nums = [1, 0, -1, 0, -2, 2], and target = 0.
+
+A solution set is:
+[
+  [-1,  0, 0, 1],
+  [-2, -1, 1, 2],
+  [-2,  0, 0, 2]
+]
+```
+
+**Solution**
+
+(1) Accepted
+
+```go
+func fourSum(nums []int, target int) [][]int {
+	if len(nums) < 4 {
+		return nil
+	}
+	sort.Ints(nums)
+	res := make([][]int, 0)
+	for i := 0; i < len(nums)-3; {
+		for j := i + 1; j < len(nums)-2; {
+			l, r := j+1, len(nums)-1
+			for l < r {
+				if sum := nums[i] + nums[j] + nums[l] + nums[r]; sum == target {
+					res = append(res, []int{nums[i], nums[j], nums[l], nums[r]})
+					for l < r && nums[l] == nums[l+1] {
+						l++
+					}
+					l++
+					for l < r && nums[r] == nums[r-1] {
+						r--
+					}
+					r--
+				} else if sum < target {
+					l++
+				} else {
+					r--
+				}
+			}
+			for j < len(nums)-2 && nums[j] == nums[j+1] {
+				j++
+			}
+			j++
+		}
+		for i < len(nums)-3 && nums[i] == nums[i+1] {
+			i++
+		}
+		i++
+	}
+	return res
+}
+```
+
+- Time complexity: $O(n^3)$
+- Space complexity: $O(n)$
+
+(2) Accepted
+
+Reduce a 4-sum problem to serveral 2-sum problems.
+
+```go
+func fourSum(nums []int, target int) [][]int {
+	if len(nums) < 4 {
+		return nil
+	}
+	sort.Ints(nums)
+	res := make([][]int, 0)
+	findSum(nums, target, 4, make([]int, 0), &res)
+	return res
+}
+
+func findSum(sorted []int, target int, n int, tmp []int, result *[][]int) {
+	if len(sorted) < n || n < 2 || target < sorted[0]*n || target > sorted[len(sorted)-1]*n {
+		// Since the slice is sorted, we can do some optimization
+		return
+	}
+	if n == 2 {
+		// 2Sum problem
+		l, r := 0, len(sorted)-1
+		for l < r {
+			if sum := sorted[l] + sorted[r]; sum == target {
+				*result = append(*result, append(tmp, sorted[l], sorted[r]))
+				for l < r && sorted[l] == sorted[l+1] {
+					l++
+				}
+				l++
+				for l < r && sorted[r] == sorted[r-1] {
+					r--
+				}
+				r--
+			} else if sum < target {
+				l++
+			} else {
+				r--
+			}
+		}
+	} else {
+		// Reduce the problem to 2Sum
+		for i := 0; i < len(sorted)-n+1; i++ {
+			if i == 0 || (i > 0 && sorted[i] != sorted[i-1]) {
+				findSum(sorted[i+1:], target-sorted[i], n-1, append(tmp, sorted[i]), result)
+			}
+		}
+	}
+}
+```
+
+- Time complexity: ?
+- Space complexity: ?
+
+**Recap**
+
+We can reduce k-sum problem to sorted 2-sum problems.
+
+```go
+func kSum(nums[] int, k int, target int) [][]int {
+    sort.Ints(nums)
+    res := make([][]int, 0)
+    findSum(nums, k, target, make([]int, 0), &res)
+    return res
+}
+
+func findSum(nums []int, k int, target int, tmp []int, res *[][]int) {
+    if len(nums) < k || k < 2 || target < nums[0]*k || target > nums[len(nums)-1]*k {
+        return
+    }
+    if k != 2 {
+        for i := 0; i < len(nums)-k+1; i++ {
+            // nums[i-1] != nums[i] is to skip duplicate
+            if i == 0 || (i > 0 && nums[i-1] != nums[i]) {
+                findSum(nums[i+1:], k-1, target-nums[i], append(tmp, nums[i]), res)
+            }
+        }
+        return
+    }
+    // sorted 2-sum problem
+    left, right := 0, len(nums)-1
+    for left < right {
+        if sum := nums[left]+nums[right]; sum == target {
+            *res = append(*res, append(tmp, nums[left], nums[right]))
+            // skip duplicates
+            // NOTE: some problems define "duplicates" as elements with same value 
+            // while other problems define "duplicates" as elements with same index
+            for left++; left < right && nums[left] == nums[left-1]; left++ {
+            }
+        } else if sum < target {
+            left++
+        } else {
+            right--
+        }
+    }
 }
 ```
 

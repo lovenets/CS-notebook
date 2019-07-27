@@ -242,7 +242,7 @@ func BinarySearch(nums []int, target int) int {
 ```go
 type BSTNode struct {
     Key   int
-    Val   int
+    Val   interface{}
     Left  *BSTNode
     Right *BSTNode
 }
@@ -261,7 +261,7 @@ func search(key int, root *BSTNode) int {
     return cur
 }
 
-func insert(root *BSTNode, key int, value int) *BSTNode {
+func insert(root *BSTNode, key int, value interface{}) *BSTNode {
     if root == nil {
         return &BSTNode{key, value, nil, nil}
     }
@@ -460,7 +460,7 @@ func bfs(g [][]int, start int) {
 
 #### Key Points
 
-- If there are n vertices in the graph, then each spanning tree has n âˆ’ 1 edges.
+- If there are n vertices in the graph, then each spanning tree has n-1 edges.
 
 - If each edge has a distinct weight then there will be only one, unique minimum spanning tree.
 
@@ -508,7 +508,7 @@ func kruskal(g []Edge) []Edge {
             }
         }
         res = append(res, min)
-        inMST[e.To] = true
+        inMST[min.To] = true
     }
     return res
 }
@@ -583,9 +583,9 @@ func Kruskal(g []Edge) []Edge {
 
 - Dijkstra's algorithm solves the single-source shortest path problem with **non-negative** edge weight.
 
-- Floyd–Warshall algorithm solves all pairs shortest paths in graphs which contain **no negative cycles**.
+- Floyd-Warshall algorithm solves all pairs shortest paths in graphs which contain **no negative cycles**.
 
-- Bellman–Ford algorithm/SPFA solves the single-source problem if edge weights **may be negative**.
+- Bellman-Ford algorithm/SPFA solves the single-source problem if edge weights **may be negative**.
 
 - Don't forget BFS can find shortest paths in **unweighted** graphs.
 

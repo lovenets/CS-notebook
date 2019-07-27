@@ -5271,6 +5271,8 @@ Output: false
 
 **Solution**
 
+(1) Accepted
+
 I don't know why but it works...
 
 ```go
@@ -5305,6 +5307,82 @@ func isMatch(str string, pattern string) bool {
 
 - Time complexity: $O(len(str)+len(pattern))$
 - Space complexity: $O(1)$
+
+(2) Accepted
+
+We can use DP to solve this problem.
+
+DP Initialization:
+```
+Let T[i][j] is true if first i characters in given string matches the first j characters of pattern.
+
+// both text and pattern are null
+T[0][0] = true; 
+
+// pattern is null
+T[i][0] = false; 
+
+// text is null
+T[0][j] = T[0][j - 1] if pattern[j – 1] is '*'  
+```
+
+DP relation :
+```
+// If current characters match, result is same as 
+// result for lengths minus one. Characters match
+// in two cases:
+// a) If pattern character is '?' then it matches  
+//    with any character of text. 
+// b) If current characters in both match
+if ( pattern[j – 1] == ‘?’) || 
+     (pattern[j – 1] == text[i - 1])
+    T[i][j] = T[i-1][j-1]   
+ 
+// If we encounter ‘*’, two choices are possible-
+// a) We ignore ‘*’ character and move to next 
+//    character in the pattern, i.e., ‘*’ 
+//    indicates an empty sequence.
+// b) '*' character matches with ith character in
+//     input 
+else if (pattern[j – 1] == ‘*’)
+    T[i][j] = T[i][j-1] || T[i-1][j]  
+
+else // if (pattern[j – 1] != text[i - 1])
+    T[i][j]  = false 
+```
+
+```go
+func isMatch(str string, pattern string) bool {
+    if len(pattern) == 0 {
+        return len(str) == 0
+    }
+    dp := make([][]bool, len(str)+1)
+    for i := range dp {
+        dp[i] = make([]bool, len(pattern)+1)
+    }
+    dp[0][0] = true
+    for i := 1; i <= len(pattern); i++ {
+        if pattern[i-1] == '*' {
+            dp[0][i] = dp[0][i-1]
+        }
+    }
+    for i := 1; i <= len(str); i++ {
+        for j := 1; j <= len(pattern); j++ {
+            if pattern[j-1] == '*' {
+                dp[i][j] = dp[i][j-1] || dp[i-1][j]
+            } else if pattern[j-1] == '?' || pattern[j-1] == str[i-1] {
+                dp[i][j] = dp[i-1][j-1]
+            } else {
+                dp[i][j] = false
+            }
+        }
+    }
+    return dp[len(str)][len(pattern)]
+}
+```
+
+- Time complexity: $O(m×n)$ where m is the length of `str` and n is the length of `pattern`
+- Space complexity: $O(m×n)$
 
 ## [17. Letter Combinations of a Phone Number](https://leetcode.com/problems/letter-combinations-of-a-phone-number/)
 

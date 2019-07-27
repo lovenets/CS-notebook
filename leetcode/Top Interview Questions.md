@@ -1879,6 +1879,111 @@ func (v *Vector2D) HasNext() bool {
   - `Next()`: $O(1)$, `HasNext()`: $O(1)$
 - Space complexity: $O(1)$
 
+## 163. Missing Ranges
+
+Given a sorted integer array nums, where the range of elements are in the inclusive range `[lower, upper]`, return its missing ranges.
+
+Example:
+```
+Input: nums = [0, 1, 3, 50, 75], lower = 0 and upper = 99,
+Output: ["2", "4->49", "51->74", "76->99"]
+```
+
+**Solution**
+
+(1) 
+
+If the gap between two adjacent numbers is greater than 1, there should be missing some numbers.
+
+```go
+func findMissingRanges(nums []int, lower int, upper int) []string {
+    if len(nums) == 0 || lower >= upper {
+        return ""
+    }
+
+    // Be careful that input array may contain duplicates
+    getRange := func(left, right int) string {
+        if gap := right-left; gap == 1 {
+            return ""
+        } else if gap == 2 {
+            return strconv.Itoa(left+1)
+        } else if gap > 2 {
+            return fmt.Sprintf("%d->%d", left+1, right-1)
+        }
+    }
+
+    res := make([]string, 0)
+    for i := 1; i < len(nums); i++ {
+        tmp := getRange(nums[i-1], nums[i])
+        if tmp == "" {
+            continue
+        }
+        res = append(res, tmp)
+    }
+    if nums[0] != lower {
+        res = append([]string{getRange(lower-1, nums[0])}, res...)
+    }
+    if nums[len(nums)-1] != upper {
+        res = append(res, getRange(nums[len(nums)-1], upper+1))
+    }
+    return res
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
+(2) 
+
+Initialize another variable `next = lower`.
+
+1. If `nums[i]< next`: we jump to next num to check if it’s in range.
+2. If `nums[i]== next`: it means we find the first num in range. We increment the next target by one.
+3. If `nums[i] > next`: Add the missing range `[next, nums[i] — 1]`. Update the next value to `nums[i] + 1`.
+4. After we finished the above loop, we need to double check the final next value. If next ≤ upper, we still have a missing range `[next, upper]` to add.
+
+```go
+func findMissingRanges(nums []int, lower int, upper int) []string {
+    if len(nums) == 0 || lower >= upper {
+        return ""
+    }
+    res := make([]string, 0)
+    if lower == math.MaxInt64 {
+        return res
+    }
+    next := lower
+    for i := range nums {
+        if nums[i] < next {
+            continue
+        }
+        if nums[i] == next {
+            next++
+            continue
+        }
+        res = append(res, getRange(next, nums[i]-1))
+        if nums[i] == math.MaxInt64 {
+            return res
+        }
+        next = nums[i] + 1
+    }
+    if next <= upper {
+        res = append(res, getRange(next, upper))
+    }
+    return res
+}
+
+func getRange(a, b int) string {
+    if a == b {
+        return strconv.Itoa(a)
+    } else {
+        return fmt.Sprintf("%d->%d", a, b)
+    }
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
+
 # Linked List
 
 ## [138. Copy List with Random Pointer](<https://leetcode.com/problems/copy-list-with-random-pointer/>)
@@ -6135,6 +6240,121 @@ func longestValidParentheses(s string) int {
 - Time complexity: $O(n)$
 - Space complexity: $O(n)$
 
+## [438. Find All Anagrams in a String](https://leetcode.com/problems/find-all-anagrams-in-a-string/)
+
+Given a string s and a non-empty string p, find all the start indices of p's anagrams in s.
+
+Strings consists of lowercase English letters only and the length of both strings s and p will not be larger than 20,100.
+
+The order of output does not matter.
+
+Example 1:
+```
+Input:
+s: "cbaebabacd" p: "abc"
+
+Output:
+[0, 6]
+
+Explanation:
+The substring with start index = 0 is "cba", which is an anagram of "abc".
+The substring with start index = 6 is "bac", which is an anagram of "abc".
+```
+Example 2:
+```
+Input:
+s: "abab" p: "ab"
+
+Output:
+[0, 1, 2]
+
+Explanation:
+The substring with start index = 0 is "ab", which is an anagram of "ab".
+The substring with start index = 1 is "ba", which is an anagram of "ab".
+The substring with start index = 2 is "ab", which is an anagram of "ab".
+```
+
+**Solution**
+
+(1) Time Limit Exceeded
+
+Brute-Force.
+
+```go
+func findAnagrams(s string, p string) []int {
+    if len(s) < len(p) || len(p) == 0 {
+        return nil
+    }
+    res := make([]int, 0)
+    l := len(p)
+    for i := 0; i <= len(s)-l; i++ {
+        if isAnagram(s[i:i+l], p) {
+            res = append(res, i)
+        }
+    }
+    return res
+}
+
+func isAnagram(s, p string) bool {
+    m := make(map[byte]int)
+    for i := range s {
+        m[s[i]]++
+    }
+    count := 0
+    for i := range p {
+        if _, ok := m[p[i]]; !ok {
+            return false
+        }
+        if m[p[i]]--; m[p[i]] < 0 {
+            return false
+        } else if m[p[i]] == 0 {
+            count++
+        }
+    }
+    return count == len(m)
+}
+```
+
+- Time complexity: $O((len(s)-len(p)+1)×len(p))$
+- Space complexity: $O(len(p))$
+
+(2) 
+
+This is another subsrting problem which can be solved by sliding window.
+
+```go
+func findAnagrams(s string, p string) []int {
+    if len(s) < len(p) {
+        return nil
+    }
+    m := make(map[byte]int)
+    for i := range p {
+        m[p[i]]++
+    }
+    notFound := len(m)
+    res := make([]int, 0)
+    for beg, end, l := 0, 0, len(p); end < len(s); {
+        if m[s[end]]--; m[s[end]] == 0 {
+            notFound--
+        }
+        end++
+        for notFound == 0 {
+            if m[s[beg]]++; m[s[beg]] > 0 {
+                notFound++
+            }
+            if end-beg == l {
+                res = append(res, beg)
+            }
+            beg++
+        }
+    }
+    return res
+}
+```
+
+- Time complexity: $O(len(s))$
+- Space complexity: $O(len(p))$
+
 # Tree
 
 ## [230. Kth Smallest Element in a BST](<https://leetcode.com/problems/kth-smallest-element-in-a-bst/>)
@@ -7591,6 +7811,149 @@ func dfs(root *TreeNode, target int, cur int, memo map[int]int, res  *int) {
 
 - Time complexity: $O(n)$
 - Space complexity: $O(n)$
+
+## [337. House Robber III](https://leetcode.com/problems/house-robber-iii/)
+
+The thief has found himself a new place for his thievery again. There is only one entrance to this area, called the "root." Besides the root, each house has one and only one parent house. After a tour, the smart thief realized that "all houses in this place forms a binary tree". It will automatically contact the police if two directly-linked houses were broken into on the same night.
+
+Determine the maximum amount of money the thief can rob tonight without alerting the police.
+
+Example 1:
+```
+Input: [3,2,3,null,3,null,1]
+
+     3
+    / \
+   2   3
+    \   \ 
+     3   1
+
+Output: 7 
+Explanation: Maximum amount of money the thief can rob = 3 + 3 + 1 = 7.
+```
+Example 2:
+```
+Input: [3,4,5,1,3,null,1]
+
+     3
+    / \
+   4   5
+  / \   \ 
+ 1   3   1
+
+Output: 9
+Explanation: Maximum amount of money the thief can rob = 4 + 5 = 9.
+```
+
+**Solution**
+
+(1) Accepted
+
+Recursion without memoization.
+
+```go
+func rob(root *TreeNode) int {
+    if root == nil {
+        return 0
+    }
+    // Skip current node
+    tmp1 := rob(root.Left) + rob(root.Right)
+    // Pick current node and skip its children
+    var grandchildren int
+    if root.Left != nil && root.Right != nil {
+        grandchildren = rob(root.Left.Left) + rob(root.Left.Right) + rob(root.Right.Left) + rob(root.Right.Right)
+    } else if root.Left != nil {
+        grandchildren = rob(root.Left.Left) + rob(root.Left.Right)
+    } else if root.Right != nil {
+        grandchildren = rob(root.Right.Left) + rob(root.Right.Right)
+    }
+    tmp2 := root.Val + grandchildren
+    
+    if tmp1 > tmp2 {
+        return tmp1
+    } else {
+        return tmp2
+    }
+}
+```
+
+- Time complexity: $O(n^2)$
+- Space complexity: $O(1)$
+
+Improvement: recursion with memoization.
+
+```go
+func rob(root *TreeNode) int {
+    // memo[node]: The maximum value we get get starting from node
+    memo := make(map[*TreeNode]int)
+    return dfs(root, memo)
+}
+
+func dfs(root *TreeNode, memo map[*TreeNode]int) int {
+    if root == nil {
+        return 0
+    }
+    if res, ok := memo[root]; ok {
+        return res
+    }
+    // Skip current node
+    tmp1 := dfs(root.Left, memo) + dfs(root.Right, memo)
+    // Pick current node and skip its children
+    var grandchildren int
+    if root.Left != nil && root.Right != nil {
+        grandchildren = dfs(root.Left.Left, memo) + dfs(root.Left.Right, memo) + dfs(root.Right.Left, memo) + dfs(root.Right.Right, memo)
+    } else if root.Left != nil {
+        grandchildren = dfs(root.Left.Left, memo) + dfs(root.Left.Right, memo)
+    } else if root.Right != nil {
+        grandchildren = dfs(root.Right.Left, memo) + dfs(root.Right.Right, memo)
+    }
+    tmp2 := root.Val + grandchildren
+    
+    if tmp1 > tmp2 {
+        memo[root] = tmp1
+    } else {
+        memo[root] = tmp2
+    }
+    return memo[root]
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(n)$
+
+(2) Accepted
+
+Now let's take one step back and ask why we have overlapping subproblems. If you trace all the way back to the beginning, you'll find the answer lies in the way how we have defined `rob(root)`. For each tree root, there are two scenarios: it is robbed or is not. `rob(root)` does not distinguish between these two cases, so "information is lost as the recursion goes deeper and deeper", which results in repeated subproblems.
+
+Redefine `rob(root)` as a new function which will return an array of two elements, the first element of which denotes the maximum amount of money that can be robbed if root is not robbed, while the second element signifies the maximum amount of money robbed if it is robbed.
+
+Let's relate `rob(root)` to `rob(root.left)` and `rob(root.right)`..., etc. For the 1st element of `rob(root)`, we only need to sum up the larger elements of `rob(root.left)` and `rob(root.right)`, respectively, since root is not robbed and we are free to rob its left and right subtrees. For the 2nd element of `rob(root)`, however, we only need to add up the 1st elements of `rob(root.left)` and `rob(root.right)`, respectively, plus the value robbed from root itself, since in this case it's guaranteed that we cannot rob the nodes of `root.left` and `root.right`.
+
+```go
+func rob(root *TreeNode) int {
+    tmp1, tmp2 := dfs(root)
+    if tmp1 > tmp2 {
+        return tmp1
+    } else {
+        return tmp2
+    }
+}
+
+func dfs(root *TreeNode) (int, int) {
+    if root == nil {
+        return 0, 0
+    }
+    // Skip current node
+    pickLeft, skipLeft := dfs(root.Left)
+    pickRight, skipRight := dfs(root.Right)
+    // Pick current node
+    pickCur := root.Val + skipLeft + skipRight
+    return pickCur, int(math.Max(float64(pickLeft), float64(skipLeft)))+int(math.Max(float64(pickRight), float64(skipRight)))
+}
+```
+
+- Time complexity: $O(n)$
+- Space complexity: $O(1)$
 
 # Segment Tree
 
@@ -9968,6 +10331,69 @@ func findMedianSortedArrays(nums1 []int, nums2 []int) float64 {
 
 - Time complexity: $O(m+n)$
 - Space complexity: $O(m+n)$
+
+## [406. Queue Reconstruction by Height](https://leetcode.com/problems/queue-reconstruction-by-height/)
+
+Suppose you have a random list of people standing in a queue. Each person is described by a pair of integers `(h, k)`, where h is the height of the person and k is the number of people in front of this person who have a height greater than or equal to h. Write an algorithm to reconstruct the queue.
+
+Note:
+The number of people is less than 1,100.
+
+ 
+Example
+```
+Input:
+[[7,0], [4,4], [7,1], [5,0], [6,1], [5,2]]
+
+Output:
+[[5,0], [7,0], [5,2], [6,1], [4,4], [7,1]]
+```
+
+**Solution**
+
+The process is as follows:
+
+1. Pick out tallest group of people and sort them in a subarray (S). Since there's no other groups of people taller than them, therefore each guy's index will be just as same as his k value.
+2. For 2nd tallest group (and the rest), insert each one of them into (S) by k value. So on and so forth.
+
+E.g.
+```
+input: [[7,0], [4,4], [7,1], [5,0], [6,1], [5,2]]
+subarray after step 1: [[7,0], [7,1]]
+subarray after step 2: [[7,0], [6,1], [7,1]]
+...
+```
+
+```go
+type queue [][]int
+
+func (q queue) Len()int { return len(q) }
+
+func (q queue) Less(i, j int) bool {
+    if q[i][0] == q[j][0] {
+        return q[i][1] < q[j][1]
+    } else {
+        return q[i][0] > q[j][0]
+    }
+}
+
+func (q queue) Swap(i, j int) { q[i], q[j] = q[j], q[i] }
+
+func reconstructQueue(people [][]int) [][]int {
+    if len(people) == 0 {
+        return nil
+    }
+    sort.Sort(queue(people))
+    res := make([][]int, 0, len(people))
+    for _, p := range people {
+        res = append(res[:p[1]], append([][]int{p}, res[p[1]:]...)...)
+    } 
+    return res
+}
+```
+
+- Time complexity: $O(nlogn)$
+- Space complexity: $O(1)$
 
 # Binary Search
 

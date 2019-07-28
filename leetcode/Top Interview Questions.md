@@ -1173,6 +1173,11 @@ func contains(nums []int, num int) bool {
 Many backtracking problems can be solved by the same structure.
 
 ```go
+func foo() {
+    bakctrack(res, make([]int, 0, len(nums)), nums)
+}
+
+
 func backtrack(res *[][]int, tmp []int, nums []int) {
     // condition...
     for i := start; i < len(nums); i++ {
@@ -13649,6 +13654,149 @@ func burst(memo *[][]int, nums []int, left int, right int) int {
 **Recap**
 
 For most of DP problems, try to solve it in top-down fashion (recursion with memoization) at first. Then evolve our solution to iterative bottom-up fashion.
+
+## [Subset Sum](https://www.geeksforgeeks.org/subset-sum-problem-dp-25/)
+
+Given a set of non-negative integers, and a value sum, determine if there is a subset of the given set with sum equal to given sum.
+
+Example:
+```
+Input:  set[] = {3, 34, 4, 12, 5, 2}, sum = 9
+Output:  True  //There is a subset (4, 5) with sum 9.
+```
+
+**Solution**
+
+```go
+func subsetSum(nums []int, sum int) bool {
+    if len(nums) == 0 {
+        return false
+    }
+    // dp[i][j]: can first i elements sum to j?
+    dp := make([][]bool, len(nums)+1)
+    for i := range dp {
+		tmp := make([]bool, sum+1)
+		tmp[0] = true // 0 element of course can sum to 0
+        dp[i] = tmp
+    }
+    for i := 1; i <= len(nums); i++ {
+        for j := 1; j <= sum; j++ {
+            if j >= nums[i-1] {
+				// Skip nums[i-1] or take it
+                dp[i][j] = dp[i-1][j] || dp[i-1][j-nums[i-1]]
+            } else {
+				// Skip nums[i-1]
+                dp[i][j] = dp[i-1][j]
+            }
+        }
+    }
+    return dp[len(nums)][sum]
+}
+```
+
+- Time complexity: $O(m×n)$ where m is the length of array and m is sum
+- Space complexity: $O(m×n)$
+
+**Follow Up**
+
+What if we want to know how many different subsets can sum to target?
+
+```go
+func subsetSum2(nums []int, sum int) int {
+    if len(nums) == 0 {
+        return 0
+    }
+    // dp[i][j]: can first i elements sum to j?
+    dp := make([][]int, len(nums)+1)
+    for i := range dp {
+		tmp := make([]int, sum+1)
+		tmp[0] = 1 // 0 element of course can sum to 0
+        dp[i] = tmp
+    }
+    for i := 1; i <= len(nums); i++ {
+        for j := 1; j <= sum; j++ {
+            if j > nums[i-1] {
+				// Skip nums[i-1] or take it
+                dp[i][j] = dp[i-1][j] + dp[i-1][j-nums[i-1]]
+            } else if j == nums[i-1] {
+                // Tak it
+                dp[i][j] = dp[i-1][j] + 1
+            } else {
+                // Skip nums[i-1]
+                dp[i][j] = dp[i-1][j]
+            }
+        }
+    }
+    return dp[len(nums)][sum]
+}
+```
+
+What if we want to find out all valid subsets which sum to target? That will become combination sum problem.
+
+## [40. Combination Sum II](https://leetcode.com/problems/combination-sum-ii/)
+
+Given a collection of candidate numbers (candidates) and a target number (target), find all unique combinations in candidates where the candidate numbers sums to target.
+
+Each number in candidates may only be used once in the combination.
+
+Note:
+
+- All numbers (including target) will be positive integers.
+- The solution set must not contain duplicate combinations.
+
+Example 1:
+```
+Input: candidates = [10,1,2,7,6,1,5], target = 8,
+A solution set is:
+[
+  [1, 7],
+  [1, 2, 5],
+  [2, 6],
+  [1, 1, 6]
+]
+```
+Example 2:
+```
+Input: candidates = [2,5,2,1,2], target = 5,
+A solution set is:
+[
+  [1,2,2],
+  [5]
+]
+```
+
+
+**Solution**
+
+```go
+func combinationSum2(nums []int, target int) (result [][]int) {
+    sort.Ints(nums)
+    res := make([][]int, 0)
+    backtrack(nums, 0, target, 0, make([]int, 0, len(nums)), &res)
+    return res
+}
+
+
+func backtrack(nums []int, sum int, target int, start int, tmp []int, res *[][]int) {
+    if sum == target {
+        *res = append(*res, tmp)
+        return
+    }
+    for i := start; i < len(nums) && sum+nums[i] <= target; i++ {
+        if i > start && nums[i] == nums[i-1] {
+            // Skip duplicates
+            continue
+        }
+        _tmp := make([]int, len(tmp))
+        copy(_tmp, tmp)
+        _tmp = append(_tmp, nums[i])
+        backtrack(nums, sum+nums[i], target, i+1, _tmp, res)
+    }
+}
+```
+
+- Time complexity:?
+- Time complexity:?
 
 # Greedy
 

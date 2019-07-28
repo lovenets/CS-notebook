@@ -686,3 +686,67 @@ func KahnTopologicalSort(g [][]int) []int {
   - Top-down: Assuming that we have solved the whole problem, we figure out how we can get answers to sub-problems. Usually done recursively.
   - Bottom-up: We firstly slove sub-problems and then use answers to sub-problems to solve the whole problem. Usually done iteratively.
   - For efficiency, both need memoization.
+
+## Combination & Permutation
+
+### Definition
+
+- Permutation is the act of arranging the members of a set into a sequence or order, or, if the set is already ordered, rearranging (reordering) its elements
+- A combination is a selection of items from a collection, such that (unlike permutations) the order of selection does not matter.
+
+### Key Points
+
+- These two operations are typically implemented by backtracking.
+  - Backtracking means we make a choice at every step and then we look back to make another valid choice.
+
+### Code Template
+
+#### Combination
+
+```go
+// Generate all possible combinations
+func comination(nums []int) [][]int {
+    res := make([][]int, 0)
+    backtrack(nums, make([]int, 0, len(nums)), 0, &res)
+    return res
+}
+
+func backtrack(nums []int, tmp []int, start int, res *[][]int) {
+    if start == len(nums) {
+        *res = append(*res, tmp)
+        return
+    }
+    for i := start; i < len(nums); i++ {
+        _tmp := make([]int, len(tmp))
+        copy(_tmp, tmp)
+        _tmp = append(_tmp, nums[i])
+        backtrack(nums, _tmp, i+1, res)
+    }
+}
+```
+
+#### Permutation
+
+```go
+// Generate all possible permutations
+func permutation(nums []int) [][]int {
+    res := make([][]int, 0)
+    backtrack(nums, 0, &res)
+    return res
+}
+
+func backtrack(nums []int, i int, res *[][]int) {
+    if i == len(nums) {
+        tmp := make([]int, len(nums))
+        copy(tmp, nums)
+        *res = append(*res, tmp)
+        return
+    }
+    backtrack(nums, i+1, res)
+    for j := i+1; j < len(nums); j++ {
+        nums[i], nums[j] = nums[j], nums[i]
+        backtrack(nums, i+1, res)
+        nums[i], nums[j] = nums[j], nums[i]
+    }
+} 
+```

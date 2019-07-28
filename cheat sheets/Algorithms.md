@@ -142,6 +142,8 @@ func Heapsort(arr []int) []int {
 }
 
 // heapify will build a max-heap
+// If index starts from 0, arr[i]'s children are arr[2*i+1] and arr[2*i+2]
+// arr[i]'s parent is arr[i/2] OR arr[i/2-1] 
 func heapify(arr []int, root int) []int {
     for parent, child := root, root*2+1; child < len(arr); child = parent*2+1 {
         if child+1 < len(arr) && arr[child] < arr[child+1] {

@@ -237,7 +237,8 @@ func (uf *UnionFind) Merge(x, y int) {
 
 - In a max heap, for any given node C, if P is a parent node of C, then the key (the value) of P is greater than or equal to the key of C.
 - In a *min heap*, the key of P is less than or equal to the key of C.
-- The heap is one maximally efficient implementation of a [priority queue](https://en.wikipedia.org/wiki/Priority_queue).
+- The heap is one maximally efficient implementation of a [priority queue](https://en.wikipedia.org/wiki/Priority_queue)
+- In Go's heap package, a heap is a min-heap "by default".
 
 #### Big O Efficiency
 
